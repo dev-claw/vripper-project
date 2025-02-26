@@ -10,6 +10,7 @@ import me.vripper.host.Host
 import me.vripper.host.ImageMimeType
 import me.vripper.model.Settings
 import me.vripper.services.DataTransaction
+import me.vripper.services.VGAuthService
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils.getExtension
 import me.vripper.utilities.PathUtils.getFileNameWithoutExtension
@@ -21,7 +22,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.*
-import kotlin.Throws
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
 
@@ -30,6 +30,7 @@ internal class ImageDownloadRunnable(
 ) : KoinComponent, CheckedRunnable {
     private val log by LoggerDelegate()
     private val dataTransaction: DataTransaction by inject()
+    private val vgauthService: VGAuthService by inject()
     private val hosts: List<Host> = getKoin().getAll()
     var completed = false
     var stopped = false
@@ -46,6 +47,7 @@ internal class ImageDownloadRunnable(
                 if (post.status != Status.DOWNLOADING) {
                     post.status = Status.DOWNLOADING
                     dataTransaction.updatePost(post)
+                    vgauthService.leaveThanks(post)
                 }
             }
             log.debug("Getting image url and name from ${imageEntity.url} using ${imageEntity.host}")

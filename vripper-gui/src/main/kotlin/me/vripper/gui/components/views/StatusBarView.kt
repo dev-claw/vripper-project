@@ -18,7 +18,7 @@ import tornadofx.*
 class StatusBarView : View("Status bar") {
     private val logger by LoggerDelegate()
     private val widgetsController: WidgetsController by inject()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val grpcEndpointService: IAppEndpointService by di("remoteAppEndpointService")
     private val localEndpointService: IAppEndpointService by di("localAppEndpointService")
     private val remoteText = SimpleStringProperty()

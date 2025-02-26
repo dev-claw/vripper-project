@@ -18,7 +18,7 @@ import me.vripper.services.RetryPolicyService
 import me.vripper.services.SettingsService
 import me.vripper.services.VGAuthService
 import me.vripper.utilities.LoggerDelegate
-import me.vripper.utilities.executorService
+import me.vripper.utilities.downloadRunner
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -118,10 +118,6 @@ internal class DownloadService(
                 dataTransaction.updateImages(
                     toProcess.values.flatten()
                 )
-            }
-
-            toProcess.keys.forEach {
-                vgAuthService.leaveThanks(it)
             }
 
 
@@ -231,7 +227,7 @@ internal class DownloadService(
         log.debug("Scheduling a job for ${imageDownloadRunnable.imageEntity.url}")
         eventBus.publishEvent(QueueStateEvent(QueueState(runningCount(), pendingCount())))
         Failsafe.with<Any, RetryPolicy<Any>>(retryPolicyService.buildRetryPolicy("Failed to download ${imageDownloadRunnable.imageEntity.url}: "))
-            .with(executorService)
+            .with(downloadRunner)
             .onFailure {
                 log.error(
                     "Failed to download ${imageDownloadRunnable.imageEntity.url} after ${it.attemptCount} tries",

@@ -160,14 +160,14 @@
                 <executions>
                     <execution>
                         <id>compile</id>
-                        <phase>compile</phase>
+                        <phase>process-sources</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
-                  <jvmTarget>1.8</jvmTarget>
+                    <jvmTarget>21</jvmTarget>
                   <compilerPlugins>
                     <plugin>kotlinx-serialization</plugin>
                   </compilerPlugins>

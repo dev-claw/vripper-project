@@ -31,7 +31,7 @@ class VripperGuiApplication : App(
     private val log by LoggerDelegate()
     private var initialized = false
     private val widgetsController: WidgetsController by inject()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {
         APP_INSTANCE = this

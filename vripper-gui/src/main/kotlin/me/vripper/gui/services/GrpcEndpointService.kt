@@ -241,6 +241,7 @@ class GrpcEndpointService : IAppEndpointService {
                 password = settings.viperSettings.password,
                 thanks = settings.viperSettings.thanks,
                 host = settings.viperSettings.host,
+                requestLimit = settings.viperSettings.requestLimit,
             ),
             downloadSettings = DownloadSettings(
                 downloadPath = settings.downloadSettings.downloadPath,

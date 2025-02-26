@@ -20,6 +20,8 @@ data class ViperSettings(
     val password: String = "",
     val thanks: Boolean = false,
     val host: String = "https://vipergirls.to",
+    val requestLimit: Long = 4,
+    val fetchMetadata: Boolean = false,
 )
 
 @Serializable

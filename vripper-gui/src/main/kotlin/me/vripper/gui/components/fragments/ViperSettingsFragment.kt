@@ -2,6 +2,7 @@ package me.vripper.gui.components.fragments
 
 import atlantafx.base.controls.ToggleSwitch
 import javafx.collections.FXCollections
+import javafx.scene.control.Spinner
 import kotlinx.coroutines.*
 import me.vripper.gui.controller.SettingsController
 import me.vripper.gui.model.settings.ViperSettingsModel
@@ -11,7 +12,7 @@ import tornadofx.*
 class ViperSettingsFragment : Fragment("Viper Settings") {
     private val settingsController: SettingsController by inject()
     private val proxies = FXCollections.observableArrayList<String>()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var viperGirlsSettings: ViperSettings
     val viperSettingsModel = ViperSettingsModel()
 
@@ -25,16 +26,30 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
                 viperSettingsModel.password = viperGirlsSettings.password
                 viperSettingsModel.thanks = viperGirlsSettings.thanks
                 viperSettingsModel.host = viperGirlsSettings.host
+                viperSettingsModel.requestLimit = viperGirlsSettings.requestLimit
+                viperSettingsModel.fetchMetadata = viperGirlsSettings.fetchMetadata
                 proxies.addAll(settingsController.getProxies())
             }.await()
             runLater {
                 with(root) {
                     form {
                         fieldset {
-                            field("Select a proxy") {
+                            field("Viper domain") {
                                 combobox(viperSettingsModel.hostProperty, proxies)
                             }
-                            field("Enable ViperGirls Authentication") {
+                            field("Rate limit (requests/s)") {
+                                add(Spinner<Int>(1, 6, viperGirlsSettings.requestLimit.toInt()).apply {
+                                    viperSettingsModel.requestLimitProperty.bind(valueProperty())
+                                    isEditable = true
+                                    atlantafx.base.util.IntegerStringConverter.createFor(this)
+                                })
+                            }
+                            field("Fetch Metadata") {
+                                checkbox {
+                                    bind(viperSettingsModel.fetchMetadataProperty)
+                                }
+                            }
+                            field("Authentication") {
                                 add(ToggleSwitch().apply {
                                     isSelected = viperGirlsSettings.login
                                     viperSettingsModel.loginProperty.bind(selectedProperty())
@@ -42,13 +57,13 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
                             }
                             fieldset {
                                 visibleWhen(viperSettingsModel.loginProperty)
-                                field("ViperGirls Username") {
+                                field("Username") {
                                     textfield(viperSettingsModel.usernameProperty)
                                 }
-                                field("ViperGirls Password") {
+                                field("Password") {
                                     passwordfield(viperSettingsModel.passwordProperty)
                                 }
-                                field("Leave like") {
+                                field("Leave likes") {
                                     checkbox {
                                         bind(viperSettingsModel.thanksProperty)
                                     }

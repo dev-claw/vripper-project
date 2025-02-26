@@ -37,7 +37,7 @@ import kotlin.io.path.Path
 
 class PostsTableView : View() {
 
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val postController: PostController by inject()
     private val widgetsController: WidgetsController by inject()
     private val clipboardService: ClipboardService by inject()

@@ -14,7 +14,7 @@ class DataBroadcast(
     private val template: SimpMessagingTemplate
 ) : KoinComponent {
 
-    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val appEndpointService: IAppEndpointService by inject(named("localAppEndpointService"))
 
     @OptIn(FlowPreview::class)

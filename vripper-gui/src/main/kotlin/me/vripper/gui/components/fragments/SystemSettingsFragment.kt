@@ -13,7 +13,7 @@ import tornadofx.*
 class SystemSettingsFragment : Fragment("System Settings") {
     private val settingsController: SettingsController by inject()
     private val widgetsController: WidgetsController by inject()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var systemSettings: SystemSettings
     val systemSettingsModel = SystemSettingsModel()
 

@@ -7,7 +7,7 @@ import me.vripper.services.DataTransaction
 import me.vripper.services.SettingsService
 import me.vripper.services.ThreadCacheService
 import me.vripper.utilities.LoggerDelegate
-import me.vripper.utilities.executorService
+import me.vripper.utilities.taskRunner
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -33,7 +33,7 @@ internal class ThreadLookupTask(private val threadId: Long, private val settings
                 }
 
                 if (threadLookupResult.postItemList.size <= settings.downloadSettings.autoQueueThreshold) {
-                    executorService.submit(
+                    taskRunner.submit(
                         AddPostTask(threadLookupResult.postItemList.map {
                             ThreadPostId(
                                 it.threadId, it.postId

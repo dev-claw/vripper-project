@@ -196,6 +196,8 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     password = request.viperSettings.password,
                     thanks = request.viperSettings.thanks,
                     host = request.viperSettings.host,
+                    requestLimit = request.viperSettings.requestLimit,
+                    fetchMetadata = request.viperSettings.fetchMetadata,
                 ), systemSettings = SystemSettings(
                     tempPath = request.systemSettings.tempPath,
                     enableClipboardMonitoring = request.systemSettings.enableClipboardMonitoring,
@@ -228,6 +230,8 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             password = settings.viperSettings.password
             thanks = settings.viperSettings.thanks
             host = settings.viperSettings.host
+            requestLimit = settings.viperSettings.requestLimit
+            fetchMetadata = settings.viperSettings.fetchMetadata
             build()
         }
 

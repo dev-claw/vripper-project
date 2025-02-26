@@ -14,7 +14,7 @@ import me.vripper.utilities.ApplicationProperties
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils
-import me.vripper.utilities.executorService
+import me.vripper.utilities.taskRunner
 import org.h2.jdbc.JdbcSQLNonTransientConnectionException
 import java.sql.DriverManager
 import java.time.Duration
@@ -42,10 +42,10 @@ internal class AppEndpointService(
             if (postLinks.isBlank()) {
                 return
             }
-            val urlList = postLinks.split(Pattern.compile("\\r?\\n")).dropLastWhile { it.isEmpty() }.map { it.trim() }
+            val urlList = postLinks.split(Pattern.compile("\\r?\\n")).dropLastWhile { it.isBlank() }.map { it.trim() }
                 .filter { it.isNotEmpty() }
             for (link in urlList) {
-                log.debug("Starting to process thread: $link")
+                log.debug("Scanning: $link")
                 if (!link.startsWith(settingsService.settings.viperSettings.host)) {
                     continue
                 }
@@ -58,13 +58,13 @@ internal class AppEndpointService(
                     threadId = m.group(1).toLong()
                     postId = m.group(4)?.toLong()
                     if (postId == null) {
-                        executorService.submit(
+                        taskRunner.submit(
                             ThreadLookupTask(
                                 threadId, settingsService.settings
                             )
                         )
                     } else {
-                        executorService.submit(
+                        taskRunner.submit(
                             AddPostTask(
                                 listOf(ThreadPostId(threadId, postId))
                             )
@@ -86,7 +86,7 @@ internal class AppEndpointService(
     }
 
     override suspend fun download(posts: List<ThreadPostId>) {
-        executorService.submit(AddPostTask(posts))
+        taskRunner.submit(AddPostTask(posts))
     }
 
     override suspend fun stopAll(postIdList: List<Long>) {
@@ -182,7 +182,7 @@ internal class AppEndpointService(
     }
 
     override suspend fun rename(postId: Long, newName: String) {
-        executorService.submit {
+        taskRunner.submit {
             synchronized(postId.toString().intern()) {
                 if (dataTransaction.exists(postId)) {
                     dataTransaction.findPostByPostId(postId).let { post ->

@@ -188,5 +188,11 @@ class SettingsService(private val eventBus: EventBus) {
                 "Invalid clipboard monitoring polling rate settings, values must be >= 500"
             )
         }
+
+        if (settings.viperSettings.requestLimit < 1 || settings.viperSettings.requestLimit > 6) {
+            throw ValidationException(
+                "Invalid request rate limit, values must be in [1,6]"
+            )
+        }
     }
 }

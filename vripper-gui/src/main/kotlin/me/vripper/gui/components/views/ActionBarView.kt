@@ -25,7 +25,7 @@ class ActionBarView : View() {
     private val downloadActiveProperty = SimpleBooleanProperty(true)
     private val postController: PostController by inject()
     private val postsTableView: PostsTableView by inject()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val grpcEndpointService: IAppEndpointService by di("remoteAppEndpointService")
     private val localEndpointService: IAppEndpointService by di("localAppEndpointService")
     private val running = SimpleIntegerProperty(0)

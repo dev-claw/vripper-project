@@ -2,8 +2,6 @@ package me.vripper.vgapi
 
 import dev.failsafe.Failsafe
 import dev.failsafe.function.CheckedSupplier
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.withPermit
 import me.vripper.exception.DownloadException
 import me.vripper.exception.PostParseException
 import me.vripper.services.HTTPService
@@ -20,7 +18,6 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.ByteArrayInputStream
 import javax.xml.parsers.SAXParserFactory
-import kotlin.Throws
 
 internal class PostLookupAPIParser(private val threadId: Long, private val postId: Long) : KoinComponent {
     private val log by LoggerDelegate()
@@ -39,7 +36,6 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
                 )
             }.build())
         val threadLookupAPIResponseHandler = ThreadLookupAPIResponseHandler()
-        log.debug("Requesting {}", httpGet)
         Tasks.increment()
         return try {
             Failsafe.with(retryPolicyService.buildRetryPolicy<Any>("Failed to parse $httpGet: ")).onFailure {
@@ -47,22 +43,21 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
                     "Failed to process thread $threadId, post $postId", it.exception
                 )
             }.get(CheckedSupplier {
-                runBlocking {
-                    RequestLimit.semaphore.withPermit {
-                        httpService.client.execute(
-                            httpGet, vgAuthService.context
-                        ) { response ->
-                            if (response.code / 100 != 2) {
-                                throw DownloadException("Unexpected response code '${response.code}' for $httpGet")
-                            }
-                            ByteArrayInputStream(EntityUtils.toByteArray(response.entity))
-                        }
-                    }.use {
+                RequestLimit.getPermit(1)
+                log.debug("Requesting {}", httpGet.uri)
+                httpService.client.execute(
+                    httpGet, vgAuthService.context
+                ) { response ->
+                    if (response.code / 100 != 2) {
+                        throw DownloadException("Unexpected response code '${response.code}' for $httpGet")
+                    }
+                    ByteArrayInputStream(EntityUtils.toByteArray(response.entity)).use {
                         factory.newSAXParser()
                             .parse(it, threadLookupAPIResponseHandler)
                         threadLookupAPIResponseHandler.result
                     }
                 }
+
             })
         } catch (e: Exception) {
             throw PostParseException(e)

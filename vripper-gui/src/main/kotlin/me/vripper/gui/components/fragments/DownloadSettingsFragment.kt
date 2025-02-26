@@ -13,7 +13,7 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
 
     private val settingsController: SettingsController by inject()
     private val widgetsController: WidgetsController by inject()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var downloadSettings: DownloadSettings
     val downloadSettingsModel = DownloadSettingsModel()
 

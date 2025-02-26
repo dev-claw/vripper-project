@@ -1,10 +1,11 @@
 package me.vripper.tasks
 
 import me.vripper.entities.PostEntity
-import me.vripper.services.DataTransaction
+import me.vripper.exception.VripperException
 import me.vripper.services.HTTPService
 import me.vripper.services.SettingsService
 import me.vripper.utilities.LoggerDelegate
+import me.vripper.utilities.RequestLimit
 import org.apache.hc.client5.http.classic.methods.HttpPost
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
 import org.apache.hc.client5.http.protocol.HttpClientContext
@@ -20,7 +21,6 @@ internal class LeaveThanksTask(
     private val log by LoggerDelegate()
     private val cm: HTTPService by inject()
     private val settingsService: SettingsService by inject()
-    private val dataTransaction: DataTransaction by inject()
 
     override fun run() {
         try {
@@ -31,25 +31,23 @@ internal class LeaveThanksTask(
             if (!settingsService.settings.viperSettings.thanks) {
                 return
             }
-
-            val postThanks =
-                HttpPost("${settingsService.settings.viperSettings.host}/post_thanks.php").also {
-                    it.entity = UrlEncodedFormEntity(
-                        listOf(
-                            BasicNameValuePair("do", "post_thanks_add"),
-                            BasicNameValuePair("using_ajax", "1"),
-                            BasicNameValuePair("p", postEntity.postId.toString()),
-                            BasicNameValuePair("securitytoken", postEntity.token)
-                        )
+            val postThanks = HttpPost("${settingsService.settings.viperSettings.host}/post_thanks.php").also {
+                it.entity = UrlEncodedFormEntity(
+                    listOf(
+                        BasicNameValuePair("do", "post_thanks_add"),
+                        BasicNameValuePair("using_ajax", "1"),
+                        BasicNameValuePair("p", postEntity.postId.toString()),
+                        BasicNameValuePair("securitytoken", postEntity.token)
                     )
-                    it.addHeader("Referer", settingsService.settings.viperSettings.host)
-                    it.addHeader(
-                        "Host",
-                        settingsService.settings.viperSettings.host.replace("https://", "")
-                            .replace("http://", "")
-                    )
+                )
+            }
+            RequestLimit.getPermit(1)
+            log.debug("Requesting {}", postThanks.uri)
+            cm.client.execute(postThanks, context) { response ->
+                if (response.code / 100 != 2) {
+                    throw VripperException("Unexpected response code '${response.code}' for $postThanks")
                 }
-            cm.client.execute(postThanks, context) { }
+            }
         } catch (e: Exception) {
             log.error("Failed to leave a thanks for $postEntity", e)
         } finally {
