@@ -26,7 +26,7 @@ class LogTableView : View() {
     private val localAppEndpointService: IAppEndpointService by di("localAppEndpointService")
     private val remoteAppEndpointService: IAppEndpointService by di("remoteAppEndpointService")
     private val tableView: TableView<LogModel>
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val items: ObservableList<LogModel> = FXCollections.observableArrayList()
     private var maxLogEvent = 0
 

@@ -7,6 +7,8 @@ message ViperSettings {
   string password = 3;
   bool thanks = 4;
   string host = 5;
+  int64 requestLimit = 6;
+  bool fetchMetadata = 7;
 }
 
 message DownloadSettings {

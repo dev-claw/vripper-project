@@ -24,7 +24,7 @@ import tornadofx.*
 
 class ThreadTableView : View() {
 
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val threadController: ThreadController by inject()
     private val widgetsController: WidgetsController by inject()
     private val mainView: MainView by inject()

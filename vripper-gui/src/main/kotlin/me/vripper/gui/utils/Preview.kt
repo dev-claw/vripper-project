@@ -25,7 +25,7 @@ class Preview(owner: Stage, private val images: List<String>, private val cacheP
 
     private var hBox: HBox = HBox().apply { spacing = 5.0; alignment = Pos.BOTTOM_CENTER }
     private val log by LoggerDelegate()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val previewPopup = Popup()
 
     private val cache: LoadingCache<String, ByteArray> = Caffeine

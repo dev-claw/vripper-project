@@ -37,7 +37,7 @@ class ImagesTableView : View("Photos") {
     private val widgetsController: WidgetsController by inject()
     private val localAppEndpointService: IAppEndpointService by di("localAppEndpointService")
     private val remoteAppEndpointService: IAppEndpointService by di("remoteAppEndpointService")
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val items: ObservableList<ImageModel> = FXCollections.observableArrayList()
     private var preview: Preview? = null
 

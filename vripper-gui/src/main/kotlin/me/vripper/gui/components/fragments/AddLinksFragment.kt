@@ -6,16 +6,13 @@ import javafx.geometry.Pos
 import javafx.scene.control.TextArea
 import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import me.vripper.gui.controller.PostController
 import tornadofx.*
 
 class AddLinksFragment : Fragment("Add thread links") {
 
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val textAreaProperty = SimpleStringProperty()
     private val postController: PostController by inject()
     lateinit var input: TextArea

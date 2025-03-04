@@ -14,7 +14,7 @@ import tornadofx.runLater
 class ClipboardService : Controller() {
     private val logger by LoggerDelegate()
     private var current: String? = null
-    private var coroutineScope = CoroutineScope(SupervisorJob())
+    private var coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pollJob: Job? = null
     private var subscribeJob: Job? = null
 

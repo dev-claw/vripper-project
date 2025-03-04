@@ -18,7 +18,7 @@ import tornadofx.*
 class PostInfoView : View() {
     private val logger by LoggerDelegate()
     private val postController: PostController by inject()
-    private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val imagesTableView: ImagesTableView by inject()
     private val postModel: PostModel = PostModel(
         -1, "", 0.0, "", "", 0, 0, "", "", -1, "", "", "", emptyList(), emptyList(), "", 0

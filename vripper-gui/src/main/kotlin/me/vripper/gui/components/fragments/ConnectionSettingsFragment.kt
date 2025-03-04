@@ -9,7 +9,7 @@ import tornadofx.*
 
 class ConnectionSettingsFragment : Fragment("Connection Settings") {
     private val settingsController: SettingsController by inject()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var connectionSettings: ConnectionSettings
     val connectionSettingsModel = ConnectionSettingsModel()
 

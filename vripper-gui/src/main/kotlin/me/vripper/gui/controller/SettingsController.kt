@@ -59,14 +59,16 @@ class SettingsController : Controller() {
                     viperSettingsModel.password,
                     viperSettingsModel.thanks,
                     viperSettingsModel.host,
+                    viperSettingsModel.requestLimit,
+                    viperSettingsModel.fetchMetadata,
                 ),
                 systemSettings =
-                SystemSettings(
-                    systemSettingsModel.tempPath,
-                    systemSettingsModel.enable,
-                    systemSettingsModel.pollingRate,
-                    systemSettingsModel.logEntries
-                )
+                    SystemSettings(
+                        systemSettingsModel.tempPath,
+                        systemSettingsModel.enable,
+                        systemSettingsModel.pollingRate,
+                        systemSettingsModel.logEntries
+                    )
             )
         )
     }

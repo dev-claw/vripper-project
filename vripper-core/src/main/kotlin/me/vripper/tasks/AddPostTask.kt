@@ -1,6 +1,5 @@
 package me.vripper.tasks
 
-import kotlinx.coroutines.runBlocking
 import me.vripper.download.DownloadService
 import me.vripper.model.ThreadPostId
 import me.vripper.services.DataTransaction
@@ -31,14 +30,14 @@ internal class AddPostTask(private val items: List<ThreadPostId>) : KoinComponen
                 }
 
                 val link =
-                    "https://${settingsService.settings.viperSettings.host}/threads/$threadId?p=$postId&viewfull=1#post$postId"
+                    "${settingsService.settings.viperSettings.host}/threads/$threadId?p=$postId&viewfull=1#post$postId"
 
                 val cachedThread = threadCacheService.getIfPresent(threadId)
-                val threadItem = cachedThread ?: runBlocking {
+                val threadItem = cachedThread ?:
                     PostLookupAPIParser(
                         threadId, postId
                     ).parse()
-                }
+
 
                 if (threadItem == null) {
                     log.error("Failed to load $link")

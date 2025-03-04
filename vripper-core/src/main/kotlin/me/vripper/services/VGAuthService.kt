@@ -13,7 +13,7 @@ import me.vripper.exception.VripperException
 import me.vripper.model.Settings
 import me.vripper.tasks.LeaveThanksTask
 import me.vripper.utilities.LoggerDelegate
-import me.vripper.utilities.executorService
+import me.vripper.utilities.taskRunner
 import org.apache.hc.client5.http.classic.methods.HttpPost
 import org.apache.hc.client5.http.cookie.BasicCookieStore
 import org.apache.hc.client5.http.cookie.Cookie
@@ -71,10 +71,6 @@ internal class VGAuthService(
                     BasicNameValuePair("vb_login_md5password", password)
                 )
             )
-            it.addHeader("Referer", settings.viperSettings.host)
-            it.addHeader(
-                "Host", settings.viperSettings.host.replace("https://", "").replace("http://", "")
-            )
         }
 
         try {
@@ -108,7 +104,7 @@ internal class VGAuthService(
     }
 
     fun leaveThanks(postEntity: PostEntity) {
-        executorService.submit(
+        taskRunner.submit(
             LeaveThanksTask(postEntity, authenticated, context)
         )
     }

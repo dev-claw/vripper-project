@@ -6,10 +6,7 @@ import javafx.scene.control.Alert
 import javafx.scene.control.TabPane
 import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import me.vripper.exception.ValidationException
 import me.vripper.gui.controller.SettingsController
 import org.kordamp.ikonli.feather.Feather
@@ -20,7 +17,7 @@ import tornadofx.*
 class SettingsFragment : Fragment("Settings") {
 
     private val settingsController: SettingsController by inject()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadSettingsFragment: DownloadSettingsFragment = find()
     private val connectionSettingsFragment: ConnectionSettingsFragment = find()
     private val viperSettingsFragment: ViperSettingsFragment = find()

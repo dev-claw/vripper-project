@@ -18,7 +18,7 @@ class LoadingView : View("VRipper") {
 
     private val widgetsController: WidgetsController by inject()
     private val grpcEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
-    private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override val root = borderpane {}
 

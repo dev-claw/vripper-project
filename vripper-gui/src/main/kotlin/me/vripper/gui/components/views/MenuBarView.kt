@@ -27,7 +27,7 @@ import tornadofx.*
 
 class MenuBarView : View() {
     private val logger by LoggerDelegate()
-    private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadActiveProperty = SimpleBooleanProperty(false)
     private val postsTableView: PostsTableView by inject()
     private val widgetsController: WidgetsController by inject()

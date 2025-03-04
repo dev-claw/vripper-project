@@ -3,7 +3,9 @@ package me.vripper.host
 import me.vripper.download.ImageDownloadContext
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.*
+import me.vripper.services.DataTransaction
+import me.vripper.services.DownloadSpeedService
+import me.vripper.services.HTTPService
 import me.vripper.utilities.HtmlUtils
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
@@ -46,7 +48,7 @@ internal class AcidimgHost(
                 )
             )
         }.also { context.requests.add(it) }
-        log.debug(String.format("Requesting %s", httpPost))
+        log.debug(String.format("Requesting %s", httpPost.uri))
         val doc = try {
             httpService.client.execute(
                 httpPost, context.httpContext
