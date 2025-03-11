@@ -189,9 +189,9 @@ class SettingsService(private val eventBus: EventBus) {
             )
         }
 
-        if (settings.viperSettings.requestLimit < 1 || settings.viperSettings.requestLimit > 6) {
+        if (settings.viperSettings.requestLimit < 1 || settings.viperSettings.requestLimit > 5) {
             throw ValidationException(
-                "Invalid request rate limit, values must be in [1,6]"
+                "Invalid request rate limit, values must be in [1,5]"
             )
         }
     }

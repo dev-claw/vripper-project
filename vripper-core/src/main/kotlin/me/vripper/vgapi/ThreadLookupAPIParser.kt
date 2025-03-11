@@ -6,12 +6,13 @@ import me.vripper.exception.DownloadException
 import me.vripper.exception.PostParseException
 import me.vripper.services.HTTPService
 import me.vripper.services.RetryPolicyService
-import me.vripper.services.SettingsService
 import me.vripper.services.VGAuthService
 import me.vripper.tasks.Tasks
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
 import org.apache.hc.client5.http.classic.methods.HttpGet
+import org.apache.hc.client5.http.cookie.BasicCookieStore
+import org.apache.hc.client5.http.protocol.HttpClientContext
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.apache.hc.core5.net.URIBuilder
 import org.koin.core.component.KoinComponent
@@ -24,13 +25,12 @@ internal class ThreadLookupAPIParser(private val threadId: Long) : KoinComponent
     private val cm: HTTPService by inject()
     private val retryPolicyService: RetryPolicyService by inject()
     private val vgAuthService: VGAuthService by inject()
-    private val settingsService: SettingsService by inject()
 
     @Throws(PostParseException::class)
     fun parse(): ThreadItem {
         log.debug("Parsing thread $threadId")
         val httpGet =
-            HttpGet(URIBuilder(settingsService.settings.viperSettings.host + "/vr.php").also {
+            HttpGet(URIBuilder("https://viper.click/vr.php").also {
                 it.setParameter(
                     "t",
                     threadId.toString()
@@ -46,9 +46,12 @@ internal class ThreadLookupAPIParser(private val threadId: Long) : KoinComponent
                 )
             }.get(CheckedSupplier {
                 RequestLimit.getPermit(1)
-                log.debug("Requesting {}", httpGet.uri)
+                log.info("Requesting {}", httpGet.uri)
                 cm.client.execute(
-                    httpGet, vgAuthService.context
+                    httpGet, HttpClientContext.create().apply {
+                        cookieStore = BasicCookieStore()
+                        vgAuthService.clickCookies.forEach { cookieStore.addCookie(it) }
+                    }
                 ) { response ->
                     if (response.code / 100 != 2) {
                         throw DownloadException("Unexpected response code '${response.code}' for $httpGet")

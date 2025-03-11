@@ -18,6 +18,7 @@ import org.apache.hc.client5.http.classic.methods.HttpPost
 import org.apache.hc.client5.http.cookie.BasicCookieStore
 import org.apache.hc.client5.http.cookie.Cookie
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
+import org.apache.hc.client5.http.impl.cookie.BasicClientCookie
 import org.apache.hc.client5.http.protocol.HttpClientContext
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.apache.hc.core5.http.message.BasicNameValuePair
@@ -31,8 +32,25 @@ internal class VGAuthService(
     private val log by LoggerDelegate()
     val context: HttpClientContext = HttpClientContext.create()
     var loggedUser = ""
-
-    private var authenticated = false
+    var authenticated = false
+    val clickCookies: List<Cookie>
+        get() {
+            return if (authenticated) {
+                val useridCookie = context.cookieStore.cookies.first { it.name.equals("vg_userid") }.let { cookie ->
+                    BasicClientCookie(cookie.name, cookie.value).apply {
+                        domain = "viper.click"
+                    }
+                }
+                val passwordCookie = context.cookieStore.cookies.first { it.name.equals("vg_password") }.let { cookie ->
+                    BasicClientCookie(cookie.name, cookie.value).apply {
+                        domain = "viper.click"
+                    }
+                }
+                listOf(useridCookie, passwordCookie)
+            } else {
+                emptyList()
+            }
+        }
 
     init {
         context.cookieStore = BasicCookieStore()
