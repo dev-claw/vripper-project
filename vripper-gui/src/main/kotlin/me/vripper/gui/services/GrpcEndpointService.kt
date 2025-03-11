@@ -176,6 +176,8 @@ class GrpcEndpointService : IAppEndpointService {
             password = settings.viperSettings.password
             thanks = settings.viperSettings.thanks
             host = settings.viperSettings.host
+            requestLimit = settings.viperSettings.requestLimit
+            fetchMetadata = settings.viperSettings.fetchMetadata
             build()
         }
 
