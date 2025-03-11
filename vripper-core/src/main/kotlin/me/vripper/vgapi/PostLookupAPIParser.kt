@@ -6,12 +6,12 @@ import me.vripper.exception.DownloadException
 import me.vripper.exception.PostParseException
 import me.vripper.services.HTTPService
 import me.vripper.services.RetryPolicyService
-import me.vripper.services.SettingsService
 import me.vripper.services.VGAuthService
 import me.vripper.tasks.Tasks
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
 import org.apache.hc.client5.http.classic.methods.HttpGet
+import org.apache.hc.client5.http.protocol.HttpClientContext
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.apache.hc.core5.net.URIBuilder
 import org.koin.core.component.KoinComponent
@@ -21,7 +21,6 @@ import javax.xml.parsers.SAXParserFactory
 
 internal class PostLookupAPIParser(private val threadId: Long, private val postId: Long) : KoinComponent {
     private val log by LoggerDelegate()
-    private val settingsService: SettingsService by inject()
     private val retryPolicyService: RetryPolicyService by inject()
     private val httpService: HTTPService by inject()
     private val vgAuthService: VGAuthService by inject()
@@ -30,7 +29,7 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
     fun parse(): ThreadItem? {
         log.debug("Parsing post $postId")
         val httpGet =
-            HttpGet(URIBuilder("${settingsService.settings.viperSettings.host}/vr.php").also {
+            HttpGet(URIBuilder("https://viper.click/vr.php").also {
                 it.setParameter(
                     "p", postId.toString()
                 )
@@ -44,9 +43,11 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
                 )
             }.get(CheckedSupplier {
                 RequestLimit.getPermit(1)
-                log.debug("Requesting {}", httpGet.uri)
+                log.info("Requesting {}", httpGet.uri)
                 httpService.client.execute(
-                    httpGet, vgAuthService.context
+                    httpGet,
+                    HttpClientContext.create()
+                        .apply { vgAuthService.clickCookies.forEach { cookieStore.addCookie(it) } }
                 ) { response ->
                     if (response.code / 100 != 2) {
                         throw DownloadException("Unexpected response code '${response.code}' for $httpGet")

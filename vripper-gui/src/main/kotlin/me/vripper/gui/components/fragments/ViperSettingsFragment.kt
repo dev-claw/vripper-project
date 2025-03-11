@@ -38,7 +38,7 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
                                 combobox(viperSettingsModel.hostProperty, proxies)
                             }
                             field("Rate limit (requests/s)") {
-                                add(Spinner<Int>(1, 6, viperGirlsSettings.requestLimit.toInt()).apply {
+                                add(Spinner<Int>(1, 5, viperGirlsSettings.requestLimit.toInt()).apply {
                                     viperSettingsModel.requestLimitProperty.bind(valueProperty())
                                     isEditable = true
                                     atlantafx.base.util.IntegerStringConverter.createFor(this)
