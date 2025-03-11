@@ -119,6 +119,9 @@ internal class AppEndpointService(
                     )
                 }
                 val threadLookupResult = threadCacheService[thread.threadId]
+                if (threadLookupResult.error.isNotBlank()) {
+                    throw PostParseException("Error occurred for threadId = $threadId, ${threadLookupResult.error}")
+                }
                 threadLookupResult.postItemList.map { postItem ->
                     PostSelection(
                         postItem.threadId,
@@ -132,23 +135,13 @@ internal class AppEndpointService(
                         postItem.forum,
                         postItem.imageItemList.map { it.thumbLink })
                 }.ifEmpty {
-                    log.error(
-                        String.format(
-                            "Failed to get links for threadId = %s", threadId
-                        )
-                    )
                     throw PostParseException(
-                        String.format(
-                            "Failed to get links for threadId = %s", threadId
-                        )
+                        "Nothing found for threadId = $threadId"
                     )
                 }
             } catch (e: Exception) {
-                throw PostParseException(
-                    String.format(
-                        "Failed to get links for threadId = %s, %s", threadId, e.message
-                    )
-                )
+                log.error(e.message)
+                throw e
             }
         }
     }
