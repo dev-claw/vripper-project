@@ -8,7 +8,6 @@ import me.vripper.data.repositories.impl.ImageRepositoryImpl
 import me.vripper.data.repositories.impl.MetadataRepositoryImpl
 import me.vripper.data.repositories.impl.PostRepositoryImpl
 import me.vripper.data.repositories.impl.ThreadRepositoryImpl
-import me.vripper.download.DownloadService
 import me.vripper.event.EventBus
 import me.vripper.host.*
 import me.vripper.services.*
@@ -45,16 +44,16 @@ val coreModule = module {
         RetryPolicyService(get(), get())
     }
     single<HTTPService> {
-        HTTPService(get(), get())
+        HTTPService(get())
     }
     single<VGAuthService> {
-        VGAuthService(get(), get(), get())
+        VGAuthService(get(), get())
     }
     single<ThreadCacheService> {
-        ThreadCacheService(get())
+        ThreadCacheService(get(), get())
     }
     single<DownloadService> {
-        DownloadService(get(), get(), get(), get(), get())
+        DownloadService(get(), get(), get(), get())
     }
     single<DownloadSpeedService> {
         DownloadSpeedService(get())

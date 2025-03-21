@@ -1,5 +1,6 @@
 package me.vripper.services
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -9,7 +10,7 @@ import me.vripper.exception.ValidationException
 import me.vripper.model.Settings
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
 import me.vripper.utilities.LoggerDelegate
-import org.apache.commons.codec.digest.DigestUtils
+import me.vripper.utilities.md5Hex
 import java.io.FileWriter
 import java.nio.file.*
 import kotlin.io.path.readText
@@ -28,16 +29,13 @@ class SettingsService(private val eventBus: EventBus) {
     }
     var settings = Settings()
 
-    init {
-        init()
-    }
-
-    private fun init() {
+    fun init() {
         loadViperProxies()
         restore()
         eventBus.publishEvent(SettingsUpdateEvent(settings))
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     private fun loadViperProxies() {
         try {
             SettingsService::class.java.getResourceAsStream("/proxies.json")?.use {
@@ -84,7 +82,7 @@ class SettingsService(private val eventBus: EventBus) {
         check(settings)
         val viperSettings = if (settings.viperSettings.login) {
             if (this.settings.viperSettings.password != settings.viperSettings.password) {
-                settings.viperSettings.copy(password = DigestUtils.md5Hex(settings.viperSettings.password))
+                settings.viperSettings.copy(password = md5Hex(settings.viperSettings.password))
             } else {
                 settings.viperSettings
             }
@@ -137,7 +135,7 @@ class SettingsService(private val eventBus: EventBus) {
     fun check(settings: Settings) {
         val path: Path = try {
             Paths.get(settings.downloadSettings.downloadPath)
-        } catch (e: InvalidPathException) {
+        } catch (_: InvalidPathException) {
             throw ValidationException(
                 String.format(
                     "%s is invalid", settings.downloadSettings.downloadPath

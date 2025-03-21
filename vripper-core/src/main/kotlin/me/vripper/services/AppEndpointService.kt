@@ -3,7 +3,6 @@ package me.vripper.services
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.time.sample
 import kotlinx.serialization.json.Json
-import me.vripper.download.DownloadService
 import me.vripper.entities.*
 import me.vripper.event.*
 import me.vripper.exception.PostParseException

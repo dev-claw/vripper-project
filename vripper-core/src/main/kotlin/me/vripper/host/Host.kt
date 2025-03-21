@@ -4,10 +4,10 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
-import me.vripper.download.ImageDownloadContext
 import me.vripper.exception.DownloadException
 import me.vripper.exception.HostException
 import me.vripper.services.DataTransaction
+import me.vripper.services.DownloadService.ImageDownloadContext
 import me.vripper.services.DownloadSpeedService
 import me.vripper.services.HTTPService
 import me.vripper.utilities.HtmlUtils
@@ -22,7 +22,6 @@ import org.w3c.dom.Document
 import java.io.BufferedOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.Throws
 
 internal abstract class Host(
     val hostName: String,

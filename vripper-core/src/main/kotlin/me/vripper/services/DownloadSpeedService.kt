@@ -20,7 +20,7 @@ internal class DownloadSpeedService(
     private val bytesCount = AtomicLong(0)
     private var job: Job? = null
 
-    init {
+    fun init() {
         coroutineScope.launch {
             eventBus.events.filterIsInstance(QueueStateEvent::class).collect {
                 if (it.queueState.running + it.queueState.remaining > 0) {

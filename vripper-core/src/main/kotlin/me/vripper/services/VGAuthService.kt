@@ -25,49 +25,30 @@ import org.apache.hc.core5.http.message.BasicNameValuePair
 
 internal class VGAuthService(
     private val cm: HTTPService,
-    private val settingsService: SettingsService,
-    private val eventBus: EventBus
+    private val eventBus: EventBus,
 ) {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val log by LoggerDelegate()
-    val context: HttpClientContext = HttpClientContext.create()
+    private val vgCookies: MutableList<Cookie> = mutableListOf()
     var loggedUser = ""
-    var authenticated = false
-    val clickCookies: List<Cookie>
-        get() {
-            return if (authenticated) {
-                val useridCookie = context.cookieStore.cookies.first { it.name.equals("vg_userid") }.let { cookie ->
-                    BasicClientCookie(cookie.name, cookie.value).apply {
-                        domain = "viper.click"
-                    }
-                }
-                val passwordCookie = context.cookieStore.cookies.first { it.name.equals("vg_password") }.let { cookie ->
-                    BasicClientCookie(cookie.name, cookie.value).apply {
-                        domain = "viper.click"
-                    }
-                }
-                listOf(useridCookie, passwordCookie)
-            } else {
-                emptyList()
-            }
-        }
+    private var authenticated = false
 
-    init {
-        context.cookieStore = BasicCookieStore()
+    fun init() {
         coroutineScope.launch {
             eventBus.events.filterIsInstance(SettingsUpdateEvent::class).collect {
                 authenticate(it.settings)
             }
         }
-        authenticate(settingsService.settings)
     }
 
     private fun authenticate(settings: Settings) {
-        authenticated = false
         if (!settings.viperSettings.login) {
             log.debug("Authentication option is disabled")
-            context.cookieStore.clear()
+            authenticated = false
             loggedUser = ""
+            synchronized(vgCookies) {
+                vgCookies.clear()
+            }
             eventBus.publishEvent(VGUserLoginEvent(loggedUser))
             return
         }
@@ -75,8 +56,11 @@ internal class VGAuthService(
         val password = settings.viperSettings.password
         if (username.isEmpty() || password.isEmpty()) {
             log.error("Cannot authenticate with ViperGirls credentials, username or password is empty")
-            context.cookieStore.clear()
+            authenticated = false
             loggedUser = ""
+            synchronized(vgCookies) {
+                vgCookies.clear()
+            }
             eventBus.publishEvent(VGUserLoginEvent(loggedUser))
             return
         }
@@ -90,8 +74,12 @@ internal class VGAuthService(
                 )
             )
         }
-
+        log.info("Authenticating: ${postAuth.uri}")
         try {
+            val context = HttpClientContext.create().apply {
+                cookieStore =
+                    BasicCookieStore()
+            }
             cm.client.execute(postAuth, context) { response ->
                 if (response.code / 100 != 2) {
                     throw VripperException("Unexpected response code returned ${response.code}")
@@ -99,21 +87,34 @@ internal class VGAuthService(
                 val responseBody = EntityUtils.toString(response.entity)
                 log.debug("Authentication with ViperGirls response body:{}", responseBody)
             }
-            if (context.cookieStore.cookies.stream().map { obj: Cookie -> obj.name }
-                    .noneMatch { e: String -> e == "vg_userid" }) {
+
+            val userIdCookie = context.cookieStore.cookies.find { it.name == "vg_userid" }
+            val passwordCookie = context.cookieStore.cookies.find { it.name == "vg_password" }
+
+            if (userIdCookie == null || passwordCookie == null) {
                 log.error(
-                    "Failed to authenticate user with {}, missing vg_userid cookie",
+                    "Failed to authenticate user with {}, missing vg_userid/vg_password cookie",
                     settings.viperSettings.host
                 )
+                eventBus.publishEvent(VGUserLoginEvent(loggedUser))
                 return
             }
+            synchronized(vgCookies) {
+                vgCookies.clear()
+                vgCookies.add(BasicClientCookie(userIdCookie.name, userIdCookie.value).apply {
+                    domain = userIdCookie.domain
+                })
+                vgCookies.add(BasicClientCookie(passwordCookie.name, passwordCookie.value).apply {
+                    domain = passwordCookie.domain
+                })
+            }
         } catch (e: Exception) {
-            context.cookieStore.clear()
-            loggedUser = ""
-            eventBus.publishEvent(VGUserLoginEvent(loggedUser))
             log.error(
                 "Failed to authenticate user with " + settings.viperSettings.host, e
             )
+            authenticated = false
+            loggedUser = ""
+            eventBus.publishEvent(VGUserLoginEvent(loggedUser))
             return
         }
         authenticated = true
@@ -122,8 +123,35 @@ internal class VGAuthService(
     }
 
     fun leaveThanks(postEntity: PostEntity) {
+        val context = createVgContext()
         taskRunner.submit(
             LeaveThanksTask(postEntity, authenticated, context)
         )
+    }
+
+    fun createVgContext(): HttpClientContext {
+        val context = HttpClientContext().apply { cookieStore = BasicCookieStore() }
+        synchronized(vgCookies) {
+            if (authenticated && vgCookies.isNotEmpty()) {
+                vgCookies.forEach { c -> context.cookieStore.addCookie(c) }
+            }
+        }
+        return context
+    }
+
+    fun createClickContext(): HttpClientContext {
+        val context = HttpClientContext().apply { cookieStore = BasicCookieStore() }
+        synchronized(vgCookies) {
+            if (authenticated && vgCookies.isNotEmpty()) {
+                vgCookies.forEach { c ->
+                    context.cookieStore.addCookie(
+                        BasicClientCookie(
+                            c.name,
+                            c.value
+                        ).apply { domain = "viper.click" })
+                }
+            }
+        }
+        return context
     }
 }

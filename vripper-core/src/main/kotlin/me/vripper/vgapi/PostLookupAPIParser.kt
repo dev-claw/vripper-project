@@ -11,7 +11,6 @@ import me.vripper.tasks.Tasks
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
 import org.apache.hc.client5.http.classic.methods.HttpGet
-import org.apache.hc.client5.http.protocol.HttpClientContext
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.apache.hc.core5.net.URIBuilder
 import org.koin.core.component.KoinComponent
@@ -46,8 +45,7 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
                 log.info("Requesting {}", httpGet.uri)
                 httpService.client.execute(
                     httpGet,
-                    HttpClientContext.create()
-                        .apply { vgAuthService.clickCookies.forEach { cookieStore.addCookie(it) } }
+                    vgAuthService.createClickContext()
                 ) { response ->
                     if (response.code / 100 != 2) {
                         throw DownloadException("Unexpected response code '${response.code}' for $httpGet")
