@@ -24,31 +24,55 @@ class AboutFragment : Fragment("About") {
                     spacing = 15.0
                     imageview("icons/64x64.png")
                     vbox(spacing = 5.0) {
-                        text("VRipper") {
+                        text("VRipper ${ApplicationProperties.VERSION}") {
                             style {
                                 fontWeight = FontWeight.BOLD
                                 fontSize = Dimension(18.0, Dimension.LinearUnits.px)
                             }
                         }
-                        text("Version ${ApplicationProperties.VERSION}")
                         text("Developed by dev-claw and VRipper working group")
                         hbox(spacing = 5.0) {
                             hyperlink {
-                                imageview("icons/github-mark.png").apply {
-                                    isPreserveRatio = true
-                                    fitHeight = 32.0
+                                if (widgetsController.currentSettings.darkMode) {
+                                    imageview("icons/github-mark-white.png").apply {
+                                        isPreserveRatio = true
+                                        fitHeight = 32.0
+                                    }
+                                } else {
+                                    imageview("icons/github-mark.png").apply {
+                                        isPreserveRatio = true
+                                        fitHeight = 32.0
+                                    }
                                 }
                                 action {
                                     openLink("https://github.com/dev-claw/vripper-project")
                                 }
                             }
-                            hyperlink {
-                                imageview("icons/buymeacoffee-logo.png").apply {
-                                    isPreserveRatio = true
-                                    fitHeight = 32.0
+                        }
+                        form {
+                            fieldset("Donation") {
+                                minWidth = 400.0
+                                field {
+                                    hyperlink {
+                                        imageview("icons/buymeacoffee-logo.png").apply {
+                                            isPreserveRatio = true
+                                            fitHeight = 32.0
+                                        }
+                                        action {
+                                            openLink("https://buymeacoffee.com/devclaw")
+                                        }
+                                    }
                                 }
-                                action {
-                                    openLink("https://buymeacoffee.com/devclaw")
+                                field("ETH:") {
+                                    textfield("0xDdac82B16dC5E3D742fc915ffF583D8548A301cA") {
+
+                                        isEditable = false
+                                    }
+                                }
+                                field("BTC:") {
+                                    textfield("bc1qcqudnkrndwyadsjwrxww42svkf8trnzx3c8vlr") {
+                                        isEditable = false
+                                    }
                                 }
                             }
                         }

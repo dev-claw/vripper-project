@@ -1,11 +1,7 @@
 package me.vripper.tasks
 
-import me.vripper.download.DownloadService
 import me.vripper.model.ThreadPostId
-import me.vripper.services.DataTransaction
-import me.vripper.services.MetadataService
-import me.vripper.services.SettingsService
-import me.vripper.services.ThreadCacheService
+import me.vripper.services.*
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.vgapi.PostItem
 import me.vripper.vgapi.PostLookupAPIParser

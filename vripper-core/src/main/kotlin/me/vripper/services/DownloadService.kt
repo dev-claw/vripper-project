@@ -1,8 +1,9 @@
-package me.vripper.download
+package me.vripper.services
 
 import dev.failsafe.Failsafe
 import dev.failsafe.RetryPolicy
-import kotlinx.coroutines.Runnable
+import dev.failsafe.function.CheckedRunnable
+import kotlinx.coroutines.*
 import me.vripper.entities.ImageEntity
 import me.vripper.entities.PostEntity
 import me.vripper.entities.Status
@@ -10,24 +11,39 @@ import me.vripper.event.ErrorCountEvent
 import me.vripper.event.EventBus
 import me.vripper.event.QueueStateEvent
 import me.vripper.event.StoppedEvent
+import me.vripper.exception.DownloadException
+import me.vripper.exception.HostException
+import me.vripper.host.DownloadedImage
 import me.vripper.host.Host
+import me.vripper.host.ImageMimeType
 import me.vripper.model.ErrorCount
 import me.vripper.model.QueueState
-import me.vripper.services.DataTransaction
-import me.vripper.services.RetryPolicyService
-import me.vripper.services.SettingsService
-import me.vripper.services.VGAuthService
+import me.vripper.model.Settings
 import me.vripper.utilities.LoggerDelegate
+import me.vripper.utilities.PathUtils.getExtension
+import me.vripper.utilities.PathUtils.getFileNameWithoutExtension
+import me.vripper.utilities.PathUtils.sanitize
 import me.vripper.utilities.downloadRunner
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
+import org.apache.hc.client5.http.cookie.BasicCookieStore
+import org.apache.hc.client5.http.protocol.HttpClientContext
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import kotlin.io.path.Path
+import kotlin.io.path.pathString
 
 internal class DownloadService(
     private val settingsService: SettingsService,
     private val dataTransaction: DataTransaction,
     private val retryPolicyService: RetryPolicyService,
-    private val vgAuthService: VGAuthService,
     private val eventBus: EventBus
 ) {
     private val maxPoolSize: Int = 24
@@ -37,7 +53,155 @@ internal class DownloadService(
     private val lock = ReentrantLock()
     private val condition = lock.newCondition()
 
-    init {
+    internal class ImageDownloadContext(val imageEntity: ImageEntity, val settings: Settings) : KoinComponent {
+        private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        private val jobs = mutableListOf<Job>()
+        val httpContext: HttpClientContext =
+            HttpClientContext.create().apply { cookieStore = BasicCookieStore() }
+        val requests = mutableListOf<HttpUriRequestBase>()
+        val postId = imageEntity.postIdRef
+
+        fun cancelCoroutines() {
+            runBlocking {
+                coroutineScope.cancel()
+                jobs.forEach { job -> job.cancelAndJoin() }
+            }
+        }
+
+        fun launchCoroutine(block: suspend CoroutineScope.() -> Unit): Job {
+            return coroutineScope.launch(block = block).also { job -> jobs.add(job) }
+        }
+    }
+
+    internal class ImageDownloadRunnable(
+        val imageEntity: ImageEntity, val postRank: Int, private val settings: Settings
+    ) : KoinComponent, CheckedRunnable {
+        private val log by LoggerDelegate()
+        private val dataTransaction: DataTransaction by inject()
+        private val vgauthService: VGAuthService by inject()
+        private val hosts: List<Host> = getKoin().getAll()
+        var completed = false
+        var stopped = false
+
+        private lateinit var context: ImageDownloadContext
+
+        fun download() {
+            try {
+                imageEntity.status = Status.DOWNLOADING
+                imageEntity.downloaded = 0
+                dataTransaction.updateImage(imageEntity)
+                synchronized(imageEntity.postId.toString().intern()) {
+                    val post = dataTransaction.findPostById(context.postId)
+                    if (post.status != Status.DOWNLOADING) {
+                        post.status = Status.DOWNLOADING
+                        dataTransaction.updatePost(post)
+                        vgauthService.leaveThanks(post)
+                    }
+                }
+                log.debug("Getting image url and name from ${imageEntity.url} using ${imageEntity.host}")
+                val host = hosts.first { it.isSupported(imageEntity.url) }
+                val downloadedImage = host.downloadInternal(imageEntity.url, context)
+                log.debug("Resolved name for ${imageEntity.url}: ${downloadedImage.name}")
+                log.debug("Downloaded image {} to {}", imageEntity.url, downloadedImage.path)
+                synchronized(imageEntity.postId.toString().intern()) {
+                    val post = dataTransaction.findPostById(context.postId)
+                    val downloadDirectory = Path(post.downloadDirectory, post.folderName).pathString
+                    checkImageTypeAndRename(
+                        downloadDirectory, downloadedImage, imageEntity.index
+                    )
+                    if (imageEntity.downloaded == imageEntity.size && imageEntity.size > 0) {
+                        imageEntity.status = Status.FINISHED
+                        post.done += 1
+                        post.downloaded += imageEntity.size
+                        dataTransaction.updatePost(post)
+                    } else {
+                        imageEntity.status = Status.ERROR
+                    }
+                    dataTransaction.updateImage(imageEntity)
+                }
+            } catch (e: Exception) {
+                if (stopped) {
+                    return
+                }
+                imageEntity.status = Status.ERROR
+                dataTransaction.updateImage(imageEntity)
+                throw DownloadException(e)
+            }
+        }
+
+        @Throws(HostException::class)
+        private fun checkImageTypeAndRename(
+            downloadDirectory: String, downloadedImage: DownloadedImage, index: Int
+        ) {
+            val existingExtension = getExtension(downloadedImage.name).lowercase()
+            val fileNameWithoutExtension = getFileNameWithoutExtension(downloadedImage.name)
+            val extension = when (downloadedImage.type) {
+                ImageMimeType.IMAGE_BMP -> "BMP"
+                ImageMimeType.IMAGE_GIF -> "GIF"
+                ImageMimeType.IMAGE_JPEG -> "JPG"
+                ImageMimeType.IMAGE_PNG -> "PNG"
+                ImageMimeType.IMAGE_WEBP -> "WEBP"
+            }
+            val filename =
+                if (existingExtension.isBlank()) "${sanitize(downloadedImage.name)}.$extension" else "${
+                    sanitize(
+                        fileNameWithoutExtension
+                    )
+                }.$extension"
+            try {
+                val downloadDestinationFolder = Path.of(downloadDirectory)
+                Files.createDirectories(downloadDestinationFolder)
+                val finalFilename = "${
+                    if (settings.downloadSettings.forceOrder) String.format(
+                        "%03d_", index + 1
+                    ) else ""
+                }$filename"
+                imageEntity.filename = finalFilename
+                val imageDownloadPath = downloadDestinationFolder.resolve(finalFilename)
+                Files.copy(downloadedImage.path, imageDownloadPath, StandardCopyOption.REPLACE_EXISTING)
+            } catch (e: Exception) {
+                throw HostException("Failed to rename the image", e)
+            } finally {
+                try {
+                    Files.delete(downloadedImage.path)
+                } catch (_: IOException) {
+                }
+            }
+        }
+
+        override fun run() {
+            context = ImageDownloadContext(imageEntity, settings)
+            try {
+                if (stopped) {
+                    return
+                }
+                download()
+            } finally {
+                completed = true
+                context.cancelCoroutines()
+            }
+        }
+
+        fun stop() {
+            stopped = true
+            context.requests.forEach { it.abort() }
+            context.cancelCoroutines()
+            dataTransaction.updateImage(context.imageEntity)
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other == null || javaClass != other.javaClass) return false
+            val that = other as ImageDownloadRunnable
+            return imageEntity.id == that.imageEntity.id
+        }
+
+        override fun hashCode(): Int {
+            return Objects.hash(imageEntity.id)
+        }
+    }
+
+    fun init() {
         Thread.ofVirtual().name("Download Loop").unstarted(Runnable {
             val accepted: MutableList<ImageDownloadRunnable> = mutableListOf()
             val candidates: MutableList<ImageDownloadRunnable> = mutableListOf()
@@ -59,7 +223,7 @@ internal class DownloadService(
                     candidates.clear()
                     try {
                         condition.await()
-                    } catch (e: InterruptedException) {
+                    } catch (_: InterruptedException) {
                         Thread.currentThread().interrupt()
                     }
                 }
@@ -189,7 +353,7 @@ internal class DownloadService(
 
     private fun candidateCount(): Map<Byte, Int> {
         val map: MutableMap<Byte, Int> = mutableMapOf()
-        Host.getHosts().values.forEach { host: Byte ->
+        Host.Companion.getHosts().values.forEach { host: Byte ->
             val imageDownloadRunnableList: List<ImageDownloadRunnable> = running.computeIfAbsent(
                 host
             ) { mutableListOf() }

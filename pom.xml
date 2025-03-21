@@ -31,13 +31,13 @@
         <kotlinx-serialization-json.version>1.7.3</kotlinx-serialization-json.version>
         <httpclient5.version>5.4</httpclient5.version>
         <httpcore5.version>5.3</httpcore5.version>
-        <commons-codec.version>1.17.1</commons-codec.version>
         <liquibase-core.version>4.29.2</liquibase-core.version>
         <liquibase-slf4j.version>5.0.0</liquibase-slf4j.version>
         <grpc.kotlin.version>1.4.1</grpc.kotlin.version>
         <java.grpc.version>1.68.1</java.grpc.version>
         <protobuf.version>3.25.5</protobuf.version>
         <sqlite-jdbc.version>3.47.0.0</sqlite-jdbc.version>
+        <bucket4j_jdk17-core.version>8.14.0</bucket4j_jdk17-core.version>
     </properties>
     <build>
         <plugins>
@@ -187,11 +187,6 @@
                 <version>${httpcore5.version}</version>
             </dependency>
             <dependency>
-                <artifactId>commons-codec</artifactId>
-                <groupId>commons-codec</groupId>
-                <version>${commons-codec.version}</version>
-            </dependency>
-            <dependency>
                 <artifactId>liquibase-core</artifactId>
                 <groupId>org.liquibase</groupId>
                 <version>${liquibase-core.version}</version>
@@ -220,6 +215,11 @@
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-kotlin</artifactId>
                 <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.bucket4j</groupId>
+                <artifactId>bucket4j_jdk17-core</artifactId>
+                <version>${bucket4j_jdk17-core.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

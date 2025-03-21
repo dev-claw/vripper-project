@@ -10,15 +10,15 @@ import org.apache.hc.client5.http.cookie.StandardCookieSpec
 import org.apache.hc.client5.http.impl.DefaultRedirectStrategy
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.client5.http.impl.classic.HttpClients
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager
+import org.apache.hc.client5.http.impl.io.BasicHttpClientConnectionManager
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder
+import org.apache.hc.client5.http.io.HttpClientConnectionManager
 import org.apache.hc.core5.pool.PoolConcurrencyPolicy
 import org.apache.hc.core5.pool.PoolReusePolicy
 import org.apache.hc.core5.util.Timeout
 
 internal class HTTPService(
-    private val eventBus: EventBus,
-    settingsService: SettingsService
+    private val eventBus: EventBus
 ) {
 
     companion object {
@@ -28,23 +28,14 @@ internal class HTTPService(
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    private lateinit var pcm: PoolingHttpClientConnectionManager
-    private lateinit var rc: RequestConfig
-    private lateinit var cc: ConnectionConfig
-    lateinit var client: CloseableHttpClient
-    private var connectionTimeout = settingsService.settings.connectionSettings.timeout
+    private var pcm: HttpClientConnectionManager = BasicHttpClientConnectionManager()
+    private var rc: RequestConfig = RequestConfig.DEFAULT
+    private var cc: ConnectionConfig = ConnectionConfig.DEFAULT
+    private var connectionTimeout = 30
+    private var connectionExpiryJob: Job? = null
+    var client: CloseableHttpClient = HttpClients.createDefault()
 
-    init {
-        buildRequestConfig()
-        buildConnectionConfig()
-        buildConnectionPool()
-        buildClientBuilder()
-        coroutineScope.launch {
-            while (isActive) {
-                pcm.closeExpired()
-                delay(60_000)
-            }
-        }
+    fun init() {
         coroutineScope.launch {
             eventBus
                 .events
@@ -64,13 +55,21 @@ internal class HTTPService(
     }
 
     private fun buildConnectionPool() {
+        connectionExpiryJob?.cancel()
         pcm = PoolingHttpClientConnectionManagerBuilder.create()
             .setPoolConcurrencyPolicy(PoolConcurrencyPolicy.LAX)
             .setConnPoolPolicy(PoolReusePolicy.FIFO)
             .setDefaultConnectionConfig(cc)
             .setMaxConnTotal(Int.MAX_VALUE)
             .setMaxConnPerRoute(Int.MAX_VALUE)
-            .build()
+            .build().also {
+                connectionExpiryJob = coroutineScope.launch {
+                    while (isActive) {
+                        it.closeExpired()
+                        delay(60_000)
+                    }
+                }
+            }
     }
 
     private fun buildRequestConfig() {
@@ -95,6 +94,5 @@ internal class HTTPService(
             .disableAutomaticRetries()
             .setDefaultRequestConfig(rc)
             .build()
-
     }
 }

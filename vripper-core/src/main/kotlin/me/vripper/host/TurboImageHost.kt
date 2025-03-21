@@ -1,9 +1,11 @@
 package me.vripper.host
 
-import me.vripper.download.ImageDownloadContext
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.*
+import me.vripper.services.DataTransaction
+import me.vripper.services.DownloadService.ImageDownloadContext
+import me.vripper.services.DownloadSpeedService
+import me.vripper.services.HTTPService
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 import org.w3c.dom.Document

@@ -11,8 +11,6 @@ import me.vripper.tasks.Tasks
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
 import org.apache.hc.client5.http.classic.methods.HttpGet
-import org.apache.hc.client5.http.cookie.BasicCookieStore
-import org.apache.hc.client5.http.protocol.HttpClientContext
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.apache.hc.core5.net.URIBuilder
 import org.koin.core.component.KoinComponent
@@ -48,10 +46,7 @@ internal class ThreadLookupAPIParser(private val threadId: Long) : KoinComponent
                 RequestLimit.getPermit(1)
                 log.info("Requesting {}", httpGet.uri)
                 cm.client.execute(
-                    httpGet, HttpClientContext.create().apply {
-                        cookieStore = BasicCookieStore()
-                        vgAuthService.clickCookies.forEach { cookieStore.addCookie(it) }
-                    }
+                    httpGet, vgAuthService.createClickContext()
                 ) { response ->
                     if (response.code / 100 != 2) {
                         throw DownloadException("Unexpected response code '${response.code}' for $httpGet")
