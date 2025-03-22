@@ -11,7 +11,9 @@ import java.net.http.HttpResponse
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.exists
 import kotlin.io.path.pathString
+import kotlin.io.path.readLines
 
 object ApplicationProperties {
     val VERSION: String =
@@ -24,6 +26,8 @@ object ApplicationProperties {
     private val json = Json {
         ignoreUnknownKeys = true
     }
+    const val DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
+    val USER_AGENT: String;
 
     @Serializable
     internal data class ReleaseResponse(@SerialName("tag_name") val tagName: String)
@@ -31,6 +35,12 @@ object ApplicationProperties {
     init {
         Files.createDirectories(VRIPPER_DIR)
         System.setProperty("VRIPPER_DIR", VRIPPER_DIR.toRealPath().pathString)
+        val userAgentOverride = VRIPPER_DIR.resolve("user-agent")
+        USER_AGENT = if (userAgentOverride.exists()) {
+            userAgentOverride.readLines().firstOrNull() ?: DEFAULT_USER_AGENT
+        } else {
+            DEFAULT_USER_AGENT
+        }
     }
 
     fun latestVersion(): String {

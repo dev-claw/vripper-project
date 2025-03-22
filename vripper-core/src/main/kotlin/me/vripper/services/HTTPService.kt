@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterIsInstance
 import me.vripper.event.EventBus
 import me.vripper.event.SettingsUpdateEvent
+import me.vripper.utilities.ApplicationProperties
 import org.apache.hc.client5.http.config.ConnectionConfig
 import org.apache.hc.client5.http.config.RequestConfig
 import org.apache.hc.client5.http.cookie.StandardCookieSpec
@@ -20,12 +21,6 @@ import org.apache.hc.core5.util.Timeout
 internal class HTTPService(
     private val eventBus: EventBus
 ) {
-
-    companion object {
-        const val USER_AGENT =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/118.0"
-    }
-
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var pcm: HttpClientConnectionManager = BasicHttpClientConnectionManager()
@@ -41,15 +36,13 @@ internal class HTTPService(
                 .events
                 .filterIsInstance(SettingsUpdateEvent::class)
                 .collect {
-                    if (connectionTimeout != it.settings.connectionSettings.timeout) {
-                        connectionTimeout = it.settings.connectionSettings.timeout
-                        client.close()
-                        pcm.close()
-                        buildRequestConfig()
-                        buildConnectionConfig()
-                        buildConnectionPool()
-                        buildClientBuilder()
-                    }
+                    connectionTimeout = it.settings.connectionSettings.timeout
+                    client.close()
+                    pcm.close()
+                    buildRequestConfig()
+                    buildConnectionConfig()
+                    buildConnectionPool()
+                    buildClientBuilder()
                 }
         }
     }
@@ -90,7 +83,7 @@ internal class HTTPService(
         client = HttpClients.custom()
             .setConnectionManager(pcm)
             .setRedirectStrategy(DefaultRedirectStrategy.INSTANCE)
-            .setUserAgent(USER_AGENT)
+            .setUserAgent(ApplicationProperties.USER_AGENT)
             .disableAutomaticRetries()
             .setDefaultRequestConfig(rc)
             .build()

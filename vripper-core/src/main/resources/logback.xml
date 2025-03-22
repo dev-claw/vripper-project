@@ -23,13 +23,13 @@
         </rollingPolicy>
     </appender>
 
-    <appender name="RING" class="me.vripper.RingAppender">
+    <appender name="RING" class="me.vripper.RingAppender"/>
 
-    </appender>
-
-    <logger name="Exposed" level="OFF"/>
     <logger name="me.vripper" level="info"/>
+    <logger name="Exposed" level="off"/>
     <logger name="org.springframework.web.socket.config.WebSocketMessageBrokerStats" level="off"/>
+    <Logger name="org.apache.hc.client5.http" level="off"/>
+    <Logger name="org.apache.hc.client5.http.wire" level="off"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
