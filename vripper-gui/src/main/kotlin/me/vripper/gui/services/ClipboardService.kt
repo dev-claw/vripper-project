@@ -1,5 +1,6 @@
 package me.vripper.gui.services
 
+import io.grpc.StatusException
 import javafx.scene.input.Clipboard
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
@@ -21,7 +22,11 @@ class ClipboardService : Controller() {
     fun init(appEndpointService: IAppEndpointService) {
         subscribeJob?.cancel()
         subscribeJob = coroutineScope.launch {
-            appEndpointService.onUpdateSettings().catch { logger.error("gRPC error", it) }.collect {
+            appEndpointService.onUpdateSettings().catch {
+                if (it !is StatusException) {
+                    logger.error("gRPC error", it)
+                }
+            }.collect {
                 run(it, appEndpointService)
             }
         }

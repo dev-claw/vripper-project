@@ -169,10 +169,6 @@ internal class AppEndpointService(
         }
     }
 
-    override fun ready(): Boolean {
-        return true
-    }
-
     override suspend fun rename(postId: Long, newName: String) {
         taskRunner.submit {
             synchronized(postId.toString().intern()) {

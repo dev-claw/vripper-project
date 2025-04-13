@@ -2,6 +2,7 @@ package me.vripper.gui.components.views
 
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
+import io.grpc.StatusException
 import javafx.collections.FXCollections
 import javafx.event.EventHandler
 import javafx.geometry.Pos
@@ -12,6 +13,7 @@ import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseButton
 import javafx.util.Callback
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.javafx.asFlow
 import me.vripper.gui.components.Shared
@@ -25,6 +27,7 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.services.ClipboardService
+import me.vripper.gui.services.GrpcEndpointService
 import me.vripper.gui.utils.ActiveUICoroutines
 import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openFileDirectory
@@ -36,14 +39,13 @@ import tornadofx.*
 import kotlin.io.path.Path
 
 class PostsTableView : View() {
-
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val postController: PostController by inject()
     private val widgetsController: WidgetsController by inject()
     private val clipboardService: ClipboardService by inject()
     private val mainView: MainView by inject()
     private val localAppEndpointService: IAppEndpointService by di("localAppEndpointService")
-    private val remoteAppEndpointService: IAppEndpointService by di("remoteAppEndpointService")
+    private val remoteAppEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
 
     val tableView: TableView<PostModel>
     var items: SortedFilteredList<PostModel> = SortedFilteredList()
@@ -52,7 +54,6 @@ class PostsTableView : View() {
     override val root = vbox {}
 
     init {
-
         items.filterWhen(Shared.searchInput) { query, item ->
             item.title.contains(query, ignoreCase = true)
                     || item.postId.toString().contains(query)
@@ -74,16 +75,8 @@ class PostsTableView : View() {
                         connect()
                     }
 
-                    is GuiEventBus.RemoteSessionFailure -> {
-                        runLater {
-                            items.clear()
-                            tableView.placeholder = Label("Connection Failure")
-                        }
-                    }
-
                     is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.posts.forEach { it.cancelAndJoin() }
-                        ActiveUICoroutines.posts.clear()
+                        ActiveUICoroutines.cancelPosts()
                         runLater {
                             tableView.placeholder = Label("Loading")
                         }
@@ -404,27 +397,70 @@ class PostsTableView : View() {
 
     private fun connect() {
         coroutineScope.launch {
-            val postModelList = async { postController.findAllPosts() }.await()
-            runLater {
-                items.clear()
-                items.addAll(postModelList)
-                tableView.sort()
-                tableView.placeholder = Label("No content in table")
-                clipboardService.init(postController.appEndpointService)
-            }
+            connectToOnNewPosts()
+            connectToOnPostUpdated()
+            connectToOnDeletedPost()
+            connectToOnMetadataUpdated()
         }
+    }
 
+    private fun connectToOnMetadataUpdated() {
         coroutineScope.launch {
-            postController.onNewPosts().collect {
+            postController.onUpdateMetadata().catch {
+                ActiveUICoroutines.removeFromPosts(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToOnMetadataUpdated()
+                    }
+                }
+            }.collect {
                 runLater {
-                    items.addAll(it)
+                    val postModel = items.find { it.postId == it.postId } ?: return@runLater
+
+                    postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
+                    postModel.postedBy = it.data.postedBy
+                }
+            }
+        }.also { runBlocking { ActiveUICoroutines.addToPosts(it) } }
+    }
+
+    private fun connectToOnDeletedPost() {
+        coroutineScope.launch {
+            postController.onDeletePosts().catch {
+                ActiveUICoroutines.removeFromPosts(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToOnDeletedPost()
+                    }
+                }
+            }.collect {
+                runLater {
+                    items.items.removeIf { p -> p.postId == it }
                     tableView.sort()
                 }
             }
-        }.also { ActiveUICoroutines.posts.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToPosts(it) } }
+    }
 
+    private fun connectToOnPostUpdated() {
         coroutineScope.launch {
-            postController.onUpdatePosts().collect { post ->
+            postController.onUpdatePosts().catch {
+                ActiveUICoroutines.removeFromPosts(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToOnPostUpdated()
+                    }
+                }
+            }.collect { post ->
                 runLater {
                     val postModel = items.find { it.postId == post.postId } ?: return@runLater
 
@@ -441,27 +477,38 @@ class PostsTableView : View() {
                     postModel.folderName = post.folderName
                 }
             }
-        }.also { ActiveUICoroutines.posts.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToPosts(it) } }
+    }
 
+    private fun connectToOnNewPosts() {
         coroutineScope.launch {
-            postController.onDeletePosts().collect {
+            val postModelList = async { postController.findAllPosts() }.await()
+            runLater {
+                items.clear()
+                items.addAll(postModelList)
+                tableView.sort()
+                tableView.placeholder = Label("No content in table")
+                clipboardService.init(postController.appEndpointService)
+            }
+        }
+        coroutineScope.launch {
+            postController.onNewPosts().catch {
+                ActiveUICoroutines.removeFromPosts(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToOnNewPosts()
+                    }
+                }
+            }.collect {
                 runLater {
-                    items.items.removeIf { p -> p.postId == it }
+                    items.addAll(it)
                     tableView.sort()
                 }
             }
-        }.also { ActiveUICoroutines.posts.add(it) }
-
-        coroutineScope.launch {
-            postController.onUpdateMetadata().collect {
-                runLater {
-                    val postModel = items.find { it.postId == it.postId } ?: return@runLater
-
-                    postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
-                    postModel.postedBy = it.data.postedBy
-                }
-            }
-        }.also { ActiveUICoroutines.posts.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToPosts(it) } }
     }
 
     private fun rename(post: PostModel) {
@@ -474,13 +521,6 @@ class PostsTableView : View() {
         ).openModal()?.apply {
             minWidth = 100.0
             minHeight = 100.0
-        }
-    }
-
-    fun renameSelected() {
-        val selectedItem = tableView.selectionModel.selectedItem
-        if (selectedItem != null) {
-            rename(selectedItem)
         }
     }
 

@@ -1,13 +1,7 @@
 package me.vripper.services
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.launch
 import me.vripper.entities.PostEntity
 import me.vripper.event.EventBus
-import me.vripper.event.SettingsUpdateEvent
 import me.vripper.event.VGUserLoginEvent
 import me.vripper.exception.VripperException
 import me.vripper.model.Settings
@@ -27,21 +21,12 @@ internal class VGAuthService(
     private val cm: HTTPService,
     private val eventBus: EventBus,
 ) {
-    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val log by LoggerDelegate()
     private val vgCookies: MutableList<Cookie> = mutableListOf()
     var loggedUser = ""
     private var authenticated = false
 
-    fun init() {
-        coroutineScope.launch {
-            eventBus.events.filterIsInstance(SettingsUpdateEvent::class).collect {
-                authenticate(it.settings)
-            }
-        }
-    }
-
-    private fun authenticate(settings: Settings) {
+    fun authenticate(settings: Settings) {
         if (!settings.viperSettings.login) {
             log.debug("Authentication option is disabled")
             authenticated = false
@@ -120,6 +105,7 @@ internal class VGAuthService(
         authenticated = true
         loggedUser = username
         eventBus.publishEvent(VGUserLoginEvent(loggedUser))
+        log.info("Successfully logged in as: $loggedUser")
     }
 
     fun leaveThanks(postEntity: PostEntity) {

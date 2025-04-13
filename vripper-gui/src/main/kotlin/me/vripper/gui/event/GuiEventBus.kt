@@ -16,5 +16,4 @@ object GuiEventBus {
     object ChangingSession
     object LocalSession
     object RemoteSession
-    object RemoteSessionFailure
 }

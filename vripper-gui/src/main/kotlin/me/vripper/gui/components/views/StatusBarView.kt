@@ -1,5 +1,7 @@
 package me.vripper.gui.components.views
 
+import io.grpc.ConnectivityState
+import io.grpc.StatusException
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleStringProperty
@@ -9,17 +11,16 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
+import me.vripper.gui.services.GrpcEndpointService
 import me.vripper.gui.utils.ActiveUICoroutines
 import me.vripper.services.IAppEndpointService
-import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.formatSI
 import tornadofx.*
 
 class StatusBarView : View("Status bar") {
-    private val logger by LoggerDelegate()
     private val widgetsController: WidgetsController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val grpcEndpointService: IAppEndpointService by di("remoteAppEndpointService")
+    private val grpcEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
     private val localEndpointService: IAppEndpointService by di("localAppEndpointService")
     private val remoteText = SimpleStringProperty()
     private val loggedUser = SimpleStringProperty()
@@ -49,15 +50,8 @@ class StatusBarView : View("Status bar") {
                         connect(grpcEndpointService)
                     }
 
-                    is GuiEventBus.RemoteSessionFailure -> {
-                        runLater {
-                            remoteText.set("Unable to connect to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}")
-                        }
-                    }
-
                     is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.statusBar.forEach { it.cancelAndJoin() }
-                        ActiveUICoroutines.statusBar.clear()
+                        ActiveUICoroutines.cancelStatusBar()
                         runLater {
                             remoteText.set("Connecting to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}")
                         }
@@ -75,79 +69,134 @@ class StatusBarView : View("Status bar") {
             }
         }
 
-        coroutineScope.launch {
-            endpointService.onVGUserUpdate().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
-            }.collect {
-                runLater {
-                    loggedUser.set(it)
-                }
-            }
-        }.also { ActiveUICoroutines.statusBar.add(it) }
+        connectToVGUserUpdate(endpointService)
+        connectToTasksRunning(endpointService)
+        connectToDownloadSpeed(endpointService)
+        connectToQueueStateUpdate(endpointService)
+        connectToErrorCountUpdate(endpointService)
 
-        coroutineScope.launch {
-            endpointService.onTasksRunning().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
-            }.collect {
-                runLater {
-                    tasksRunning.set(it)
-                }
-            }
-        }.also { ActiveUICoroutines.statusBar.add(it) }
-
-        coroutineScope.launch {
-            endpointService.onDownloadSpeed().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
-            }.collect {
-                runLater {
-                    downloadSpeed.set(it.speed.formatSI())
-                }
-            }
-        }.also { ActiveUICoroutines.statusBar.add(it) }
-
-        coroutineScope.launch {
-            endpointService.onQueueStateUpdate().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
-            }.collect {
-                runLater {
-                    running.set(it.running)
-                    pending.set(it.remaining)
-                }
-            }
-        }.also { ActiveUICoroutines.statusBar.add(it) }
-
-        coroutineScope.launch {
-            endpointService.onErrorCountUpdate().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
-            }.collect {
-                runLater {
-                    error.set(it.count)
-                }
-            }
-        }.also { ActiveUICoroutines.statusBar.add(it) }
         if (widgetsController.currentSettings.localSession) {
             runLater {
                 remoteText.set("")
             }
         } else {
             coroutineScope.launch {
-                if (grpcEndpointService.ready()) {
-                    val version = grpcEndpointService.getVersion()
-                    runLater {
-                        remoteText.set("Connected to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port} v$version")
+                while (isActive) {
+                    val text = when (grpcEndpointService.connectionState()) {
+                        ConnectivityState.CONNECTING -> "Connecting to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}"
+                        ConnectivityState.READY -> "Connected to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port} ${grpcEndpointService.getVersion()}"
+                        ConnectivityState.TRANSIENT_FAILURE -> "Failing to connect to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}"
+                        ConnectivityState.IDLE -> "Idle connection to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}"
+                        ConnectivityState.SHUTDOWN -> "Connection shutdown to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}"
                     }
-                } else {
                     runLater {
-                        remoteText.set("Unable to connect to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}")
+                        remoteText.set(text)
                     }
+                    delay(1000)
                 }
             }
         }
+    }
+
+    private fun connectToErrorCountUpdate(endpointService: IAppEndpointService) {
+        coroutineScope.launch {
+            endpointService.onErrorCountUpdate().catch {
+                ActiveUICoroutines.removeFromStatusBar(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToErrorCountUpdate(endpointService)
+                    }
+                }
+            }.collect {
+                runLater {
+                    error.set(it.count)
+                }
+            }
+        }.also { runBlocking { ActiveUICoroutines.addToStatusBar(it) } }
+    }
+
+    private fun connectToQueueStateUpdate(endpointService: IAppEndpointService) {
+        coroutineScope.launch {
+            endpointService.onQueueStateUpdate().catch {
+                ActiveUICoroutines.removeFromStatusBar(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToQueueStateUpdate(endpointService)
+                    }
+                }
+            }.collect {
+                runLater {
+                    running.set(it.running)
+                    pending.set(it.remaining)
+                }
+            }
+        }.also { runBlocking { ActiveUICoroutines.addToStatusBar(it) } }
+    }
+
+    private fun connectToDownloadSpeed(endpointService: IAppEndpointService) {
+        coroutineScope.launch {
+            endpointService.onDownloadSpeed().catch {
+                ActiveUICoroutines.removeFromStatusBar(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToDownloadSpeed(endpointService)
+                    }
+                }
+            }.collect {
+                runLater {
+                    downloadSpeed.set(it.speed.formatSI())
+                }
+            }
+        }.also { runBlocking { ActiveUICoroutines.addToStatusBar(it) } }
+    }
+
+    private fun connectToTasksRunning(endpointService: IAppEndpointService) {
+        coroutineScope.launch {
+            endpointService.onTasksRunning().catch {
+                ActiveUICoroutines.removeFromStatusBar(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToTasksRunning(endpointService)
+                    }
+                }
+            }.collect {
+                runLater {
+                    tasksRunning.set(it)
+                }
+            }
+        }.also { runBlocking { ActiveUICoroutines.addToStatusBar(it) } }
+    }
+
+    private fun connectToVGUserUpdate(endpointService: IAppEndpointService) {
+        coroutineScope.launch {
+            endpointService.onVGUserUpdate().catch {
+                ActiveUICoroutines.removeFromStatusBar(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToVGUserUpdate(endpointService)
+                    }
+                }
+            }.collect {
+                runLater {
+                    loggedUser.set(it)
+                }
+            }
+        }.also { runBlocking { ActiveUICoroutines.addToStatusBar(it) } }
     }
 
     override val root = borderpane {

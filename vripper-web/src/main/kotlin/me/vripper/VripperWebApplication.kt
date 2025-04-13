@@ -1,7 +1,6 @@
 package me.vripper
 
-import me.vripper.listeners.OnStartupListener
-import me.vripper.utilities.DatabaseManager
+import me.vripper.listeners.AppManager
 import org.koin.core.context.startKoin
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.builder.SpringApplicationBuilder
@@ -10,10 +9,9 @@ import org.springframework.boot.builder.SpringApplicationBuilder
 class VripperWebApplication
 
 fun main(args: Array<String>) {
-    DatabaseManager.connect()
     startKoin {
         modules(coreModule)
     }
-    OnStartupListener().run()
+    AppManager.start()
     SpringApplicationBuilder(VripperWebApplication::class.java).listeners(AppListener()).run(*args)
 }

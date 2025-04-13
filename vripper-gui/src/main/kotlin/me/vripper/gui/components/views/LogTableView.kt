@@ -2,10 +2,12 @@ package me.vripper.gui.components.views
 
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
+import io.grpc.StatusException
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.scene.control.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.javafx.asFlow
 import me.vripper.gui.components.fragments.LogMessageFragment
@@ -178,16 +180,8 @@ class LogTableView : View() {
                         connect()
                     }
 
-                    is GuiEventBus.RemoteSessionFailure -> {
-                        runLater {
-                            items.clear()
-                            tableView.placeholder = Label("Connection Failure")
-                        }
-                    }
-
                     is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.logs.forEach { it.cancelAndJoin() }
-                        ActiveUICoroutines.logs.clear()
+                        ActiveUICoroutines.cancelLog()
                         runLater {
                             tableView.placeholder = Label("Loading")
                             items.clear()
@@ -202,8 +196,48 @@ class LogTableView : View() {
         runBlocking {
             maxLogEvent = logController.appEndpointService.getSettings().systemSettings.maxEventLog
         }
+
+        connectToNewLogs()
+        connectToSettingsUpdate()
+
+        runLater {
+            runBlocking {
+                logController.initLogger()
+            }
+        }
+    }
+
+    private fun connectToSettingsUpdate() {
         coroutineScope.launch {
-            logController.onNewLog().collect {
+            logController.onUpdateSettings().catch {
+                ActiveUICoroutines.removeFromLog(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToSettingsUpdate()
+                    }
+                }
+            }.collect {
+                maxLogEvent = it.systemSettings.maxEventLog
+            }
+        }.also { runBlocking { ActiveUICoroutines.addToLog(it) } }
+    }
+
+    private fun connectToNewLogs() {
+        coroutineScope.launch {
+            logController.onNewLog().catch {
+                ActiveUICoroutines.removeFromLog(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connectToNewLogs()
+                    }
+                }
+            }.collect {
                 runLater {
                     items.sortWith(Comparator.comparing { it.sequence })
                     while (items.isNotEmpty() && (items.size >= maxLogEvent)) {
@@ -213,17 +247,7 @@ class LogTableView : View() {
                     tableView.sort()
                 }
             }
-        }.also { ActiveUICoroutines.logs.add(it) }
-        coroutineScope.launch {
-            logController.appEndpointService.onUpdateSettings().collect {
-                maxLogEvent = it.systemSettings.maxEventLog
-            }
-        }.also { ActiveUICoroutines.logs.add(it) }
-        runLater {
-            runBlocking {
-                logController.initLogger()
-            }
-        }
+        }.also { runBlocking { ActiveUICoroutines.addToLog(it) } }
     }
 
     private fun openLog(item: LogModel) {

@@ -235,6 +235,9 @@ class WidgetsController : Controller() {
         currentSettings.remoteSessionModel.portProperty.onChange {
             WidgetSettings.update(currentSettings)
         }
+        currentSettings.remoteSessionModel.passcodeProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
         currentSettings.cachePathProperty.onChange {
             WidgetSettings.update(currentSettings)
         }

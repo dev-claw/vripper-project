@@ -1,9 +1,6 @@
 package me.vripper.services
 
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.filterIsInstance
-import me.vripper.event.EventBus
-import me.vripper.event.SettingsUpdateEvent
 import me.vripper.utilities.ApplicationProperties
 import org.apache.hc.client5.http.config.ConnectionConfig
 import org.apache.hc.client5.http.config.RequestConfig
@@ -18,36 +15,17 @@ import org.apache.hc.core5.pool.PoolConcurrencyPolicy
 import org.apache.hc.core5.pool.PoolReusePolicy
 import org.apache.hc.core5.util.Timeout
 
-internal class HTTPService(
-    private val eventBus: EventBus
-) {
+internal class HTTPService {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var pcm: HttpClientConnectionManager = BasicHttpClientConnectionManager()
     private var rc: RequestConfig = RequestConfig.DEFAULT
     private var cc: ConnectionConfig = ConnectionConfig.DEFAULT
-    private var connectionTimeout = 30
     private var connectionExpiryJob: Job? = null
     var client: CloseableHttpClient = HttpClients.createDefault()
 
-    fun init() {
-        coroutineScope.launch {
-            eventBus
-                .events
-                .filterIsInstance(SettingsUpdateEvent::class)
-                .collect {
-                    connectionTimeout = it.settings.connectionSettings.timeout
-                    client.close()
-                    pcm.close()
-                    buildRequestConfig()
-                    buildConnectionConfig()
-                    buildConnectionPool()
-                    buildClientBuilder()
-                }
-        }
-    }
-
-    private fun buildConnectionPool() {
+    fun buildConnectionPool() {
+        pcm.close()
         connectionExpiryJob?.cancel()
         pcm = PoolingHttpClientConnectionManagerBuilder.create()
             .setPoolConcurrencyPolicy(PoolConcurrencyPolicy.LAX)
@@ -65,21 +43,21 @@ internal class HTTPService(
             }
     }
 
-    private fun buildRequestConfig() {
+    fun buildRequestConfig(connectionTimeout: Long) {
         rc = RequestConfig.custom()
-            .setConnectionRequestTimeout(Timeout.ofSeconds(connectionTimeout.toLong()))
+            .setConnectionRequestTimeout(Timeout.ofSeconds(connectionTimeout))
             .setCookieSpec(StandardCookieSpec.RELAXED)
             .build()
     }
 
-    private fun buildConnectionConfig() {
+    fun buildConnectionConfig(connectionTimeout: Long) {
         cc = ConnectionConfig.custom()
-            .setConnectTimeout(Timeout.ofSeconds(connectionTimeout.toLong()))
-            .setSocketTimeout(Timeout.ofSeconds(connectionTimeout.toLong()))
+            .setConnectTimeout(Timeout.ofSeconds(connectionTimeout))
+            .setSocketTimeout(Timeout.ofSeconds(connectionTimeout))
             .build()
     }
 
-    private fun buildClientBuilder() {
+    fun buildClientBuilder() {
         client = HttpClients.custom()
             .setConnectionManager(pcm)
             .setRedirectStrategy(DefaultRedirectStrategy.INSTANCE)

@@ -42,7 +42,7 @@ internal class LeaveThanksTask(
                 )
             }
             RequestLimit.getPermit(1)
-            log.debug("Requesting {}", postThanks.uri)
+            log.info("Posting {}", postThanks.uri)
             cm.client.execute(postThanks, context) { response ->
                 if (response.code / 100 != 2) {
                     throw VripperException("Unexpected response code '${response.code}' for $postThanks")

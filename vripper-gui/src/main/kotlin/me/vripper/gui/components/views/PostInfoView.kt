@@ -10,13 +10,11 @@ import me.vripper.gui.controller.PostController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.ActiveUICoroutines
-import me.vripper.utilities.LoggerDelegate
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 
 class PostInfoView : View() {
-    private val logger by LoggerDelegate()
     private val postController: PostController by inject()
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val imagesTableView: ImagesTableView by inject()
@@ -29,8 +27,7 @@ class PostInfoView : View() {
     init {
         coroutineScope.launch {
             GuiEventBus.events.filterIsInstance(GuiEventBus.ChangingSession::class).collect {
-                ActiveUICoroutines.postInfo.forEach { it.cancelAndJoin() }
-                ActiveUICoroutines.postInfo.clear()
+                ActiveUICoroutines.cancelPostInfo()
             }
         }
         with(root) {
@@ -87,8 +84,7 @@ class PostInfoView : View() {
     }
 
     fun setPostId(postId: Long?) {
-        ActiveUICoroutines.postInfo.forEach { it.cancel() }
-        ActiveUICoroutines.postInfo.clear()
+        runBlocking { ActiveUICoroutines.cancelPostInfo() }
         imagesTableView.setPostId(postId)
         if (postId == null) {
             postModel.apply {
@@ -145,8 +141,7 @@ class PostInfoView : View() {
         }
         coroutineScope.launch {
             postController.onUpdatePosts().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
+                ActiveUICoroutines.removeFromPostInfo(currentCoroutineContext().job)
             }.filter {
                 it.postId == postModel.postId
             }.collect { post ->
@@ -164,12 +159,11 @@ class PostInfoView : View() {
                     postModel.folderName = post.folderName
                 }
             }
-        }.also { ActiveUICoroutines.postInfo.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToPostInfo(it) } }
 
         coroutineScope.launch {
             postController.onUpdateMetadata().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
+                ActiveUICoroutines.removeFromPostInfo(currentCoroutineContext().job)
             }.filter {
                 it.postId == postModel.postId
             }.collect {
@@ -178,6 +172,6 @@ class PostInfoView : View() {
                     postModel.postedBy = it.data.postedBy
                 }
             }
-        }.also { ActiveUICoroutines.postInfo.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToPostInfo(it) } }
     }
 }
