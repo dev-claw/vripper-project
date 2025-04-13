@@ -19,9 +19,11 @@ internal class DownloadSpeedService(
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val bytesCount = AtomicLong(0)
     private var job: Job? = null
+    private var queueStateUpdateJob: Job? = null
 
     fun init() {
-        coroutineScope.launch {
+        queueStateUpdateJob?.cancel()
+        queueStateUpdateJob = coroutineScope.launch {
             eventBus.events.filterIsInstance(QueueStateEvent::class).collect {
                 if (it.queueState.running + it.queueState.remaining > 0) {
                     if (job == null || job?.isActive == false) {
@@ -43,6 +45,11 @@ internal class DownloadSpeedService(
                 }
             }
         }
+    }
+
+    fun halt() {
+        queueStateUpdateJob?.cancel()
+        job?.cancel()
     }
 
     fun reportDownloadedBytes(count: Long) {

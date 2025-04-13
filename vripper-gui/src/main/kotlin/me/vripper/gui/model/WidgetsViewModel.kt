@@ -159,6 +159,7 @@ class WidgetsViewModel(
 
     val remoteSessionModel = RemoteSessionModel(
         remoteSession.host,
-        remoteSession.port
+        remoteSession.port,
+        remoteSession.passPhrase,
     )
 }

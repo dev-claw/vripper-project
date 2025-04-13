@@ -2,9 +2,6 @@ package me.vripper.gui.components.fragments
 
 import atlantafx.base.theme.Styles
 import atlantafx.base.util.IntegerStringConverter
-import io.grpc.ConnectivityState
-import javafx.beans.property.SimpleBooleanProperty
-import javafx.beans.property.SimpleStringProperty
 import javafx.geometry.Pos
 import javafx.scene.control.RadioButton
 import javafx.scene.control.Spinner
@@ -14,11 +11,9 @@ import kotlinx.coroutines.*
 import me.vripper.gui.VripperGuiApplication
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
-import me.vripper.gui.listener.GuiStartupLister
 import me.vripper.gui.services.GrpcEndpointService
 import me.vripper.gui.utils.ActiveUICoroutines
-import me.vripper.services.IAppEndpointService
-import me.vripper.utilities.DatabaseManager
+import me.vripper.listeners.AppManager
 import tornadofx.*
 
 class SessionFragment : Fragment("Change Session") {
@@ -26,10 +21,7 @@ class SessionFragment : Fragment("Change Session") {
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val widgetsController: WidgetsController by inject()
     private val grpcEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
-    private val appEndpointService: IAppEndpointService by di("localAppEndpointService")
     private val toggleGroup = ToggleGroup()
-    private val disableConfirm = SimpleBooleanProperty(false)
-    private val message = SimpleStringProperty()
     override val root = VBox().apply {
         alignment = Pos.CENTER
         padding = insets(all = 5)
@@ -60,19 +52,17 @@ class SessionFragment : Fragment("Change Session") {
                             IntegerStringConverter.createFor(this)
                         })
                     }
+                    field("Passcode") {
+                        enableWhen { remoteRadio.selectedProperty() }
+                        passwordfield(widgetsController.currentSettings.remoteSessionModel.passcodeProperty) {}
+                    }
                 }
             }
             borderpane {
-                left {
-                    padding = insets(all = 5.0)
-                    label(message) {
-                        disableWhen { message.isBlank() }
-                    }
-                }
                 right {
                     padding = insets(all = 5.0)
                     button("Ok") {
-                        enableWhen { toggleGroup.selectedToggleProperty().isNotNull.and(disableConfirm.not()) }
+                        enableWhen { toggleGroup.selectedToggleProperty().isNotNull }
                         addClass(Styles.ACCENT)
                         isDefaultButton = true
                         action {
@@ -83,18 +73,14 @@ class SessionFragment : Fragment("Change Session") {
                             when ((selectedToggle as RadioButton).id) {
                                 "localSession" -> {
                                     coroutineScope.launch {
-                                        runLater {
-                                            disableConfirm.set(true)
-                                            message.set("Starting...")
-                                        }
+                                        AppManager.stop()
                                         widgetsController.currentSettings.localSession = true
                                         GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
                                         while (ActiveUICoroutines.all().isNotEmpty()) {
                                             delay(200)
                                         }
                                         grpcEndpointService.disconnect()
-                                        DatabaseManager.connect()
-                                        GuiStartupLister().run()
+                                        AppManager.start()
                                         GuiEventBus.publishEvent(GuiEventBus.LocalSession)
                                         runLater {
                                             close()
@@ -104,41 +90,20 @@ class SessionFragment : Fragment("Change Session") {
 
                                 "remoteSession" -> {
                                     coroutineScope.launch {
-                                        runLater {
-                                            disableConfirm.set(true)
-                                            message.set("Connecting...")
-                                        }
-                                        if (widgetsController.currentSettings.localSession) {
-                                            appEndpointService.stopAll()
-                                        }
+                                        AppManager.stop()
                                         widgetsController.currentSettings.localSession = false
                                         GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
                                         while (ActiveUICoroutines.all().isNotEmpty()) {
                                             delay(200)
                                         }
-                                        DatabaseManager.disconnect()
-                                        grpcEndpointService.disconnect()
                                         grpcEndpointService.connect(
                                             widgetsController.currentSettings.remoteSessionModel.host,
-                                            widgetsController.currentSettings.remoteSessionModel.port
+                                            widgetsController.currentSettings.remoteSessionModel.port,
+                                            widgetsController.currentSettings.remoteSessionModel.passcode,
                                         )
-
-                                        repeat(10) {
-                                            if (grpcEndpointService.connectionState() == ConnectivityState.READY) {
-                                                GuiEventBus.publishEvent(GuiEventBus.RemoteSession)
-                                                runLater {
-                                                    close()
-                                                }
-                                                cancel()
-                                            }
-                                            delay(333)
-                                        }
+                                        GuiEventBus.publishEvent(GuiEventBus.RemoteSession)
                                         runLater {
-                                            runBlocking {
-                                                GuiEventBus.publishEvent(GuiEventBus.RemoteSessionFailure)
-                                            }
-                                            disableConfirm.set(false)
-                                            message.set("Unable to connect")
+                                            close()
                                         }
                                     }
                                 }

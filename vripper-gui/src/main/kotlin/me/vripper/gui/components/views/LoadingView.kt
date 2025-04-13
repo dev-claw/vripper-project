@@ -4,14 +4,11 @@ import javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS
 import javafx.scene.effect.DropShadow
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterIsInstance
-import me.vripper.gui.VripperGuiApplication
-import me.vripper.gui.components.fragments.SessionFragment
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
-import me.vripper.gui.listener.GuiStartupLister
 import me.vripper.gui.services.GrpcEndpointService
 import me.vripper.gui.utils.Watcher
-import me.vripper.utilities.DatabaseManager
+import me.vripper.listeners.AppManager
 import tornadofx.*
 
 class LoadingView : View("VRipper") {
@@ -26,42 +23,17 @@ class LoadingView : View("VRipper") {
         coroutineScope.launch {
             GuiEventBus.events.filterIsInstance(GuiEventBus.ApplicationInitialized::class).collect {
                 if (widgetsController.currentSettings.localSession) {
-                    DatabaseManager.connect()
-                    GuiStartupLister().run()
-                    runLater {
-                        replaceWith(find<AppView>())
-                    }
+                    AppManager.start()
                 } else {
                     grpcEndpointService.connect(
                         widgetsController.currentSettings.remoteSessionModel.host,
-                        widgetsController.currentSettings.remoteSessionModel.port
+                        widgetsController.currentSettings.remoteSessionModel.port,
+                        widgetsController.currentSettings.remoteSessionModel.passcode,
                     )
-                    repeat(10) {
-                        if (grpcEndpointService.ready()) {
-                            return@repeat
-                        }
-                        delay(333)
-                    }
-                    runLater {
-                        replaceWith(find<AppView>())
-                        runBlocking {
-                            GuiEventBus.publishEvent(GuiEventBus.RemoteSessionFailure)
-                        }
-                    }
-                    if (!grpcEndpointService.ready()) {
-                        val sessionView = find<SessionFragment>()
-                        runLater {
-                            sessionView.openModal()?.apply {
-                                setOnCloseRequest {
-                                    VripperGuiApplication.APP_INSTANCE.stop()
-                                }
-                                minWidth = 100.0
-                                minHeight = 100.0
-                            }
-                        }
-                    }
                 }
-
+                runLater {
+                    replaceWith(find<AppView>())
+                }
                 if (it.args.isNotEmpty()) {
                     Watcher.notify(it.args[0])
                 }

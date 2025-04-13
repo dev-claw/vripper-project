@@ -1,17 +1,12 @@
 package me.vripper.gui.controller
 
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import me.vripper.gui.model.LogModel
 import me.vripper.model.LogEntry
 import me.vripper.services.IAppEndpointService
-import me.vripper.utilities.LoggerDelegate
 import tornadofx.Controller
 
 class LogController : Controller() {
-    private val logger by LoggerDelegate()
     lateinit var appEndpointService: IAppEndpointService
 
     private fun mapper(it: LogEntry): LogModel {
@@ -26,12 +21,13 @@ class LogController : Controller() {
         )
     }
 
-    fun onNewLog() = appEndpointService.onNewLog().map(::mapper).catch {
-        logger.error("gRPC error", it)
-        currentCoroutineContext().cancel(null)
-    }
+    fun onNewLog() = appEndpointService.onNewLog().map(::mapper)
 
     suspend fun initLogger() {
         appEndpointService.initLogger()
     }
+
+    fun onUpdateSettings() =
+        appEndpointService.onUpdateSettings()
+
 }

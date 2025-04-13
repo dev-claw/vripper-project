@@ -8,7 +8,7 @@ internal class MetadataService(
     private val settingsService: SettingsService,
 ) {
 
-    fun init() {
+    fun fetchExisting() {
         if (!settingsService.settings.viperSettings.fetchMetadata) {
             return
         }

@@ -1,20 +1,15 @@
 package me.vripper.gui.controller
 
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import me.vripper.entities.ThreadEntity
 import me.vripper.gui.model.ThreadModel
 import me.vripper.gui.model.ThreadSelectionModel
 import me.vripper.model.ThreadPostId
 import me.vripper.services.IAppEndpointService
-import me.vripper.utilities.LoggerDelegate
 import org.koin.core.component.KoinComponent
 import tornadofx.Controller
 
 class ThreadController : KoinComponent, Controller() {
-    private val logger by LoggerDelegate()
     lateinit var appEndpointService: IAppEndpointService
 
     suspend fun findAll(): List<ThreadModel> {
@@ -61,23 +56,11 @@ class ThreadController : KoinComponent, Controller() {
         })
     }
 
-    fun onNewThread() = appEndpointService.onNewThread().map(::threadModelMapper).catch {
-        logger.error("gRPC error", it)
-        currentCoroutineContext().cancel(null)
-    }
+    fun onNewThread() = appEndpointService.onNewThread().map(::threadModelMapper)
 
-    fun onUpdateThread() = appEndpointService.onUpdateThread().catch {
-        logger.error("gRPC error", it)
-        currentCoroutineContext().cancel(null)
-    }
+    fun onUpdateThread() = appEndpointService.onUpdateThread()
 
-    fun onDeleteThread() = appEndpointService.onDeleteThread().catch {
-        logger.error("gRPC error", it)
-        currentCoroutineContext().cancel(null)
-    }
+    fun onDeleteThread() = appEndpointService.onDeleteThread()
 
-    fun onClearThreads() = appEndpointService.onClearThreads().catch {
-        logger.error("gRPC error", it)
-        currentCoroutineContext().cancel(null)
-    }
+    fun onClearThreads() = appEndpointService.onClearThreads()
 }

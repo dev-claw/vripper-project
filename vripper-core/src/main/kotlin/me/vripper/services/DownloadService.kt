@@ -53,6 +53,8 @@ internal class DownloadService(
     private val lock = ReentrantLock()
     private val condition = lock.newCondition()
 
+    private var downloadMonitorThread: Thread? = null
+
     internal class ImageDownloadContext(val imageEntity: ImageEntity, val settings: Settings) : KoinComponent {
         private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         private val jobs = mutableListOf<Job>()
@@ -202,7 +204,8 @@ internal class DownloadService(
     }
 
     fun init() {
-        Thread.ofVirtual().name("Download Loop").unstarted(Runnable {
+        downloadMonitorThread?.interrupt()
+        downloadMonitorThread = Thread.ofVirtual().name("Download Monitor").unstarted(Runnable {
             val accepted: MutableList<ImageDownloadRunnable> = mutableListOf()
             val candidates: MutableList<ImageDownloadRunnable> = mutableListOf()
             while (!Thread.currentThread().isInterrupted) {
@@ -228,7 +231,12 @@ internal class DownloadService(
                     }
                 }
             }
-        }).start()
+        })
+        downloadMonitorThread?.start()
+    }
+
+    fun halt() {
+        downloadMonitorThread?.interrupt()
     }
 
     fun stop(postIds: List<Long> = emptyList()) {

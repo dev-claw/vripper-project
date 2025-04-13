@@ -11,6 +11,7 @@ import javafx.scene.control.cell.TextFieldTableCell
 import javafx.scene.input.MouseButton
 import javafx.util.Callback
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.javafx.asFlow
 import me.vripper.entities.Status
@@ -62,8 +63,7 @@ class ImagesTableView : View("Photos") {
                     }
 
                     is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.images.forEach { it.cancelAndJoin() }
-                        ActiveUICoroutines.images.clear()
+                        ActiveUICoroutines.cancelImages()
                     }
                 }
             }
@@ -271,8 +271,7 @@ class ImagesTableView : View("Photos") {
     }
 
     fun setPostId(postId: Long?) {
-        ActiveUICoroutines.images.forEach { it.cancel() }
-        ActiveUICoroutines.images.clear()
+        runBlocking { ActiveUICoroutines.cancelImages() }
         runLater {
             items.clear()
         }
@@ -290,7 +289,9 @@ class ImagesTableView : View("Photos") {
             }
         }
         coroutineScope.launch {
-            imageController.onUpdateImages(postId).collect { image ->
+            imageController.onUpdateImages(postId).catch {
+                ActiveUICoroutines.removeFromImages(currentCoroutineContext().job)
+            }.collect { image ->
                 runLater {
                     val imageModel = items.find { it.id == image.id } ?: return@runLater
 
@@ -303,10 +304,12 @@ class ImagesTableView : View("Photos") {
                     )
                 }
             }
-        }.also { ActiveUICoroutines.images.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToImages(it) } }
 
         coroutineScope.launch {
-            imageController.onStopped().collect {
+            imageController.onStopped().catch {
+                ActiveUICoroutines.removeFromImages(currentCoroutineContext().job)
+            }.collect {
                 runLater {
                     items.forEach { imageModel ->
                         if (imageModel.status != Status.FINISHED.name) {
@@ -315,6 +318,6 @@ class ImagesTableView : View("Photos") {
                     }
                 }
             }
-        }.also { ActiveUICoroutines.images.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToImages(it) } }
     }
 }

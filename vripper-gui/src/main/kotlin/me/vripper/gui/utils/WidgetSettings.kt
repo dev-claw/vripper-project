@@ -123,6 +123,7 @@ object WidgetSettings {
     data class RemoteSession(
         val host: String = "",
         val port: Int = 30000,
+        val passPhrase: String = "",
     )
 
     @Serializable
@@ -212,7 +213,8 @@ object WidgetSettings {
                     ),
                     RemoteSession(
                         currentSettings.remoteSessionModel.host,
-                        currentSettings.remoteSessionModel.port
+                        currentSettings.remoteSessionModel.port,
+                        currentSettings.remoteSessionModel.passcode
                     ),
                     PostsTableColumnsWidth(
                         currentSettings.postsColumnsWidthModel.preview,

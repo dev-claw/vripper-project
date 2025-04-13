@@ -1,5 +1,6 @@
 package me.vripper.gui.components.views
 
+import io.grpc.StatusException
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.scene.control.ButtonType
@@ -20,13 +21,11 @@ import me.vripper.gui.utils.ActiveUICoroutines
 import me.vripper.gui.utils.openLink
 import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.ApplicationProperties
-import me.vripper.utilities.LoggerDelegate
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 
 class MenuBarView : View() {
-    private val logger by LoggerDelegate()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadActiveProperty = SimpleBooleanProperty(false)
     private val postsTableView: PostsTableView by inject()
@@ -54,8 +53,7 @@ class MenuBarView : View() {
                     }
 
                     is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.menuBar.forEach { it.cancelAndJoin() }
-                        ActiveUICoroutines.menuBar.clear()
+                        ActiveUICoroutines.cancelMenuBar()
                     }
                 }
             }
@@ -228,13 +226,20 @@ class MenuBarView : View() {
     private fun connect(appEndpointService: IAppEndpointService) {
         coroutineScope.launch {
             appEndpointService.onQueueStateUpdate().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
+                ActiveUICoroutines.removeFromMenuBar(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connect(appEndpointService)
+                    }
+                }
             }.collect {
                 runLater {
                     running.set(it.running)
                 }
             }
-        }.also { ActiveUICoroutines.menuBar.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToMenuBar(it) } }
     }
 }

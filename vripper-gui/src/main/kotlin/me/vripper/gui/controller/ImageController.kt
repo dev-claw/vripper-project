@@ -1,16 +1,11 @@
 package me.vripper.gui.controller
 
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.catch
 import me.vripper.gui.model.ImageModel
 import me.vripper.model.Image
 import me.vripper.services.IAppEndpointService
-import me.vripper.utilities.LoggerDelegate
 import tornadofx.Controller
 
 class ImageController : Controller() {
-    private val logger by LoggerDelegate()
     lateinit var appEndpointService: IAppEndpointService
     suspend fun findImages(postId: Long): List<ImageModel> {
         return appEndpointService.findImagesByPostId(postId).map(::mapper)
@@ -39,14 +34,8 @@ class ImageController : Controller() {
     }
 
     fun onUpdateImages(postId: Long) =
-        appEndpointService.onUpdateImagesByPostId(postId).catch {
-            logger.error("gRPC error", it)
-            currentCoroutineContext().cancel(null)
-        }
+        appEndpointService.onUpdateImagesByPostId(postId)
 
-    fun onStopped() = appEndpointService.onStopped().catch {
-        logger.error("gRPC error", it)
-        currentCoroutineContext().cancel(null)
-    }
+    fun onStopped() = appEndpointService.onStopped()
 
 }

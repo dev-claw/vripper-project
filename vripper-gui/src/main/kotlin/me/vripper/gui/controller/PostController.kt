@@ -1,20 +1,15 @@
 package me.vripper.gui.controller
 
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import me.vripper.gui.model.PostModel
 import me.vripper.model.Post
 import me.vripper.services.IAppEndpointService
-import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.formatSI
 import tornadofx.Controller
 import java.time.format.DateTimeFormatter
 
 class PostController : Controller() {
 
-    private val logger by LoggerDelegate()
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")
 
     lateinit var appEndpointService: IAppEndpointService
@@ -94,29 +89,16 @@ class PostController : Controller() {
     }
 
     fun onNewPosts() =
-        appEndpointService.onNewPosts().catch {
-            logger.error("gRPC error", it)
-            currentCoroutineContext().cancel(null)
-        }.map { post ->
+        appEndpointService.onNewPosts().map { post ->
             mapper(post)
         }
 
     fun onUpdatePosts() =
-        appEndpointService.onUpdatePosts().catch {
-            logger.error("gRPC error", it)
-            currentCoroutineContext().cancel(null)
-        }
+        appEndpointService.onUpdatePosts()
 
     fun onDeletePosts() =
-        appEndpointService.onDeletePosts().catch {
-            logger.error("gRPC error", it)
-            currentCoroutineContext().cancel(null)
-        }
+        appEndpointService.onDeletePosts()
 
     fun onUpdateMetadata() =
-        appEndpointService.onUpdateMetadata().catch {
-            logger.error("gRPC error", it)
-            currentCoroutineContext().cancel(null)
-        }
-
+        appEndpointService.onUpdateMetadata()
 }

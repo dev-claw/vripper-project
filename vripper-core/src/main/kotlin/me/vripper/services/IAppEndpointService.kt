@@ -42,7 +42,6 @@ interface IAppEndpointService {
     suspend fun loggedInUser(): String
     suspend fun getVersion(): String
     suspend fun renameToFirst(postIds: List<Long>)
-    fun ready(): Boolean
     suspend fun dbMigration(): String
     suspend fun initLogger()
 }

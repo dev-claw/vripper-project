@@ -41,16 +41,16 @@ val coreModule = module {
         DataTransaction(get(), get(), get(), get(), get(), get())
     }
     single<RetryPolicyService> {
-        RetryPolicyService(get(), get())
+        RetryPolicyService()
     }
     single<HTTPService> {
-        HTTPService(get())
+        HTTPService()
     }
     single<VGAuthService> {
         VGAuthService(get(), get())
     }
     single<ThreadCacheService> {
-        ThreadCacheService(get(), get())
+        ThreadCacheService(get())
     }
     single<DownloadService> {
         DownloadService(get(), get(), get(), get())

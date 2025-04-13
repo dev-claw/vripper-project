@@ -1,5 +1,6 @@
 package me.vripper.gui.components.views
 
+import io.grpc.StatusException
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.geometry.Orientation
@@ -15,13 +16,11 @@ import me.vripper.gui.controller.PostController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.utils.ActiveUICoroutines
 import me.vripper.services.IAppEndpointService
-import me.vripper.utilities.LoggerDelegate
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 
 class ActionBarView : View() {
-    private val logger by LoggerDelegate()
     private val downloadActiveProperty = SimpleBooleanProperty(true)
     private val postController: PostController by inject()
     private val postsTableView: PostsTableView by inject()
@@ -45,8 +44,7 @@ class ActionBarView : View() {
                     }
 
                     is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.actionBar.forEach { it.cancelAndJoin() }
-                        ActiveUICoroutines.actionBar.clear()
+                        ActiveUICoroutines.cancelActionBar()
                     }
                 }
             }
@@ -132,13 +130,20 @@ class ActionBarView : View() {
     private fun connect(appEndpointService: IAppEndpointService) {
         coroutineScope.launch {
             appEndpointService.onQueueStateUpdate().catch {
-                logger.error("gRPC error", it)
-                currentCoroutineContext().cancel(null)
+                ActiveUICoroutines.removeFromActionBar(currentCoroutineContext().job)
+
+                if (it is StatusException) {
+                    //reconnect
+                    coroutineScope.launch {
+                        delay(1000)
+                        connect(appEndpointService)
+                    }
+                }
             }.collect {
                 runLater {
                     running.set(it.running)
                 }
             }
-        }.also { ActiveUICoroutines.actionBar.add(it) }
+        }.also { runBlocking { ActiveUICoroutines.addToActionBar(it) } }
     }
 }

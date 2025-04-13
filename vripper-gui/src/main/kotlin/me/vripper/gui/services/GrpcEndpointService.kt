@@ -20,7 +20,7 @@ import me.vripper.services.IAppEndpointService
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class GrpcEndpointService : IAppEndpointService {
+internal class GrpcEndpointService : IAppEndpointService {
 
     private var channel: ManagedChannel? = null
     private var endpointServiceCoroutineStub: EndpointServiceGrpcKt.EndpointServiceCoroutineStub? = null
@@ -356,8 +356,14 @@ class GrpcEndpointService : IAppEndpointService {
         )
     }
 
-    fun connect(host: String, port: Int) {
-        channel = ManagedChannelBuilder.forAddress(host, port).maxInboundMessageSize(134217728).usePlaintext().build()
+    fun connect(host: String, port: Int, passPhrase: String) {
+        disconnect()
+        channel = ManagedChannelBuilder
+            .forAddress(host, port)
+            .maxInboundMessageSize(Integer.MAX_VALUE)
+            .usePlaintext()
+            .intercept(ClientE2eEncryptingInterceptor(passPhrase))
+            .build()
         endpointServiceCoroutineStub = EndpointServiceGrpcKt.EndpointServiceCoroutineStub(channel!!)
     }
 
@@ -369,9 +375,5 @@ class GrpcEndpointService : IAppEndpointService {
         }
     }
 
-    fun connectionState(): ConnectivityState = channel?.getState(true) ?: ConnectivityState.SHUTDOWN
-
-    override fun ready(): Boolean {
-        return connectionState() == ConnectivityState.READY
-    }
+    fun connectionState(): ConnectivityState = channel?.getState(false) ?: ConnectivityState.SHUTDOWN
 }
