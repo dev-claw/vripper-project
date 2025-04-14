@@ -1,6 +1,5 @@
 package me.vripper.gui.components.views
 
-import io.grpc.StatusException
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.geometry.Orientation
@@ -8,14 +7,11 @@ import javafx.scene.control.ButtonType
 import javafx.scene.control.ContentDisplay
 import javafx.scene.layout.Priority
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.catch
 import me.vripper.gui.components.Shared
 import me.vripper.gui.components.fragments.AddLinksFragment
 import me.vripper.gui.components.fragments.SettingsFragment
+import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
-import me.vripper.gui.event.GuiEventBus
-import me.vripper.gui.utils.ActiveUICoroutines
-import me.vripper.services.IAppEndpointService
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -24,31 +20,13 @@ class ActionBarView : View() {
     private val downloadActiveProperty = SimpleBooleanProperty(true)
     private val postController: PostController by inject()
     private val postsTableView: PostsTableView by inject()
+    private val actionBarController: ActionBarController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val grpcEndpointService: IAppEndpointService by di("remoteAppEndpointService")
-    private val localEndpointService: IAppEndpointService by di("localAppEndpointService")
     private val running = SimpleIntegerProperty(0)
 
     override val root = toolbar {}
 
     init {
-        coroutineScope.launch {
-            GuiEventBus.events.collect { event ->
-                when (event) {
-                    is GuiEventBus.LocalSession -> {
-                        connect(localEndpointService)
-                    }
-
-                    is GuiEventBus.RemoteSession -> {
-                        connect(grpcEndpointService)
-                    }
-
-                    is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.cancelActionBar()
-                    }
-                }
-            }
-        }
         with(root) {
             id = "action_toolbar"
             padding = insets(all = 5)
@@ -125,25 +103,13 @@ class ActionBarView : View() {
             }
         }
         downloadActiveProperty.bind(running.greaterThan(0))
-    }
 
-    private fun connect(appEndpointService: IAppEndpointService) {
         coroutineScope.launch {
-            appEndpointService.onQueueStateUpdate().catch {
-                ActiveUICoroutines.removeFromActionBar(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connect(appEndpointService)
-                    }
-                }
-            }.collect {
+            actionBarController.onQueueStateUpdate.collect {
                 runLater {
                     running.set(it.running)
                 }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToActionBar(it) } }
+        }
     }
 }

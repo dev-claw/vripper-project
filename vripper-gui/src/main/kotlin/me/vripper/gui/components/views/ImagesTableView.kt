@@ -11,7 +11,6 @@ import javafx.scene.control.cell.TextFieldTableCell
 import javafx.scene.input.MouseButton
 import javafx.util.Callback
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.javafx.asFlow
 import me.vripper.entities.Status
@@ -20,12 +19,9 @@ import me.vripper.gui.components.cells.ProgressTableCell
 import me.vripper.gui.components.cells.StatusTableCell
 import me.vripper.gui.controller.ImageController
 import me.vripper.gui.controller.WidgetsController
-import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.ImageModel
-import me.vripper.gui.utils.ActiveUICoroutines
 import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openLink
-import me.vripper.services.IAppEndpointService
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -36,39 +32,14 @@ class ImagesTableView : View("Photos") {
     private val tableView: TableView<ImageModel>
     private val imageController: ImageController by inject()
     private val widgetsController: WidgetsController by inject()
-    private val localAppEndpointService: IAppEndpointService by di("localAppEndpointService")
-    private val remoteAppEndpointService: IAppEndpointService by di("remoteAppEndpointService")
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val items: ObservableList<ImageModel> = FXCollections.observableArrayList()
     private var preview: Preview? = null
+    val jobs = mutableListOf<Job>()
 
     override val root = vbox(alignment = Pos.CENTER_RIGHT) {}
 
     init {
-        if (widgetsController.currentSettings.localSession) {
-            imageController.appEndpointService = localAppEndpointService
-        } else {
-            imageController.appEndpointService = remoteAppEndpointService
-        }
-
-        coroutineScope.launch {
-            GuiEventBus.events.collect { event ->
-                when (event) {
-                    is GuiEventBus.LocalSession -> {
-                        imageController.appEndpointService = localAppEndpointService
-                    }
-
-                    is GuiEventBus.RemoteSession -> {
-                        imageController.appEndpointService = remoteAppEndpointService
-                    }
-
-                    is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.cancelImages()
-                    }
-                }
-            }
-        }
-
         with(root) {
             tableView = tableview(items) {
                 isTableMenuButtonVisible = true
@@ -271,7 +242,10 @@ class ImagesTableView : View("Photos") {
     }
 
     fun setPostId(postId: Long?) {
-        runBlocking { ActiveUICoroutines.cancelImages() }
+        runBlocking {
+            jobs.forEach { it.cancelAndJoin() }
+            jobs.clear()
+        }
         runLater {
             items.clear()
         }
@@ -279,19 +253,16 @@ class ImagesTableView : View("Photos") {
             return
         }
         coroutineScope.launch {
-            val list = coroutineScope.async {
-                imageController.findImages(postId)
-            }.await()
+            val list = imageController.findImages(postId)
             runLater {
                 items.addAll(list)
                 tableView.sort()
                 tableView.placeholder = Label("No content in table")
             }
         }
+
         coroutineScope.launch {
-            imageController.onUpdateImages(postId).catch {
-                ActiveUICoroutines.removeFromImages(currentCoroutineContext().job)
-            }.collect { image ->
+            imageController.onUpdateImages(postId).collect { image ->
                 runLater {
                     val imageModel = items.find { it.id == image.id } ?: return@runLater
 
@@ -304,12 +275,10 @@ class ImagesTableView : View("Photos") {
                     )
                 }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToImages(it) } }
+        }.also { jobs.add(it) }
 
         coroutineScope.launch {
-            imageController.onStopped().catch {
-                ActiveUICoroutines.removeFromImages(currentCoroutineContext().job)
-            }.collect {
+            imageController.onStopped().collect {
                 runLater {
                     items.forEach { imageModel ->
                         if (imageModel.status != Status.FINISHED.name) {
@@ -318,6 +287,6 @@ class ImagesTableView : View("Photos") {
                     }
                 }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToImages(it) } }
+        }.also { jobs.add(it) }
     }
 }

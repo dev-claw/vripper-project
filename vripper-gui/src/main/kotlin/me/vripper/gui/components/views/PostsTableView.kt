@@ -2,7 +2,6 @@ package me.vripper.gui.components.views
 
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
-import io.grpc.StatusException
 import javafx.collections.FXCollections
 import javafx.event.EventHandler
 import javafx.geometry.Pos
@@ -12,10 +11,13 @@ import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseButton
 import javafx.util.Callback
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.javafx.asFlow
+import kotlinx.coroutines.launch
 import me.vripper.gui.components.Shared
 import me.vripper.gui.components.cells.PreviewTableCell
 import me.vripper.gui.components.cells.ProgressTableCell
@@ -26,13 +28,9 @@ import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.PostModel
-import me.vripper.gui.services.ClipboardService
-import me.vripper.gui.services.GrpcEndpointService
-import me.vripper.gui.utils.ActiveUICoroutines
 import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openFileDirectory
 import me.vripper.gui.utils.openLink
-import me.vripper.services.IAppEndpointService
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -42,10 +40,7 @@ class PostsTableView : View() {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val postController: PostController by inject()
     private val widgetsController: WidgetsController by inject()
-    private val clipboardService: ClipboardService by inject()
     private val mainView: MainView by inject()
-    private val localAppEndpointService: IAppEndpointService by di("localAppEndpointService")
-    private val remoteAppEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
 
     val tableView: TableView<PostModel>
     var items: SortedFilteredList<PostModel> = SortedFilteredList()
@@ -61,28 +56,6 @@ class PostsTableView : View() {
                     || item.hosts.contains(query, ignoreCase = true)
                     || item.status.contains(query, ignoreCase = true)
                     || item.path.contains(query, ignoreCase = true)
-        }
-        coroutineScope.launch {
-            GuiEventBus.events.collect { event ->
-                when (event) {
-                    is GuiEventBus.LocalSession -> {
-                        postController.appEndpointService = localAppEndpointService
-                        connect()
-                    }
-
-                    is GuiEventBus.RemoteSession -> {
-                        postController.appEndpointService = remoteAppEndpointService
-                        connect()
-                    }
-
-                    is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.cancelPosts()
-                        runLater {
-                            tableView.placeholder = Label("Loading")
-                        }
-                    }
-                }
-            }
         }
 
         with(root) {
@@ -391,125 +364,82 @@ class PostsTableView : View() {
         }
         tableView.prefHeightProperty().bind(root.heightProperty())
         tableView.placeholder = Label("Loading")
+
+        coroutineScope.launch {
+            launch {
+                GuiEventBus.events.collect {
+                    when (it) {
+                        GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                            val postModelList = postController.findAllPosts().toList()
+                            runLater {
+                                items.addAll(postModelList)
+                                tableView.sort()
+                                tableView.placeholder = Label("No content in table")
+                            }
+                        }
+
+                        GuiEventBus.ChangingSession -> runLater {
+                            tableView.placeholder = Label("Loading")
+                            items.clear()
+                        }
+
+                        else -> {}
+                    }
+                }
+            }
+
+            launch {
+                postController.updateMetadataFlow.collect {
+                    runLater {
+                        val postModel = items.find { it.postId == it.postId } ?: return@runLater
+
+                        postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
+                        postModel.postedBy = it.data.postedBy
+                    }
+                }
+            }
+
+            launch {
+                postController.deletedPostsFlow.collect {
+                    runLater {
+                        items.items.removeIf { p -> p.postId == it }
+                        tableView.sort()
+                    }
+                }
+            }
+
+            launch {
+                postController.updatePostsFlow.collect { post ->
+                    runLater {
+                        val postModel = items.find { it.postId == post.postId } ?: return@runLater
+
+                        postModel.status = post.status.name
+                        postModel.progressCount = postController.progressCount(
+                            post.total, post.done, post.downloaded
+                        )
+                        postModel.order = post.rank + 1
+                        postModel.done = post.done
+                        postModel.progress = postController.progress(
+                            post.total, post.done
+                        )
+                        postModel.path = post.getDownloadFolder()
+                        postModel.folderName = post.folderName
+                    }
+                }
+            }
+
+            launch {
+                postController.newPostsFlow.collect {
+                    runLater {
+                        items.addAll(it)
+                        tableView.sort()
+                    }
+                }
+            }
+        }
     }
 
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "download-tab"
-
-    private fun connect() {
-        coroutineScope.launch {
-            connectToOnNewPosts()
-            connectToOnPostUpdated()
-            connectToOnDeletedPost()
-            connectToOnMetadataUpdated()
-        }
-    }
-
-    private fun connectToOnMetadataUpdated() {
-        coroutineScope.launch {
-            postController.onUpdateMetadata().catch {
-                ActiveUICoroutines.removeFromPosts(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToOnMetadataUpdated()
-                    }
-                }
-            }.collect {
-                runLater {
-                    val postModel = items.find { it.postId == it.postId } ?: return@runLater
-
-                    postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
-                    postModel.postedBy = it.data.postedBy
-                }
-            }
-        }.also { runBlocking { ActiveUICoroutines.addToPosts(it) } }
-    }
-
-    private fun connectToOnDeletedPost() {
-        coroutineScope.launch {
-            postController.onDeletePosts().catch {
-                ActiveUICoroutines.removeFromPosts(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToOnDeletedPost()
-                    }
-                }
-            }.collect {
-                runLater {
-                    items.items.removeIf { p -> p.postId == it }
-                    tableView.sort()
-                }
-            }
-        }.also { runBlocking { ActiveUICoroutines.addToPosts(it) } }
-    }
-
-    private fun connectToOnPostUpdated() {
-        coroutineScope.launch {
-            postController.onUpdatePosts().catch {
-                ActiveUICoroutines.removeFromPosts(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToOnPostUpdated()
-                    }
-                }
-            }.collect { post ->
-                runLater {
-                    val postModel = items.find { it.postId == post.postId } ?: return@runLater
-
-                    postModel.status = post.status.name
-                    postModel.progressCount = postController.progressCount(
-                        post.total, post.done, post.downloaded
-                    )
-                    postModel.order = post.rank + 1
-                    postModel.done = post.done
-                    postModel.progress = postController.progress(
-                        post.total, post.done
-                    )
-                    postModel.path = post.getDownloadFolder()
-                    postModel.folderName = post.folderName
-                }
-            }
-        }.also { runBlocking { ActiveUICoroutines.addToPosts(it) } }
-    }
-
-    private fun connectToOnNewPosts() {
-        coroutineScope.launch {
-            val postModelList = async { postController.findAllPosts() }.await()
-            runLater {
-                items.clear()
-                items.addAll(postModelList)
-                tableView.sort()
-                tableView.placeholder = Label("No content in table")
-                clipboardService.init(postController.appEndpointService)
-            }
-        }
-        coroutineScope.launch {
-            postController.onNewPosts().catch {
-                ActiveUICoroutines.removeFromPosts(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToOnNewPosts()
-                    }
-                }
-            }.collect {
-                runLater {
-                    items.addAll(it)
-                    tableView.sort()
-                }
-            }
-        }.also { runBlocking { ActiveUICoroutines.addToPosts(it) } }
-    }
 
     private fun rename(post: PostModel) {
         find<RenameFragment>(

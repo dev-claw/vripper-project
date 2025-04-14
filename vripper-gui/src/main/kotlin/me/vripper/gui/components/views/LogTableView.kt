@@ -2,12 +2,10 @@ package me.vripper.gui.components.views
 
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
-import io.grpc.StatusException
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.scene.control.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.javafx.asFlow
 import me.vripper.gui.components.fragments.LogMessageFragment
@@ -15,8 +13,6 @@ import me.vripper.gui.controller.LogController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.LogModel
-import me.vripper.gui.utils.ActiveUICoroutines
-import me.vripper.services.IAppEndpointService
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -25,12 +21,10 @@ class LogTableView : View() {
 
     private val logController: LogController by inject()
     private val widgetsController: WidgetsController by inject()
-    private val localAppEndpointService: IAppEndpointService by di("localAppEndpointService")
-    private val remoteAppEndpointService: IAppEndpointService by di("remoteAppEndpointService")
     private val tableView: TableView<LogModel>
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val items: ObservableList<LogModel> = FXCollections.observableArrayList()
-    private var maxLogEvent = 0
+    private var maxLogEvent = 100
 
     override val root = vbox {}
 
@@ -158,96 +152,57 @@ class LogTableView : View() {
         tableView.prefHeightProperty().bind(root.heightProperty())
         tableView.placeholder = Label("Loading")
         tableView.sortOrder.add(tableView.columns.first { it.id == "time" })
-    }
 
-    override fun onDock() {
+
         coroutineScope.launch {
-            GuiEventBus.events.collect { event ->
-                when (event) {
-                    is GuiEventBus.LocalSession -> {
-                        runLater {
-                            tableView.placeholder = Label("No Content in table")
+            launch {
+                GuiEventBus.events.collect {
+                    when (it) {
+                        GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                            while (isActive) {
+                                val result = runCatching { logController.getMaxEventLog() }
+                                if (result.isSuccess) {
+                                    maxLogEvent = result.getOrNull()!!
+                                    break
+                                }
+                            }
+                            while (isActive) {
+                                val result = runCatching { logController.initLogger() }
+                                if (result.isSuccess) {
+                                    break
+                                }
+                            }
                         }
-                        logController.appEndpointService = localAppEndpointService
-                        connect()
-                    }
 
-                    is GuiEventBus.RemoteSession -> {
-                        runLater {
-                            tableView.placeholder = Label("No Content in table")
-                        }
-                        logController.appEndpointService = remoteAppEndpointService
-                        connect()
-                    }
-
-                    is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.cancelLog()
-                        runLater {
-                            tableView.placeholder = Label("Loading")
+                        GuiEventBus.ChangingSession -> runLater {
                             items.clear()
+                            tableView.placeholder = Label("Loading")
                         }
+
+                        else -> {}
                     }
+                }
+            }
+
+            launch {
+                logController.newLogs.collect {
+                    runLater {
+                        items.sortWith(Comparator.comparing { it.sequence })
+                        while (items.isNotEmpty() && (items.size >= maxLogEvent)) {
+                            items.removeFirst()
+                        }
+                        items.add(it)
+                        tableView.sort()
+                    }
+                }
+            }
+
+            launch {
+                logController.updateSettings.collect {
+                    maxLogEvent = it.systemSettings.maxEventLog
                 }
             }
         }
-    }
-
-    private fun connect() {
-        runBlocking {
-            maxLogEvent = logController.appEndpointService.getSettings().systemSettings.maxEventLog
-        }
-
-        connectToNewLogs()
-        connectToSettingsUpdate()
-
-        runLater {
-            runBlocking {
-                logController.initLogger()
-            }
-        }
-    }
-
-    private fun connectToSettingsUpdate() {
-        coroutineScope.launch {
-            logController.onUpdateSettings().catch {
-                ActiveUICoroutines.removeFromLog(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToSettingsUpdate()
-                    }
-                }
-            }.collect {
-                maxLogEvent = it.systemSettings.maxEventLog
-            }
-        }.also { runBlocking { ActiveUICoroutines.addToLog(it) } }
-    }
-
-    private fun connectToNewLogs() {
-        coroutineScope.launch {
-            logController.onNewLog().catch {
-                ActiveUICoroutines.removeFromLog(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToNewLogs()
-                    }
-                }
-            }.collect {
-                runLater {
-                    items.sortWith(Comparator.comparing { it.sequence })
-                    while (items.isNotEmpty() && (items.size >= maxLogEvent)) {
-                        items.removeFirst()
-                    }
-                    items.add(it)
-                    tableView.sort()
-                }
-            }
-        }.also { runBlocking { ActiveUICoroutines.addToLog(it) } }
     }
 
     private fun openLog(item: LogModel) {

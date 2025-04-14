@@ -1,6 +1,5 @@
 package me.vripper.gui.components.views
 
-import io.grpc.StatusException
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.scene.control.ButtonType
@@ -8,16 +7,14 @@ import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyCodeCombination
 import javafx.scene.input.KeyCombination
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.catch
 import me.vripper.gui.VripperGuiApplication
 import me.vripper.gui.components.fragments.AboutFragment
 import me.vripper.gui.components.fragments.AddLinksFragment
 import me.vripper.gui.components.fragments.SessionFragment
 import me.vripper.gui.components.fragments.SettingsFragment
+import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.WidgetsController
-import me.vripper.gui.event.GuiEventBus
-import me.vripper.gui.utils.ActiveUICoroutines
 import me.vripper.gui.utils.openLink
 import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.ApplicationProperties
@@ -31,33 +28,13 @@ class MenuBarView : View() {
     private val postsTableView: PostsTableView by inject()
     private val widgetsController: WidgetsController by inject()
     private val postController: PostController by inject()
-    private val grpcEndpointService: IAppEndpointService by di("remoteAppEndpointService")
-    private val localEndpointService: IAppEndpointService by di("localAppEndpointService")
+    private val actionBarController: ActionBarController by inject()
     private lateinit var appEndpointService: IAppEndpointService
     private val running = SimpleIntegerProperty(0)
 
     override val root = menubar {}
 
     init {
-        coroutineScope.launch {
-            GuiEventBus.events.collect { event ->
-                when (event) {
-                    is GuiEventBus.LocalSession -> {
-                        appEndpointService = localEndpointService
-                        connect(localEndpointService)
-                    }
-
-                    is GuiEventBus.RemoteSession -> {
-                        appEndpointService = grpcEndpointService
-                        connect(grpcEndpointService)
-                    }
-
-                    is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.cancelMenuBar()
-                    }
-                }
-            }
-        }
         with(root) {
             menu("File") {
                 item("Add links", KeyCodeCombination(KeyCode.L, KeyCombination.CONTROL_DOWN)).apply {
@@ -165,7 +142,8 @@ class MenuBarView : View() {
                             title = "Database Migration"
                         ) {
                             coroutineScope.launch {
-                                val message = appEndpointService.dbMigration()
+                                val message =
+                                    runCatching { appEndpointService.dbMigration() }.getOrDefault("Migration failed")
                                 runLater {
                                     information(
                                         header = "",
@@ -221,25 +199,13 @@ class MenuBarView : View() {
             }
         }
         downloadActiveProperty.bind(running.greaterThan(0))
-    }
 
-    private fun connect(appEndpointService: IAppEndpointService) {
         coroutineScope.launch {
-            appEndpointService.onQueueStateUpdate().catch {
-                ActiveUICoroutines.removeFromMenuBar(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connect(appEndpointService)
-                    }
-                }
-            }.collect {
+            actionBarController.onQueueStateUpdate.collect {
                 runLater {
                     running.set(it.running)
                 }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToMenuBar(it) } }
+        }
     }
 }

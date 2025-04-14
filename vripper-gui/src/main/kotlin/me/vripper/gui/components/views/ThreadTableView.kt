@@ -2,24 +2,24 @@ package me.vripper.gui.components.views
 
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
-import io.grpc.StatusException
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.scene.control.*
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.javafx.asFlow
+import kotlinx.coroutines.launch
 import me.vripper.gui.components.fragments.ThreadSelectionTableFragment
 import me.vripper.gui.controller.ThreadController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.ThreadModel
-import me.vripper.gui.utils.ActiveUICoroutines
 import me.vripper.gui.utils.openLink
-import me.vripper.services.IAppEndpointService
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -30,37 +30,12 @@ class ThreadTableView : View() {
     private val threadController: ThreadController by inject()
     private val widgetsController: WidgetsController by inject()
     private val mainView: MainView by inject()
-    private val localAppEndpointService: IAppEndpointService by di("localAppEndpointService")
-    private val remoteAppEndpointService: IAppEndpointService by di("remoteAppEndpointService")
     private val tableView: TableView<ThreadModel>
     private val items: ObservableList<ThreadModel> = FXCollections.observableArrayList()
 
     override val root = vbox {}
 
     init {
-        coroutineScope.launch {
-            GuiEventBus.events.collect { event ->
-                when (event) {
-                    is GuiEventBus.LocalSession -> {
-                        threadController.appEndpointService = localAppEndpointService
-                        connect()
-                    }
-
-                    is GuiEventBus.RemoteSession -> {
-                        threadController.appEndpointService = remoteAppEndpointService
-                        connect()
-                    }
-
-                    is GuiEventBus.ChangingSession -> {
-                        ActiveUICoroutines.cancelThreads()
-                        runLater {
-                            tableView.placeholder = Label("Loading")
-                        }
-                    }
-                }
-            }
-        }
-
         with(root) {
             tableView = tableview(items) {
                 isTableMenuButtonVisible = true
@@ -180,105 +155,65 @@ class ThreadTableView : View() {
         })
         tableView.prefHeightProperty().bind(root.heightProperty())
         tableView.placeholder = Label("Loading")
-    }
 
-    fun connect() {
-        connectToNewThread()
-        connectToUpdateThread()
-        connectToDeleteThread()
-        connectToClearThread()
-    }
 
-    private fun connectToClearThread() {
         coroutineScope.launch {
-            threadController.onClearThreads().catch {
-                ActiveUICoroutines.removeFromThreads(currentCoroutineContext().job)
+            launch {
+                GuiEventBus.events.collect {
+                    when (it) {
+                        GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                            val list = threadController.findAll().toList()
+                            runLater {
+                                items.clear()
+                                items.addAll(list)
+                                tableView.placeholder = Label("No content in table")
+                            }
+                        }
 
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToClearThread()
+                        GuiEventBus.ChangingSession -> runLater {
+                            tableView.placeholder = Label("Loading")
+                            items.clear()
+                        }
+
+                        else -> {}
                     }
                 }
-            }.collect {
-                runLater {
-                    tableView.items.clear()
-                }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToThreads(it) } }
-    }
 
-    private fun connectToDeleteThread() {
-        coroutineScope.launch {
-            threadController.onDeleteThread().catch {
-                ActiveUICoroutines.removeFromThreads(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToDeleteThread()
+            launch {
+                threadController.newThread.collect {
+                    runLater {
+                        items.add(it)
                     }
                 }
-            }.collect { threadId ->
-                runLater {
-                    tableView.items.removeIf { it.threadId == threadId }
-                }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToThreads(it) } }
-    }
 
-    private fun connectToUpdateThread() {
-        coroutineScope.launch {
-            threadController.onUpdateThread().catch {
-                ActiveUICoroutines.removeFromThreads(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToUpdateThread()
+            launch {
+                threadController.updateThread.collect { thread ->
+                    runLater {
+                        val threadModel = items.find { it.threadId == thread.threadId } ?: return@runLater
+                        threadModel.total = thread.total
+                        threadModel.title = thread.title
                     }
                 }
-            }.collect { thread ->
-                runLater {
-                    val threadModel = items.find { it.threadId == thread.threadId } ?: return@runLater
-                    threadModel.total = thread.total
-                    threadModel.title = thread.title
+            }
+
+            launch {
+                threadController.deleteThread.collect { threadId ->
+                    runLater {
+                        tableView.items.removeIf { it.threadId == threadId }
+                    }
                 }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToThreads(it) } }
-    }
 
-    private fun connectToNewThread() {
-        coroutineScope.launch {
-            val list = async {
-                threadController.findAll()
-            }.await()
-            runLater {
-                items.clear()
-                items.addAll(list)
-                tableView.placeholder = Label("No content in table")
+            launch {
+                threadController.clearThreads.collect {
+                    runLater {
+                        tableView.items.clear()
+                    }
+                }
             }
         }
-        coroutineScope.launch {
-            threadController.onNewThread().catch {
-                ActiveUICoroutines.removeFromThreads(currentCoroutineContext().job)
-
-                if (it is StatusException) {
-                    //reconnect
-                    coroutineScope.launch {
-                        delay(1000)
-                        connectToNewThread()
-                    }
-                }
-            }.collect {
-                runLater {
-                    items.add(it)
-                }
-            }
-        }.also { runBlocking { ActiveUICoroutines.addToThreads(it) } }
     }
 
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "thread-tab"
