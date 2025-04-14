@@ -22,6 +22,7 @@ internal class AddPostTask(private val items: List<ThreadPostId>) : KoinComponen
             val toProcess = mutableListOf<PostItem>()
             for ((threadId, postId) in items) {
                 if (dataTransaction.exists(postId)) {
+                    log.info("Post $postId already loaded")
                     continue
                 }
 
@@ -54,6 +55,10 @@ internal class AddPostTask(private val items: List<ThreadPostId>) : KoinComponen
                     continue
                 }
                 toProcess.add(postItem)
+            }
+
+            if (toProcess.isEmpty()) {
+                return
             }
 
             val posts = try {

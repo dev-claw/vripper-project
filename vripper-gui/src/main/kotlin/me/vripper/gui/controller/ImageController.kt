@@ -1,14 +1,18 @@
 package me.vripper.gui.controller
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.retryWhen
 import me.vripper.gui.model.ImageModel
+import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.model.Image
-import me.vripper.services.IAppEndpointService
 import tornadofx.Controller
 
 class ImageController : Controller() {
-    lateinit var appEndpointService: IAppEndpointService
+
     suspend fun findImages(postId: Long): List<ImageModel> {
-        return appEndpointService.findImagesByPostId(postId).map(::mapper)
+        return runCatching { currentAppEndpointService().findImagesByPostId(postId).map(::mapper) }.getOrDefault(
+            emptyList()
+        )
     }
 
     private fun mapper(it: Image): ImageModel {
@@ -34,8 +38,7 @@ class ImageController : Controller() {
     }
 
     fun onUpdateImages(postId: Long) =
-        appEndpointService.onUpdateImagesByPostId(postId)
+        currentAppEndpointService().onUpdateImagesByPostId(postId).retryWhen { _, _ -> delay(1000);true }
 
-    fun onStopped() = appEndpointService.onStopped()
-
+    fun onStopped() = currentAppEndpointService().onStopped().retryWhen { _, _ -> delay(1000);true }
 }

@@ -7,18 +7,17 @@ import javafx.scene.control.RadioButton
 import javafx.scene.control.Spinner
 import javafx.scene.control.ToggleGroup
 import javafx.scene.layout.VBox
-import kotlinx.coroutines.*
+import kotlinx.coroutines.runBlocking
 import me.vripper.gui.VripperGuiApplication
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.services.GrpcEndpointService
-import me.vripper.gui.utils.ActiveUICoroutines
+import me.vripper.gui.utils.AppEndpointManager
 import me.vripper.listeners.AppManager
 import tornadofx.*
 
 class SessionFragment : Fragment("Change Session") {
 
-    private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val widgetsController: WidgetsController by inject()
     private val grpcEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
     private val toggleGroup = ToggleGroup()
@@ -67,57 +66,42 @@ class SessionFragment : Fragment("Change Session") {
                         isDefaultButton = true
                         action {
                             val selectedToggle = toggleGroup.selectedToggle
-                            if (selectedToggle == null) {
-                                VripperGuiApplication.APP_INSTANCE.stop()
+                            runBlocking {
+                                GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
+                                AppManager.stop()
+                                grpcEndpointService.disconnect()
                             }
                             when ((selectedToggle as RadioButton).id) {
                                 "localSession" -> {
-                                    coroutineScope.launch {
-                                        AppManager.stop()
+                                    runBlocking {
                                         widgetsController.currentSettings.localSession = true
-                                        GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
-                                        while (ActiveUICoroutines.all().isNotEmpty()) {
-                                            delay(200)
-                                        }
-                                        grpcEndpointService.disconnect()
+                                        AppEndpointManager.set(GuiEventBus.LocalSession)
                                         AppManager.start()
                                         GuiEventBus.publishEvent(GuiEventBus.LocalSession)
-                                        runLater {
-                                            close()
-                                        }
                                     }
                                 }
-
                                 "remoteSession" -> {
-                                    coroutineScope.launch {
-                                        AppManager.stop()
+                                    runBlocking {
                                         widgetsController.currentSettings.localSession = false
-                                        GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
-                                        while (ActiveUICoroutines.all().isNotEmpty()) {
-                                            delay(200)
-                                        }
+                                        AppEndpointManager.set(GuiEventBus.RemoteSession)
                                         grpcEndpointService.connect(
                                             widgetsController.currentSettings.remoteSessionModel.host,
                                             widgetsController.currentSettings.remoteSessionModel.port,
                                             widgetsController.currentSettings.remoteSessionModel.passcode,
                                         )
                                         GuiEventBus.publishEvent(GuiEventBus.RemoteSession)
-                                        runLater {
-                                            close()
-                                        }
                                     }
                                 }
 
                                 else -> VripperGuiApplication.APP_INSTANCE.stop()
+                            }
+                            runLater {
+                                close()
                             }
                         }
                     }
                 }
             }
         }
-    }
-
-    override fun onUndock() {
-        coroutineScope.cancel()
     }
 }

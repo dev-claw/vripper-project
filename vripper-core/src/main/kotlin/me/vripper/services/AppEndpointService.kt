@@ -451,4 +451,8 @@ internal class AppEndpointService(
             "Successfully imported $postsCount posts and $threadCount threads"
         }
     }
+
+    override fun connectionState(): String {
+        return ""
+    }
 }

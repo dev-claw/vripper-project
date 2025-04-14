@@ -21,10 +21,8 @@ class SystemSettingsFragment : Fragment("System Settings") {
 
     init {
         coroutineScope.launch {
-            async {
-                systemSettings = settingsController.findSystemSettings()
-                systemSettingsModel.tempPath = systemSettings.tempPath
-            }.await()
+            systemSettings = settingsController.findSystemSettings()
+            systemSettingsModel.tempPath = systemSettings.tempPath
             runLater {
                 with(root) {
                     form {

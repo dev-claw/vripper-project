@@ -1,19 +1,47 @@
 package me.vripper.gui.controller
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.vripper.entities.ThreadEntity
 import me.vripper.gui.model.ThreadModel
 import me.vripper.gui.model.ThreadSelectionModel
+import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
+import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
+import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
+import me.vripper.gui.utils.ChannelFlowBuilder
+import me.vripper.gui.utils.ChannelFlowBuilder.toFlow
 import me.vripper.model.ThreadPostId
-import me.vripper.services.IAppEndpointService
 import org.koin.core.component.KoinComponent
 import tornadofx.Controller
 
 class ThreadController : KoinComponent, Controller() {
-    lateinit var appEndpointService: IAppEndpointService
 
-    suspend fun findAll(): List<ThreadModel> {
-        return appEndpointService.findAllThreads().map(::threadModelMapper)
+    val newThread = ChannelFlowBuilder.build(
+        {
+            localAppEndpointService.onNewThread().map(::threadModelMapper)
+        },
+        {
+            remoteAppEndpointService.onNewThread().map(::threadModelMapper)
+        },
+    )
+
+    val updateThread = ChannelFlowBuilder.build(
+        localAppEndpointService::onUpdateThread,
+        remoteAppEndpointService::onUpdateThread,
+    )
+
+    val deleteThread = ChannelFlowBuilder.build(
+        localAppEndpointService::onDeleteThread,
+        remoteAppEndpointService::onDeleteThread,
+    )
+
+    val clearThreads = ChannelFlowBuilder.build(
+        localAppEndpointService::onClearThreads,
+        remoteAppEndpointService::onClearThreads,
+    )
+
+    fun findAll(): Flow<ThreadModel> {
+        return toFlow { currentAppEndpointService().findAllThreads().map(::threadModelMapper) }
     }
 
     private fun threadModelMapper(it: ThreadEntity): ThreadModel {
@@ -26,15 +54,15 @@ class ThreadController : KoinComponent, Controller() {
     }
 
     suspend fun delete(threadIdList: List<Long>) {
-        appEndpointService.threadRemove(threadIdList)
+        currentAppEndpointService().threadRemove(threadIdList)
     }
 
     suspend fun clearAll() {
-        appEndpointService.threadClear()
+        currentAppEndpointService().threadClear()
     }
 
     suspend fun grab(threadId: Long): List<ThreadSelectionModel> =
-        appEndpointService.grab(threadId).map { postItem ->
+        currentAppEndpointService().grab(threadId).map { postItem ->
             ThreadSelectionModel(
                 postItem.number,
                 postItem.title,
@@ -46,21 +74,12 @@ class ThreadController : KoinComponent, Controller() {
             )
         }
 
-
     suspend fun download(selectedItems: List<ThreadSelectionModel>) {
-        appEndpointService.download(selectedItems.map {
+        currentAppEndpointService().download(selectedItems.map {
             ThreadPostId(
                 it.threadId,
                 it.postId
             )
         })
     }
-
-    fun onNewThread() = appEndpointService.onNewThread().map(::threadModelMapper)
-
-    fun onUpdateThread() = appEndpointService.onUpdateThread()
-
-    fun onDeleteThread() = appEndpointService.onDeleteThread()
-
-    fun onClearThreads() = appEndpointService.onClearThreads()
 }

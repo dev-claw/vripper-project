@@ -20,16 +20,14 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
 
     init {
         coroutineScope.launch {
-            async {
-                viperGirlsSettings = settingsController.findViperGirlsSettings()
-                viperSettingsModel.username = viperGirlsSettings.username
-                viperSettingsModel.password = viperGirlsSettings.password
-                viperSettingsModel.thanks = viperGirlsSettings.thanks
-                viperSettingsModel.host = viperGirlsSettings.host
-                viperSettingsModel.requestLimit = viperGirlsSettings.requestLimit
-                viperSettingsModel.fetchMetadata = viperGirlsSettings.fetchMetadata
-                proxies.addAll(settingsController.getProxies())
-            }.await()
+            viperGirlsSettings = settingsController.findViperGirlsSettings()
+            viperSettingsModel.username = viperGirlsSettings.username
+            viperSettingsModel.password = viperGirlsSettings.password
+            viperSettingsModel.thanks = viperGirlsSettings.thanks
+            viperSettingsModel.host = viperGirlsSettings.host
+            viperSettingsModel.requestLimit = viperGirlsSettings.requestLimit
+            viperSettingsModel.fetchMetadata = viperGirlsSettings.fetchMetadata
+            proxies.addAll(settingsController.getProxies())
             runLater {
                 with(root) {
                     form {

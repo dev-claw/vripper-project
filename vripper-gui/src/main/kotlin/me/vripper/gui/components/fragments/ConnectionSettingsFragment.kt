@@ -17,7 +17,7 @@ class ConnectionSettingsFragment : Fragment("Connection Settings") {
 
     init {
         coroutineScope.launch {
-            async { connectionSettings = settingsController.findConnectionSettings() }.await()
+            connectionSettings = settingsController.findConnectionSettings()
             runLater {
                 with(root) {
                     form {

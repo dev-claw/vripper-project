@@ -48,10 +48,8 @@ internal class GrpcEndpointService : IAppEndpointService {
     override suspend fun findPost(postId: Long): Post =
         mapper(endpointServiceCoroutineStub!!.findPost(Id.newBuilder().setId(postId).build()))
 
-
     override suspend fun findAllPosts(): List<Post> =
         endpointServiceCoroutineStub!!.findAllPosts(EmptyRequest.getDefaultInstance()).postsList.map(::mapper)
-
 
     override suspend fun rename(postId: Long, newName: String) {
         endpointServiceCoroutineStub!!.rename(
@@ -375,5 +373,5 @@ internal class GrpcEndpointService : IAppEndpointService {
         }
     }
 
-    fun connectionState(): ConnectivityState = channel?.getState(false) ?: ConnectivityState.SHUTDOWN
+    override fun connectionState(): String = channel?.getState(true)?.name ?: ConnectivityState.SHUTDOWN.name
 }

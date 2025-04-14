@@ -206,6 +206,7 @@ internal class DownloadService(
     fun init() {
         downloadMonitorThread?.interrupt()
         downloadMonitorThread = Thread.ofVirtual().name("Download Monitor").unstarted(Runnable {
+            log.info("Scheduler have been initialized")
             val accepted: MutableList<ImageDownloadRunnable> = mutableListOf()
             val candidates: MutableList<ImageDownloadRunnable> = mutableListOf()
             while (!Thread.currentThread().isInterrupted) {
@@ -231,6 +232,7 @@ internal class DownloadService(
                     }
                 }
             }
+            log.info("Scheduler have been shutdown")
         })
         downloadMonitorThread?.start()
     }

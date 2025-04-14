@@ -2,14 +2,13 @@ package me.vripper.gui.components.views
 
 import javafx.collections.FXCollections
 import javafx.scene.control.TabPane
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.launch
 import me.vripper.gui.controller.PostController
-import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.PostModel
-import me.vripper.gui.utils.ActiveUICoroutines
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -25,11 +24,6 @@ class PostInfoView : View() {
     override val root = tabpane()
 
     init {
-        coroutineScope.launch {
-            GuiEventBus.events.filterIsInstance(GuiEventBus.ChangingSession::class).collect {
-                ActiveUICoroutines.cancelPostInfo()
-            }
-        }
         with(root) {
             id = "postinfo_panel"
             tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
@@ -84,7 +78,6 @@ class PostInfoView : View() {
     }
 
     fun setPostId(postId: Long?) {
-        runBlocking { ActiveUICoroutines.cancelPostInfo() }
         imagesTableView.setPostId(postId)
         if (postId == null) {
             postModel.apply {
@@ -108,13 +101,7 @@ class PostInfoView : View() {
             return
         }
         coroutineScope.launch {
-            val model: PostModel? = async {
-                try {
-                    postController.find(postId)
-                } catch (e: Exception) {
-                    null
-                }
-            }.await()
+            val model: PostModel? = postController.find(postId)
             if (model == null) {
                 return@launch
             }
@@ -140,9 +127,7 @@ class PostInfoView : View() {
             }
         }
         coroutineScope.launch {
-            postController.onUpdatePosts().catch {
-                ActiveUICoroutines.removeFromPostInfo(currentCoroutineContext().job)
-            }.filter {
+            postController.updatePostsFlow.filter {
                 it.postId == postModel.postId
             }.collect { post ->
                 runLater {
@@ -159,12 +144,10 @@ class PostInfoView : View() {
                     postModel.folderName = post.folderName
                 }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToPostInfo(it) } }
+        }
 
         coroutineScope.launch {
-            postController.onUpdateMetadata().catch {
-                ActiveUICoroutines.removeFromPostInfo(currentCoroutineContext().job)
-            }.filter {
+            postController.updateMetadataFlow.filter {
                 it.postId == postModel.postId
             }.collect {
                 runLater {
@@ -172,6 +155,6 @@ class PostInfoView : View() {
                     postModel.postedBy = it.data.postedBy
                 }
             }
-        }.also { runBlocking { ActiveUICoroutines.addToPostInfo(it) } }
+        }
     }
 }

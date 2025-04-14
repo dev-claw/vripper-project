@@ -21,16 +21,15 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
 
     init {
         coroutineScope.launch {
-            async {
-                downloadSettings = settingsController.findDownloadSettings()
-                downloadSettingsModel.downloadPath = downloadSettings.downloadPath
-                downloadSettingsModel.autoStart = downloadSettings.autoStart
-                downloadSettingsModel.forceOrder = downloadSettings.forceOrder
-                downloadSettingsModel.forumSubfolder = downloadSettings.forumSubDirectory
-                downloadSettingsModel.threadSubLocation = downloadSettings.threadSubLocation
-                downloadSettingsModel.clearCompleted = downloadSettings.clearCompleted
-                downloadSettingsModel.appendPostId = downloadSettings.appendPostId
-            }.await()
+            downloadSettings = settingsController.findDownloadSettings() ?: DownloadSettings()
+            downloadSettingsModel.downloadPath = downloadSettings.downloadPath
+            downloadSettingsModel.autoStart = downloadSettings.autoStart
+            downloadSettingsModel.forceOrder = downloadSettings.forceOrder
+            downloadSettingsModel.forumSubfolder = downloadSettings.forumSubDirectory
+            downloadSettingsModel.threadSubLocation = downloadSettings.threadSubLocation
+            downloadSettingsModel.clearCompleted = downloadSettings.clearCompleted
+            downloadSettingsModel.appendPostId = downloadSettings.appendPostId
+
             runLater {
                 with(root) {
                     form {

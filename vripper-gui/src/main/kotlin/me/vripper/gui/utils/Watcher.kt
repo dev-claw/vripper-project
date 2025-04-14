@@ -61,11 +61,11 @@ object Watcher : KoinComponent {
                     log.info("Handling thread ${it.context()}")
                     if (WidgetSettings.loadSettings().localSession) {
                         val link = localAppEndpointService.getSettings().viperSettings.host + "/threads/${it.context()}"
-                        localAppEndpointService.scanLinks(link)
+                        runCatching { localAppEndpointService.scanLinks(link) }
                     } else {
                         val link =
                             remoteAppEndpointService.getSettings().viperSettings.host + "/threads/${it.context()}"
-                        remoteAppEndpointService.scanLinks(link)
+                        runCatching { remoteAppEndpointService.scanLinks(link) }
                     }
                     path.resolve(it.context().toString()).deleteIfExists()
                 }

@@ -44,4 +44,5 @@ interface IAppEndpointService {
     suspend fun renameToFirst(postIds: List<Long>)
     suspend fun dbMigration(): String
     suspend fun initLogger()
+    fun connectionState(): String
 }

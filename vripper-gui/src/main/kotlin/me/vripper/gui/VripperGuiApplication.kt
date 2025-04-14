@@ -39,7 +39,7 @@ class VripperGuiApplication : App(
 
     override fun start(stage: Stage) {
         Thread.setDefaultUncaughtExceptionHandler(Thread.UncaughtExceptionHandler { t, e ->
-            log.error("Thread $t threw an exception", e)
+            log.error("Thread $t threw an exception: ${e.message}", e)
         })
         if (widgetsController.currentSettings.darkMode) {
             setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)

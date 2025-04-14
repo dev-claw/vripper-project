@@ -1,9 +1,14 @@
 package me.vripper.gui.controller
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.vripper.gui.model.PostModel
+import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
+import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
+import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
+import me.vripper.gui.utils.ChannelFlowBuilder
+import me.vripper.gui.utils.ChannelFlowBuilder.toFlow
 import me.vripper.model.Post
-import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.formatSI
 import tornadofx.Controller
 import java.time.format.DateTimeFormatter
@@ -12,42 +17,77 @@ class PostController : Controller() {
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")
 
-    lateinit var appEndpointService: IAppEndpointService
+    val updatePostsFlow =
+        ChannelFlowBuilder.build(
+            localAppEndpointService::onUpdatePosts,
+            remoteAppEndpointService::onUpdatePosts
+        )
+
+    val newPostsFlow = ChannelFlowBuilder.build(
+        {
+            localAppEndpointService.onNewPosts().map { post ->
+                mapper(post)
+            }
+        }, {
+            remoteAppEndpointService.onNewPosts().map { post ->
+                mapper(post)
+            }
+        }
+    )
+
+    val deletedPostsFlow =
+        ChannelFlowBuilder.build(
+            localAppEndpointService::onDeletePosts,
+            remoteAppEndpointService::onDeletePosts
+        )
+
+    val updateMetadataFlow = ChannelFlowBuilder.build(
+        localAppEndpointService::onUpdateMetadata,
+        remoteAppEndpointService::onUpdateMetadata,
+    )
 
     suspend fun scan(postLinks: String) {
-        appEndpointService.scanLinks(postLinks)
+        runCatching { currentAppEndpointService().scanLinks(postLinks) }
     }
 
     suspend fun start(postIdList: List<Long>) {
-        appEndpointService.restartAll(postIdList)
+        runCatching { currentAppEndpointService().restartAll(postIdList) }
     }
 
     suspend fun startAll() {
-        appEndpointService.restartAll()
+        runCatching { currentAppEndpointService().restartAll() }
     }
 
     suspend fun delete(postIdList: List<Long>) {
-        appEndpointService.remove(postIdList)
+        runCatching { currentAppEndpointService().remove(postIdList) }
     }
 
     suspend fun stop(postIdList: List<Long>) {
-        appEndpointService.stopAll(postIdList)
+        runCatching { currentAppEndpointService().stopAll(postIdList) }
     }
 
     suspend fun clearPosts(): List<Long> {
-        return appEndpointService.clearCompleted()
+        return runCatching { return currentAppEndpointService().clearCompleted() }.getOrDefault(emptyList())
     }
 
     suspend fun stopAll() {
-        appEndpointService.stopAll()
+        runCatching { currentAppEndpointService().stopAll() }
     }
 
-    suspend fun find(postId: Long): PostModel {
-        return mapper(appEndpointService.findPost(postId))
+    suspend fun find(postId: Long): PostModel? {
+        return runCatching { mapper(currentAppEndpointService().findPost(postId)) }.getOrNull()
     }
 
-    suspend fun findAllPosts(): List<PostModel> {
-        return appEndpointService.findAllPosts().map(::mapper)
+    fun findAllPosts(): Flow<PostModel> {
+        return toFlow { currentAppEndpointService().findAllPosts().map(::mapper) }
+    }
+
+    suspend fun rename(postId: Long, value: String) {
+        runCatching { currentAppEndpointService().rename(postId, value) }
+    }
+
+    suspend fun renameToFirst(postIds: List<Long>) {
+        runCatching { currentAppEndpointService().renameToFirst(postIds) }
     }
 
     private fun mapper(post: Post): PostModel {
@@ -79,26 +119,4 @@ class PostController : Controller() {
     fun progress(total: Int, done: Int): Double {
         return if (done == 0 && total == 0) 0.0 else (done.toDouble() / total)
     }
-
-    suspend fun rename(postId: Long, value: String) {
-        appEndpointService.rename(postId, value)
-    }
-
-    suspend fun renameToFirst(postIds: List<Long>) {
-        appEndpointService.renameToFirst(postIds)
-    }
-
-    fun onNewPosts() =
-        appEndpointService.onNewPosts().map { post ->
-            mapper(post)
-        }
-
-    fun onUpdatePosts() =
-        appEndpointService.onUpdatePosts()
-
-    fun onDeletePosts() =
-        appEndpointService.onDeletePosts()
-
-    fun onUpdateMetadata() =
-        appEndpointService.onUpdateMetadata()
 }

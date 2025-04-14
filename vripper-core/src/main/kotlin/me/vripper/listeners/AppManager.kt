@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import me.vripper.event.EventBus
 import me.vripper.event.SettingsUpdateEvent
 import me.vripper.services.*
-import me.vripper.utilities.DatabaseManager
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -38,7 +37,6 @@ object AppManager : KoinComponent {
                 threadCacheService.invalidate()
             }
         }
-        DatabaseManager.connect()
         dataTransaction.setDownloadingToStopped()
         dataTransaction.stopImagesByPostIdAndIsNotCompleted()
         settingsService.init()
@@ -49,11 +47,8 @@ object AppManager : KoinComponent {
 
     fun stop() {
         job?.cancel()
-        if (DatabaseManager.isConnected()) {
-            downloadService.halt()
-            downloadService.stop()
-            downloadSpeedService.halt()
-            DatabaseManager.disconnect()
-        }
+        downloadService.halt()
+        downloadService.stop()
+        downloadSpeedService.halt()
     }
 }
