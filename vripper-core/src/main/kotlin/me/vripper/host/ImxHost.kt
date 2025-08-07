@@ -29,7 +29,7 @@ internal class ImxHost : Host("imx.to", 8) {
         context: ImageDownloadContext
     ): Pair<String, String> {
         log.debug("Resolving name and image url for ${image.url}")
-        val imgTitle = String.format("IMG_%04d", image.index)
+        val imgTitle = String.format("IMG_%04d", image.index + 1)
         synchronized(image.postId.toString().intern()) {
             val resolvedHost = resolvedHosts.getIfPresent(image.postId)
             if (resolvedHost != null) {
