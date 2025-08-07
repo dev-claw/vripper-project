@@ -27,7 +27,10 @@ object ApplicationProperties {
         ignoreUnknownKeys = true
     }
     const val DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
-    val USER_AGENT: String;
+    val USER_AGENT: String
+
+    const val DEFAULT_IMX_SUBDOMAINS = "i.imx.to,i001.imx.to,i002.imx.to,i004.imx.to,i006.imx.to,i003.imx.to"
+    val IMX_SUBDOMAINS: Set<String>
 
     @Serializable
     internal data class ReleaseResponse(@SerialName("tag_name") val tagName: String)
@@ -35,12 +38,19 @@ object ApplicationProperties {
     init {
         Files.createDirectories(VRIPPER_DIR)
         System.setProperty("VRIPPER_DIR", VRIPPER_DIR.toRealPath().pathString)
-        val userAgentOverride = VRIPPER_DIR.resolve("user-agent")
+        val userAgentOverride = VRIPPER_DIR.resolve("user-agent.txt")
         USER_AGENT = if (userAgentOverride.exists()) {
             userAgentOverride.readLines().firstOrNull() ?: DEFAULT_USER_AGENT
         } else {
             DEFAULT_USER_AGENT
         }
+
+        val imxSubdomainsOverride = VRIPPER_DIR.resolve("imx-subdomains.txt")
+        IMX_SUBDOMAINS = if (imxSubdomainsOverride.exists()) {
+            imxSubdomainsOverride.readLines().firstOrNull() ?: DEFAULT_IMX_SUBDOMAINS
+        } else {
+            DEFAULT_IMX_SUBDOMAINS
+        }.split(",").toSet()
     }
 
     fun latestVersion(): String {

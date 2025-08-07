@@ -4,6 +4,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
+import me.vripper.entities.ImageEntity
 import me.vripper.exception.DownloadException
 import me.vripper.exception.HostException
 import me.vripper.services.DataTransaction
@@ -18,6 +19,8 @@ import org.apache.hc.client5.http.classic.methods.HttpHead
 import org.apache.hc.core5.http.ClassicHttpResponse
 import org.apache.hc.core5.http.Header
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.w3c.dom.Document
 import java.io.BufferedOutputStream
 import java.nio.file.Files
@@ -26,11 +29,12 @@ import java.nio.file.Path
 internal abstract class Host(
     val hostName: String,
     val hostId: Byte,
-    private val httpService: HTTPService,
-    private val dataTransaction: DataTransaction,
-    private val downloadSpeedService: DownloadSpeedService
-) {
+) : KoinComponent {
     private val log by LoggerDelegate()
+
+    private val httpService: HTTPService by inject()
+    private val dataTransaction: DataTransaction by inject()
+    private val downloadSpeedService: DownloadSpeedService by inject()
 
     companion object {
         private const val READ_BUFFER_SIZE = 8192
@@ -47,47 +51,47 @@ internal abstract class Host(
 
     @Throws(HostException::class)
     abstract fun resolve(
-        url: String,
-        document: Document,
+        image: ImageEntity,
         context: ImageDownloadContext
     ): Pair<String, String>
 
     @Throws(HostException::class)
-    fun downloadInternal(url: String, context: ImageDownloadContext): DownloadedImage {
-        val headers = head(url, context)
+    fun downloadInternal(image: ImageEntity, context: ImageDownloadContext): DownloadedImage {
+        if (hostId == 8.toByte()) {
+            return downloadByHost(image, context)
+        }
+        val headers = head(image.url, context)
         // is the body of type image ?
         val imageMimeType = getImageMimeType(headers)
         val downloadedImage = if (imageMimeType != null) {
             // a direct link, awesome
-            val downloadedImage = fetch(url, context) {
+            val downloadedImage = fetch(image.url, context) {
                 handleImageDownload(it, context)
             }
-            DownloadedImage(getDefaultImageName(url), downloadedImage.first, downloadedImage.second)
+            DownloadedImage(getDefaultImageName(image.url), downloadedImage.first, downloadedImage.second)
         } else {
             // linked image ?
             val value = headers.find { it.name.contains("content-type", true) }?.value
             if (value != null) {
                 if (value.contains("text/html")) {
-                    val document = fetch(url, context) {
-                        HtmlUtils.clean(it.entity.content)
-                    }
-                    if (log.isDebugEnabled) {
-                        log.debug("Cleaning $url response", url)
-                    }
-                    val resolvedImage = resolve(url, document, context)
-                    val downloadImage: Pair<Path, ImageMimeType> =
-                        fetch(resolvedImage.second, context) {
-                            handleImageDownload(it, context)
-                        }
-                    DownloadedImage(resolvedImage.first, downloadImage.first, downloadImage.second)
+                    downloadByHost(image, context)
                 } else {
-                    throw HostException("Unable to download $url, can't process content type $value")
+                    throw HostException("Unable to download ${image.url}, can't process content type $value")
                 }
             } else {
-                throw HostException("Unexpected server response for $url, response have no content type")
+                throw HostException("Unexpected server response for ${image.url}, response have no content type")
             }
         }
         return downloadedImage
+    }
+
+    private fun downloadByHost(image: ImageEntity, context: ImageDownloadContext): DownloadedImage {
+        val resolvedImage = resolve(image, context)
+        val downloadImage: Pair<Path, ImageMimeType> =
+            fetch(resolvedImage.second, context) {
+                handleImageDownload(it, context)
+            }
+        return DownloadedImage(resolvedImage.first, downloadImage.first, downloadImage.second)
     }
 
     private fun handleImageDownload(
@@ -180,6 +184,19 @@ internal abstract class Host(
                 throw DownloadException("Server returned code ${it.code}")
             }
             transformer(it)
+        }
+    }
+
+    fun fetchDocument(
+        url: String,
+        context: ImageDownloadContext
+    ): Document {
+        return fetch(url, context) {
+            HtmlUtils.clean(it.entity.content)
+        }.also {
+            if (log.isDebugEnabled) {
+                log.debug("Cleaning $url response", url)
+            }
         }
     }
 

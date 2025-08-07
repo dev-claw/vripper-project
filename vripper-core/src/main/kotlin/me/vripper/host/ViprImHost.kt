@@ -1,32 +1,25 @@
 package me.vripper.host
 
+import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.DataTransaction
 import me.vripper.services.DownloadService.ImageDownloadContext
-import me.vripper.services.DownloadSpeedService
-import me.vripper.services.HTTPService
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
-import org.w3c.dom.Document
 import org.w3c.dom.Node
 import java.util.*
 
-internal class ViprImHost(
-    httpService: HTTPService,
-    dataTransaction: DataTransaction,
-    downloadSpeedService: DownloadSpeedService,
-) : Host("vipr.im", 15, httpService, dataTransaction, downloadSpeedService) {
+internal class ViprImHost : Host("vipr.im", 15) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)
     override fun resolve(
-        url: String,
-        document: Document,
+        image: ImageEntity,
         context: ImageDownloadContext
     ): Pair<String, String> {
+        val document = fetchDocument(image.url, context)
         val imgNode: Node = try {
-            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, url))
+            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.url))
             XpathUtils.getAsNode(document, IMG_XPATH)
         } catch (e: XpathException) {
             throw HostException(e)
@@ -34,11 +27,11 @@ internal class ViprImHost(
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 IMG_XPATH,
-                url
+                image.url
             )
         )
         return try {
-            log.debug(String.format("Resolving name and image url for %s", url))
+            log.debug(String.format("Resolving name and image url for %s", image.url))
             val imgTitle =
                 Optional.ofNullable(imgNode.attributes.getNamedItem("alt"))
                     .map { obj: Node -> obj.textContent }

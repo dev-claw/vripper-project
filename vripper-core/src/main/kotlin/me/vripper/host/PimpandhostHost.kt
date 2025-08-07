@@ -1,35 +1,30 @@
 package me.vripper.host
 
+import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.DataTransaction
 import me.vripper.services.DownloadService.ImageDownloadContext
-import me.vripper.services.DownloadSpeedService
-import me.vripper.services.HTTPService
 import me.vripper.utilities.HtmlUtils
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
-import org.w3c.dom.Document
 import org.w3c.dom.Node
 import java.net.URI
 import java.net.URISyntaxException
 
-internal class PimpandhostHost(
-    httpService: HTTPService,
-    dataTransaction: DataTransaction,
-    downloadSpeedService: DownloadSpeedService,
-) : Host("pimpandhost.com", 9, httpService, dataTransaction, downloadSpeedService) {
+internal class PimpandhostHost : Host("pimpandhost.com", 9) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)
     override fun resolve(
-        url: String,
-        document: Document,
+        image: ImageEntity,
         context: ImageDownloadContext
     ): Pair<String, String> {
         val newUrl: String
         try {
-            newUrl = appendUri(url.replace("http://", "https://").replace("-medium(\\.html)?".toRegex(), ""), "size=original")
+            newUrl = appendUri(
+                image.url.replace("http://", "https://").replace("-medium(\\.html)?".toRegex(), ""),
+                "size=original"
+            )
         } catch (e: Exception) {
             throw HostException(e)
         }
@@ -45,7 +40,7 @@ internal class PimpandhostHost(
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 IMG_XPATH,
-                url
+                image.url
             )
         )
         return try {
