@@ -1,31 +1,24 @@
 package me.vripper.host
 
+import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.DataTransaction
 import me.vripper.services.DownloadService.ImageDownloadContext
-import me.vripper.services.DownloadSpeedService
-import me.vripper.services.HTTPService
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
-import org.w3c.dom.Document
 import org.w3c.dom.Node
 
-internal class PixhostHost(
-    httpService: HTTPService,
-    dataTransaction: DataTransaction,
-    downloadSpeedService: DownloadSpeedService,
-) : Host("pixhost.to", 10, httpService, dataTransaction, downloadSpeedService) {
+internal class PixhostHost : Host("pixhost.to", 10) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)
     override fun resolve(
-        url: String,
-        document: Document,
+        image: ImageEntity,
         context: ImageDownloadContext
     ): Pair<String, String> {
+        val document = fetchDocument(image.url, context)
         val imgNode: Node = try {
-            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, url))
+            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.url))
             XpathUtils.getAsNode(document, IMG_XPATH)
         } catch (e: XpathException) {
             throw HostException(e)
@@ -33,11 +26,11 @@ internal class PixhostHost(
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 IMG_XPATH,
-                url
+                image.url
             )
         )
         return try {
-            log.debug(String.format("Resolving name and image url for %s", url))
+            log.debug(String.format("Resolving name and image url for %s", image.url))
             val imgTitle = imgNode.attributes.getNamedItem("alt").textContent.trim { it <= ' ' }
             val imgUrl = imgNode.attributes.getNamedItem("src").textContent.trim { it <= ' ' }
             Pair(imgTitle.substring(imgTitle.indexOf('_') + 1), imgUrl)

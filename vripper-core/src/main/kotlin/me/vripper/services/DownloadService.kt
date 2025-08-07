@@ -19,13 +19,15 @@ import me.vripper.host.ImageMimeType
 import me.vripper.model.ErrorCount
 import me.vripper.model.QueueState
 import me.vripper.model.Settings
+import me.vripper.utilities.ApplicationProperties
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils.getExtension
 import me.vripper.utilities.PathUtils.getFileNameWithoutExtension
 import me.vripper.utilities.PathUtils.sanitize
 import me.vripper.utilities.downloadRunner
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase
-import org.apache.hc.client5.http.cookie.BasicCookieStore
+import org.apache.hc.client5.http.cookie.Cookie
+import org.apache.hc.client5.http.impl.cookie.BasicClientCookie
 import org.apache.hc.client5.http.protocol.HttpClientContext
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.koin.core.component.KoinComponent
@@ -34,11 +36,14 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.time.Instant
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.pathString
+import kotlin.io.path.readLines
 
 internal class DownloadService(
     private val settingsService: SettingsService,
@@ -46,6 +51,7 @@ internal class DownloadService(
     private val retryPolicyService: RetryPolicyService,
     private val eventBus: EventBus
 ) {
+
     private val maxPoolSize: Int = 24
     private val log by LoggerDelegate()
     private val running: MutableMap<Byte, MutableList<ImageDownloadRunnable>> = mutableMapOf()
@@ -56,10 +62,52 @@ internal class DownloadService(
     private var downloadMonitorThread: Thread? = null
 
     internal class ImageDownloadContext(val imageEntity: ImageEntity, val settings: Settings) : KoinComponent {
+        private val log by LoggerDelegate()
+
+        init {
+            ApplicationProperties.VRIPPER_DIR
+                .listDirectoryEntries()
+                .filter { it.fileName.pathString.startsWith("cookies") }
+                .forEach { cookiesPath ->
+                    loadCookies(cookiesPath).also { cookies ->
+                        cookies.forEach { cookie ->
+                            if (HTTPService.cookieStore.cookies.find { it.name == cookie.name } == null) {
+                                log.info("Applying cookie: ${cookie.name}")
+                                HTTPService.cookieStore.addCookie(cookie)
+                            } else {
+                                log.warn("Cookie already loaded: ${cookie.name}")
+                            }
+                        }
+                    }
+                }
+        }
+
         private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         private val jobs = mutableListOf<Job>()
-        val httpContext: HttpClientContext =
-            HttpClientContext.create().apply { cookieStore = BasicCookieStore() }
+        val httpContext: HttpClientContext = HttpClientContext.create().apply {
+            cookieStore = HTTPService.cookieStore
+        }
+
+
+        private fun loadCookies(cookiesPath: Path): List<Cookie> {
+            return cookiesPath.readLines()
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .filter { !it.startsWith("#") }
+                .map { line ->
+                    val cookieComponents = line.split("\t")
+                    BasicClientCookie(cookieComponents[5], cookieComponents[6]).apply {
+                        domain = cookieComponents[0]
+                        isHttpOnly = cookieComponents[1].toBoolean()
+                        path = cookieComponents[2]
+                        isSecure = cookieComponents[3].toBoolean()
+                        setExpiryDate(Instant.ofEpochSecond(cookieComponents[4].toLong()))
+                    }
+                }.also {
+                    log.info("Found ${it.size} cookies in $cookiesPath")
+                }
+        }
+
         val requests = mutableListOf<HttpUriRequestBase>()
         val postId = imageEntity.postIdRef
 
@@ -102,7 +150,7 @@ internal class DownloadService(
                 }
                 log.debug("Getting image url and name from ${imageEntity.url} using ${imageEntity.host}")
                 val host = hosts.first { it.isSupported(imageEntity.url) }
-                val downloadedImage = host.downloadInternal(imageEntity.url, context)
+                val downloadedImage = host.downloadInternal(imageEntity, context)
                 log.debug("Resolved name for ${imageEntity.url}: ${downloadedImage.name}")
                 log.debug("Downloaded image {} to {}", imageEntity.url, downloadedImage.path)
                 synchronized(imageEntity.postId.toString().intern()) {

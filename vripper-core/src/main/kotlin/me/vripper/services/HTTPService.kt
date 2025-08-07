@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import me.vripper.utilities.ApplicationProperties
 import org.apache.hc.client5.http.config.ConnectionConfig
 import org.apache.hc.client5.http.config.RequestConfig
+import org.apache.hc.client5.http.cookie.BasicCookieStore
 import org.apache.hc.client5.http.cookie.StandardCookieSpec
 import org.apache.hc.client5.http.impl.DefaultRedirectStrategy
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
@@ -16,6 +17,9 @@ import org.apache.hc.core5.pool.PoolReusePolicy
 import org.apache.hc.core5.util.Timeout
 
 internal class HTTPService {
+    companion object {
+        val cookieStore = BasicCookieStore()
+    }
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var pcm: HttpClientConnectionManager = BasicHttpClientConnectionManager()
@@ -64,6 +68,7 @@ internal class HTTPService {
             .setUserAgent(ApplicationProperties.USER_AGENT)
             .disableAutomaticRetries()
             .setDefaultRequestConfig(rc)
+            .setDefaultCookieStore(cookieStore)
             .build()
     }
 }

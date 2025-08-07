@@ -71,51 +71,51 @@ val coreModule = module {
         MetadataService(get(), get())
     }
     single {
-        AcidimgHost(get(), get(), get())
+        AcidimgHost(get())
     } bind Host::class
     single {
-        DPicMeHost(get(), get(), get())
+        DPicMeHost()
     } bind Host::class
     single {
-        ImageBamHost(get(), get(), get())
+        ImageBamHost()
     } bind Host::class
     single {
-        ImageTwistHost(get(), get(), get())
+        ImageTwistHost()
     } bind Host::class
     single {
-        ImageVenueHost(get(), get(), get())
+        ImageVenueHost()
     } bind Host::class
     single {
-        ImageZillaHost(get(), get(), get())
+        ImageZillaHost()
     } bind Host::class
     single {
-        ImgboxHost(get(), get(), get())
+        ImgboxHost()
     } bind Host::class
     single {
-        ImgSpiceHost(get(), get(), get())
+        ImgSpiceHost()
     } bind Host::class
     single {
-        ImxHost(get(), get(), get())
+        ImxHost()
     } bind Host::class
     single {
-        PimpandhostHost(get(), get(), get())
+        PimpandhostHost()
     } bind Host::class
     single {
-        PixhostHost(get(), get(), get())
+        PixhostHost()
     } bind Host::class
     single {
-        PixRouteHost(get(), get(), get())
+        PixRouteHost()
     } bind Host::class
     single {
-        PixxxelsHost(get(), get(), get())
+        PixxxelsHost()
     } bind Host::class
     single {
-        PostImgHost(get(), get(), get())
+        PostImgHost()
     } bind Host::class
     single {
-        TurboImageHost(get(), get(), get())
+        TurboImageHost()
     } bind Host::class
     single {
-        ViprImHost(get(), get(), get())
+        ViprImHost()
     } bind Host::class
 }

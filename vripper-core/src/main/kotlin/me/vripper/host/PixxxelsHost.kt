@@ -1,30 +1,23 @@
 package me.vripper.host
 
+import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.DataTransaction
 import me.vripper.services.DownloadService.ImageDownloadContext
-import me.vripper.services.DownloadSpeedService
-import me.vripper.services.HTTPService
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
-import org.w3c.dom.Document
 
-internal class PixxxelsHost(
-    httpService: HTTPService,
-    dataTransaction: DataTransaction,
-    downloadSpeedService: DownloadSpeedService,
-) : Host("pixxxels.cc", 12, httpService, dataTransaction, downloadSpeedService) {
+internal class PixxxelsHost : Host("pixxxels.cc", 12) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)
     override fun resolve(
-        url: String,
-        document: Document,
+        image: ImageEntity,
         context: ImageDownloadContext
     ): Pair<String, String> {
+        val document = fetchDocument(image.url, context)
         val imgNode = try {
-            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, url))
+            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.url))
             XpathUtils.getAsNode(document, IMG_XPATH)
         } catch (e: XpathException) {
             throw HostException(e)
@@ -32,11 +25,11 @@ internal class PixxxelsHost(
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 IMG_XPATH,
-                url
+                image.url
             )
         )
         val titleNode = try {
-            log.debug(String.format("Looking for xpath expression %s in %s", TITLE_XPATH, url))
+            log.debug(String.format("Looking for xpath expression %s in %s", TITLE_XPATH, image.url))
             XpathUtils.getAsNode(document, TITLE_XPATH)
         } catch (e: XpathException) {
             throw HostException(e)
@@ -44,11 +37,11 @@ internal class PixxxelsHost(
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 TITLE_XPATH,
-                url
+                image.url
             )
         )
         return try {
-            log.debug(String.format("Resolving name and image url for %s", url))
+            log.debug(String.format("Resolving name and image url for %s", image.url))
             val imgTitle = titleNode.textContent.trim { it <= ' ' }
             val imgUrl = imgNode.attributes.getNamedItem("href").textContent.trim { it <= ' ' }
             Pair(
