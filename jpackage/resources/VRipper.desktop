@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=VRipper
+Comment=Image ripper tool for vipergirls
+Exec=/opt/vripper/bin/VRipper
+Icon=/opt/vripper/lib/VRipper.png
+Terminal=false
+Type=Application
+Categories=Utility
+MimeType=
+StartupWMClass=me.vripper.gui.VripperGuiApplication
