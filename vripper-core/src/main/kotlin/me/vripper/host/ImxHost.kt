@@ -23,6 +23,15 @@ internal class ImxHost : Host("imx.to", 8) {
 
     private val log by LoggerDelegate()
 
+    private val failFastHttpClient = HttpClients.custom().apply {
+        setConnectionManager(BasicHttpClientConnectionManager().apply {
+            connectionConfig = ConnectionConfig.custom()
+                .setConnectTimeout(5000, TimeUnit.MILLISECONDS)
+                .setSocketTimeout(5000, TimeUnit.MILLISECONDS)
+                .build()
+        })
+    }.build()
+
     @Throws(HostException::class)
     override fun resolve(
         image: ImageEntity,
@@ -31,29 +40,21 @@ internal class ImxHost : Host("imx.to", 8) {
         log.debug("Resolving name and image url for ${image.url}")
         val imgTitle = String.format("IMG_%04d", image.index + 1)
         synchronized(image.postId.toString().intern()) {
-            val resolvedHost = resolvedHosts.getIfPresent(image.postId)
-            if (resolvedHost != null) {
-                val imgUrl = image.thumbUrl.replace("imx.to", resolvedHost).replace("u/t/", "i/")
-                    .replace("t/", "i/")
+            val subDomain = resolvedHosts.getIfPresent(image.postId)
+            if (subDomain != null) {
+                val imgUrl = findPattern(image, subDomain)
                 return Pair(
                     imgTitle.ifEmpty { getDefaultImageName(imgUrl) }, imgUrl
                 )
             } else {
                 IMX_SUBDOMAINS.forEach { subDomain ->
-                    val imgUrl = image.thumbUrl.replace("imx.to", subDomain).replace("u/t/", "i/").replace("t/", "i/")
+                    val imgUrl = findPattern(image, subDomain)
                     val result = runCatching {
                         RequestLimit.getPermit(1)
                         val httpHead = HttpHead(imgUrl).also { context.requests.add(it) }
-                        HttpClients.custom().apply {
-                            setConnectionManager(BasicHttpClientConnectionManager().apply {
-                                connectionConfig = ConnectionConfig.custom()
-                                    .setConnectTimeout(5000, TimeUnit.MILLISECONDS)
-                                    .setSocketTimeout(5000, TimeUnit.MILLISECONDS)
-                                    .build()
-                            })
-                        }.build().execute(httpHead) { response ->
+                        failFastHttpClient.execute(httpHead) { response ->
                             if (response.code / 100 != 2) {
-                                throw HostException("Invalid response")
+                                throw HostException("Invalid response code ${response.code}")
                             }
                         }
                     }
@@ -68,4 +69,10 @@ internal class ImxHost : Host("imx.to", 8) {
         }
         throw HostException("Unable to find full size image for ${image.url}")
     }
+
+    private fun findPattern(image: ImageEntity, subDomain: String): String = image.thumbUrl
+        .replace("imx.to", subDomain)
+        .replace("upload/small/", "i/")
+        .replace("u/t/", "i/")
+        .replace("t/", "i/")
 }
