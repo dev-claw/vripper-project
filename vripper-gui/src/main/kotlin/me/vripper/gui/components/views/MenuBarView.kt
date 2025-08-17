@@ -18,15 +18,17 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.openLink
 import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.ApplicationProperties
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 
-class MenuBarView : View() {
+class MenuBarView : View(), KoinComponent {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadActiveProperty = SimpleBooleanProperty(false)
     private val postsTableView: PostsTableView by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val postController: PostController by inject()
     private val actionBarController: ActionBarController by inject()
     private lateinit var appEndpointService: IAppEndpointService
@@ -190,7 +192,10 @@ class MenuBarView : View() {
                 item("About").apply {
                     graphic = FontIcon.of(Feather.INFO)
                     action {
-                        find<AboutFragment>().openModal()?.apply {
+                        AboutFragment(
+                            width = 500.0,
+                            height = 300.0
+                        ).openModal().apply {
                             this.minWidth = 100.0
                             this.minHeight = 100.0
                         }

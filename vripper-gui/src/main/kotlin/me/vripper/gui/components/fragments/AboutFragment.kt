@@ -1,112 +1,132 @@
 package me.vripper.gui.components.fragments
 
+import javafx.event.EventHandler
 import javafx.geometry.Insets
-import javafx.scene.control.TabPane
-import javafx.scene.text.FontWeight
+import javafx.geometry.Pos
+import javafx.scene.control.*
+import javafx.scene.image.ImageView
+import javafx.scene.layout.GridPane
+import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
+import javafx.scene.layout.VBox
+import javafx.scene.text.Text
+import me.vripper.gui.components.Fragment
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.openLink
 import me.vripper.utilities.ApplicationProperties
-import tornadofx.*
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import kotlin.io.path.pathString
 
-class AboutFragment : Fragment("About") {
+
+class AboutFragment(width: Double, height: Double) : Fragment("About", width, height), KoinComponent {
 
     private val widgetsController: WidgetsController by inject()
 
-    override val root = tabpane()
+    override val root = TabPane()
 
     init {
         with(root) {
-            tab("About") {
+            Tab("About").apply {
                 tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
-                hbox {
+                HBox().apply {
                     padding = Insets(15.0, 15.0, 15.0, 15.0)
                     spacing = 15.0
-                    imageview("icons/64x64.png")
-                    vbox(spacing = 5.0) {
-                        text("VRipper ${ApplicationProperties.VERSION}") {
-                            style {
-                                fontWeight = FontWeight.BOLD
-                                fontSize = Dimension(18.0, Dimension.LinearUnits.px)
-                            }
-                        }
-                        text("Developed by dev-claw and VRipper working group")
-                        hbox(spacing = 5.0) {
-                            hyperlink {
+                    ImageView("icons/64x64.png").also { children.add(it) }
+                    VBox(5.0).apply {
+                        Text("VRipper ${ApplicationProperties.VERSION}").apply {
+                            style = "-fx-font-weight: 700; -fx-font-size: 18px"
+                        }.also { children.add(it) }
+                        Text("Developed by dev-claw and VRipper working group").also { children.add(it) }
+                        HBox(5.0).apply {
+                            Hyperlink().apply {
                                 if (widgetsController.currentSettings.darkMode) {
-                                    imageview("icons/github-mark-white.png").apply {
+                                    ImageView("icons/github-mark-white.png").apply {
                                         isPreserveRatio = true
                                         fitHeight = 32.0
-                                    }
+                                    }.also { graphic = it }
                                 } else {
-                                    imageview("icons/github-mark.png").apply {
+                                    ImageView("icons/github-mark.png").apply {
                                         isPreserveRatio = true
                                         fitHeight = 32.0
-                                    }
+                                    }.also { graphic = it }
                                 }
-                                action {
+                                onAction = EventHandler {
                                     openLink("https://github.com/dev-claw/vripper-project")
                                 }
+                            }.also { children.add(it) }
+                        }.also { children.add(it) }
+                        Text("Donation").apply { style = "-fx-font-weight: 700; -fx-font-size: 16px" }
+                            .also { children.add(it) }
+                        Hyperlink().apply {
+                            ImageView("icons/buymeacoffee-logo.png").apply {
+                                isPreserveRatio = true
+                                fitHeight = 32.0
+                            }.also { graphic = it }
+                            onAction = EventHandler {
+                                openLink("https://buymeacoffee.com/devclaw")
                             }
+                        }.also { children.add(it) }
+                        GridPane().apply {
+                            alignment = Pos.TOP_LEFT
+                            hgap = 10.0
+                            vgap = 10.0
+                            minWidth = 400.0
+                            Text("ETH").also { add(it, 0, 0) }
+                            TextField("0xDdac82B16dC5E3D742fc915ffF583D8548A301cA").apply {
+                                GridPane.setHgrow(this, Priority.ALWAYS)
+                                isEditable = false
+                            }.also { add(it, 1, 0) }
+                            Text("BTC").also { add(it, 0, 1) }
+                            TextField("bc1qcqudnkrndwyadsjwrxww42svkf8trnzx3c8vlr").apply {
+                                GridPane.setHgrow(this, Priority.ALWAYS)
+                                isEditable = false
+                            }
+                                .also { add(it, 1, 1) }
+                        }.also { children.add(it) }
+                    }.also { children.add(it) }
+                }.also { content = it }
+                tabs.add(this)
+            }
+            Tab("System").apply {
+                GridPane().apply {
+                    alignment = Pos.TOP_LEFT
+                    hgap = 10.0
+                    vgap = 10.0
+                    minWidth = 400.0
+                    Text("Application data folder").apply { add(this, 0, 0) }
+                    TextField(ApplicationProperties.VRIPPER_DIR.pathString).apply {
+                        isEditable = false
+                        add(this, 1, 0)
+                    }
+                    Text("Previews Path").apply { add(this, 0, 1) }
+                    TextField().apply {
+                        textProperty().bind(widgetsController.currentSettings.cachePathProperty)
+                        isEditable = false
+                        add(this, 1, 1)
+                    }
+                    Button("Browse").apply {
+                        onAction = EventHandler {
+//                            val directory = chooseDirectory(title = "Select previews folder")
+//                            if (directory != null) {
+//                                widgetsController.currentSettings.cachePathProperty.set(directory.path)
+//                            }
                         }
-                        form {
-                            fieldset("Donation") {
-                                minWidth = 400.0
-                                field {
-                                    hyperlink {
-                                        imageview("icons/buymeacoffee-logo.png").apply {
-                                            isPreserveRatio = true
-                                            fitHeight = 32.0
-                                        }
-                                        action {
-                                            openLink("https://buymeacoffee.com/devclaw")
-                                        }
-                                    }
-                                }
-                                field("ETH:") {
-                                    textfield("0xDdac82B16dC5E3D742fc915ffF583D8548A301cA") {
+                        add(this, 2, 1)
+                    }
+                    content = this
+                }
+                tabs.add(this)
+            }
+            Tab("License").apply {
+                TextArea(LICENSE).apply { isEditable = false }.also { content = it }
+                tabs.add(this)
+            }
+        }
+    }
+}
 
-                                        isEditable = false
-                                    }
-                                }
-                                field("BTC:") {
-                                    textfield("bc1qcqudnkrndwyadsjwrxww42svkf8trnzx3c8vlr") {
-                                        isEditable = false
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            tab("System") {
-                form {
-                    fieldset {
-                        field("Application data folder") {
-                            textfield {
-                                text = ApplicationProperties.VRIPPER_DIR.pathString
-                                isEditable = false
-                            }
-                        }
-                        field("Previews Path") {
-                            textfield(widgetsController.currentSettings.cachePathProperty) {
-                                isEditable = false
-                            }
-                            button("Browse") {
-                                action {
-                                    val directory = chooseDirectory(title = "Select previews folder")
-                                    if (directory != null) {
-                                        widgetsController.currentSettings.cachePathProperty.set(directory.path)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            tab("License") {
-                textarea(
-                    """
+val LICENSE = """
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -782,10 +802,3 @@ the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
                 """.trimIndent()
-                ).apply {
-                    isEditable = false
-                }
-            }
-        }
-    }
-}

@@ -3,10 +3,9 @@ package me.vripper.gui.controller
 import me.vripper.gui.model.WidgetsViewModel
 import me.vripper.gui.utils.WidgetSettings
 import me.vripper.gui.utils.WidgetSettings.loadSettings
-import tornadofx.Controller
 import tornadofx.onChange
 
-class WidgetsController : Controller() {
+class WidgetsController {
 
     var currentSettings: WidgetsViewModel = loadSettings().let {
         WidgetsViewModel(

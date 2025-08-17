@@ -14,11 +14,13 @@ import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.services.GrpcEndpointService
 import me.vripper.gui.utils.AppEndpointManager
 import me.vripper.listeners.AppManager
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import tornadofx.*
 
-class SessionFragment : Fragment("Change Session") {
+class SessionFragment : Fragment("Change Session"), KoinComponent {
 
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val grpcEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
     private val toggleGroup = ToggleGroup()
     override val root = VBox().apply {

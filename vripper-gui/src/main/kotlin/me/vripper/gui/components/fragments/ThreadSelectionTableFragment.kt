@@ -19,16 +19,18 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.ThreadSelectionModel
 import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openLink
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 import kotlin.io.path.Path
 
-class ThreadSelectionTableFragment : Fragment("Thread") {
+class ThreadSelectionTableFragment : Fragment("Thread"), KoinComponent {
 
     private lateinit var tableView: TableView<ThreadSelectionModel>
     private val threadController: ThreadController by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private var items = SortedFilteredList<ThreadSelectionModel>()
     private var preview: Preview? = null
     private val searchInput = SimpleStringProperty()

@@ -1,7 +1,7 @@
 package me.vripper.gui
 
-import atlantafx.base.theme.CupertinoDark
-import atlantafx.base.theme.CupertinoLight
+import atlantafx.base.theme.NordDark
+import atlantafx.base.theme.NordLight
 import javafx.application.Application
 import javafx.scene.image.Image
 import javafx.stage.Stage
@@ -15,22 +15,19 @@ import me.vripper.gui.utils.WidgetSettings
 import me.vripper.utilities.AppLock
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
 import me.vripper.utilities.LoggerDelegate
-import org.koin.core.context.GlobalContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.koin.core.context.startKoin
-import org.koin.core.qualifier.named
 import tornadofx.App
-import tornadofx.DIContainer
-import tornadofx.FX
-import kotlin.reflect.KClass
 import kotlin.system.exitProcess
 
 
 class VripperGuiApplication : App(
     LoadingView::class
-) {
+), KoinComponent {
     private val log by LoggerDelegate()
     private var initialized = false
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {
@@ -38,13 +35,14 @@ class VripperGuiApplication : App(
     }
 
     override fun start(stage: Stage) {
+        PRIMARY_STAGE = stage
         Thread.setDefaultUncaughtExceptionHandler(Thread.UncaughtExceptionHandler { t, e ->
             log.error("Thread $t threw an exception: ${e.message}", e)
         })
         if (widgetsController.currentSettings.darkMode) {
-            setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)
+            setUserAgentStylesheet(NordDark().userAgentStylesheet)
         } else {
-            setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
+            setUserAgentStylesheet(NordLight().userAgentStylesheet)
         }
         with(stage) {
             width = widgetsController.currentSettings.width
@@ -77,18 +75,15 @@ class VripperGuiApplication : App(
             }
         }
         stage.addEventFilter(WindowEvent.WINDOW_SHOWN) {
-            startKoin {
-                modules(modules)
-            }
-            FX.dicontainer =
-                object : DIContainer {
-                    override fun <T : Any> getInstance(type: KClass<T>): T =
-                        GlobalContext.get().get(type)
-
-                    override fun <T : Any> getInstance(type: KClass<T>, name: String): T =
-                        GlobalContext.get().get(type, named(name))
-
-                }
+//            FX.dicontainer =
+//                object : DIContainer {
+//                    override fun <T : Any> getInstance(type: KClass<T>): T =
+//                        GlobalContext.get().get(type)
+//
+//                    override fun <T : Any> getInstance(type: KClass<T>, name: String): T =
+//                        GlobalContext.get().get(type, named(name))
+//
+//                }
             coroutineScope.launch {
                 GuiEventBus.publishEvent(GuiEventBus.ApplicationInitialized(parameters.raw))
                 initialized = true
@@ -105,6 +100,7 @@ class VripperGuiApplication : App(
 
     companion object {
         lateinit var APP_INSTANCE: Application
+        lateinit var PRIMARY_STAGE: Stage
     }
 }
 
@@ -129,6 +125,9 @@ fun main(args: Array<String>) {
         }
         Watcher.notify(threadId)
         exitProcess(0)
+    }
+    startKoin {
+        modules(modules)
     }
     Watcher.init()
     Application.launch(

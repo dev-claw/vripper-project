@@ -6,14 +6,16 @@ import javafx.scene.layout.Priority
 import kotlinx.coroutines.*
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.WidgetSettings
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import tornadofx.*
 
-class PostsTabView : View() {
+class PostsTabView : View(), KoinComponent {
     override val root: SplitPane = splitpane()
 
     private val postsTableView: PostsTableView by inject()
     private val postInfoView: PostInfoView by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
     init {

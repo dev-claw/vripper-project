@@ -13,14 +13,16 @@ import me.vripper.gui.controller.LogController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.LogModel
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 
-class LogTableView : View() {
+class LogTableView : View(), KoinComponent {
 
     private val logController: LogController by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val tableView: TableView<LogModel>
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val items: ObservableList<LogModel> = FXCollections.observableArrayList()

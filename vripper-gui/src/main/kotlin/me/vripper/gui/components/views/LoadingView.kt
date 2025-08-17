@@ -12,11 +12,13 @@ import me.vripper.gui.utils.ClipboardManager
 import me.vripper.gui.utils.Watcher
 import me.vripper.listeners.AppManager
 import me.vripper.utilities.DatabaseManager
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import tornadofx.*
 
-class LoadingView : View("VRipper") {
+class LoadingView : View("VRipper"), KoinComponent {
 
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val grpcEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

@@ -10,10 +10,12 @@ import me.vripper.gui.controller.StatusBarController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.utilities.formatSI
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import tornadofx.*
 
-class StatusBarView : View("Status bar") {
-    private val widgetsController: WidgetsController by inject()
+class StatusBarView : View("Status bar"), KoinComponent {
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val statusBarController: StatusBarController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val remoteText = SimpleStringProperty()

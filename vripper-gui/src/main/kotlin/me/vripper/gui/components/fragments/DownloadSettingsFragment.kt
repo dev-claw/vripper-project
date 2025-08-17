@@ -7,12 +7,14 @@ import me.vripper.gui.controller.SettingsController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.settings.DownloadSettingsModel
 import me.vripper.model.DownloadSettings
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import tornadofx.*
 
-class DownloadSettingsFragment : Fragment("Download Settings") {
+class DownloadSettingsFragment : Fragment("Download Settings"), KoinComponent {
 
     private val settingsController: SettingsController by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var downloadSettings: DownloadSettings
     val downloadSettingsModel = DownloadSettingsModel()

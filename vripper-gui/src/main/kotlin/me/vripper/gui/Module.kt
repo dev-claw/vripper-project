@@ -1,5 +1,6 @@
 package me.vripper.gui
 
+import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.services.GrpcEndpointService
 import me.vripper.services.IAppEndpointService
 import org.koin.core.qualifier.named
@@ -10,6 +11,9 @@ val guiModule = module {
     single((named("remoteAppEndpointService"))) {
         GrpcEndpointService()
     } bind IAppEndpointService::class
+    single<WidgetsController> {
+        WidgetsController()
+    }
 }
 
 val modules = module {

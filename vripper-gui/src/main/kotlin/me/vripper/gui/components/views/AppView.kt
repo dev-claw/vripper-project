@@ -1,18 +1,20 @@
 package me.vripper.gui.components.views
 
-import atlantafx.base.theme.CupertinoDark
-import atlantafx.base.theme.CupertinoLight
+import atlantafx.base.theme.NordDark
+import atlantafx.base.theme.NordLight
 import javafx.application.Application
 import kotlinx.coroutines.runBlocking
 import me.vripper.gui.controller.MainController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import tornadofx.View
 import tornadofx.onChange
 import tornadofx.runLater
 import tornadofx.vbox
 
-class AppView : View() {
+class AppView : View(), KoinComponent {
 
     override val root = vbox { }
     private val mainController: MainController by inject()
@@ -20,7 +22,7 @@ class AppView : View() {
     private val mainView: MainView by inject()
     private val statusBarView: StatusBarView by inject()
     private val actionBarView: ActionBarView by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     init {
         title = "VRipper ${mainController.version}"
         with(root) {
@@ -54,9 +56,9 @@ class AppView : View() {
 
         widgetsController.currentSettings.darkModeProperty.onChange {
             if (it) {
-                Application.setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)
+                Application.setUserAgentStylesheet(NordDark().userAgentStylesheet)
             } else {
-                Application.setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
+                Application.setUserAgentStylesheet(NordLight().userAgentStylesheet)
             }
         }
 

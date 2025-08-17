@@ -8,11 +8,13 @@ import me.vripper.gui.controller.SettingsController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.settings.SystemSettingsModel
 import me.vripper.model.SystemSettings
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import tornadofx.*
 
-class SystemSettingsFragment : Fragment("System Settings") {
+class SystemSettingsFragment : Fragment("System Settings"), KoinComponent {
     private val settingsController: SettingsController by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var systemSettings: SystemSettings
     val systemSettingsModel = SystemSettingsModel()

@@ -31,15 +31,17 @@ import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openFileDirectory
 import me.vripper.gui.utils.openLink
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 import kotlin.io.path.Path
 
-class PostsTableView : View() {
+class PostsTableView : View(), KoinComponent {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val postController: PostController by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val mainView: MainView by inject()
 
     val tableView: TableView<PostModel>

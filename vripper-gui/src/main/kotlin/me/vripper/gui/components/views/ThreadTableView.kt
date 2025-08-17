@@ -20,15 +20,17 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.ThreadModel
 import me.vripper.gui.utils.openLink
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 
-class ThreadTableView : View() {
+class ThreadTableView : View(), KoinComponent {
 
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val threadController: ThreadController by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val mainView: MainView by inject()
     private val tableView: TableView<ThreadModel>
     private val items: ObservableList<ThreadModel> = FXCollections.observableArrayList()

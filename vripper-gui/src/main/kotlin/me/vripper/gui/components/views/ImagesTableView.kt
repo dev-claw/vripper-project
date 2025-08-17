@@ -22,16 +22,18 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.ImageModel
 import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openLink
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
 import kotlin.io.path.Path
 
-class ImagesTableView : View("Photos") {
+class ImagesTableView : View("Photos"), KoinComponent {
 
     private val tableView: TableView<ImageModel>
     private val imageController: ImageController by inject()
-    private val widgetsController: WidgetsController by inject()
+    private val widgetsController: WidgetsController by inject<WidgetsController>()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val items: ObservableList<ImageModel> = FXCollections.observableArrayList()
     private var preview: Preview? = null
