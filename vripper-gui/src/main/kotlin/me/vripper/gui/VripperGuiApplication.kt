@@ -1,7 +1,7 @@
 package me.vripper.gui
 
-import atlantafx.base.theme.CupertinoDark
-import atlantafx.base.theme.CupertinoLight
+import atlantafx.base.theme.NordDark
+import atlantafx.base.theme.NordLight
 import javafx.application.Application
 import javafx.scene.image.Image
 import javafx.stage.Stage
@@ -38,13 +38,14 @@ class VripperGuiApplication : App(
     }
 
     override fun start(stage: Stage) {
+        PRIMARY_STAGE = stage
         Thread.setDefaultUncaughtExceptionHandler(Thread.UncaughtExceptionHandler { t, e ->
             log.error("Thread $t threw an exception: ${e.message}", e)
         })
         if (widgetsController.currentSettings.darkMode) {
-            setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)
+            setUserAgentStylesheet(NordDark().userAgentStylesheet)
         } else {
-            setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
+            setUserAgentStylesheet(NordLight().userAgentStylesheet)
         }
         with(stage) {
             width = widgetsController.currentSettings.width
@@ -105,6 +106,7 @@ class VripperGuiApplication : App(
 
     companion object {
         lateinit var APP_INSTANCE: Application
+        lateinit var PRIMARY_STAGE: Stage
     }
 }
 

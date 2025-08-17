@@ -190,7 +190,10 @@ class MenuBarView : View() {
                 item("About").apply {
                     graphic = FontIcon.of(Feather.INFO)
                     action {
-                        find<AboutFragment>().openModal()?.apply {
+                        AboutFragment(
+                            width = 500.0,
+                            height = 300.0
+                        ).openModal().apply {
                             this.minWidth = 100.0
                             this.minHeight = 100.0
                         }

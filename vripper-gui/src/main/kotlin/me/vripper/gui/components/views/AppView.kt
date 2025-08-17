@@ -1,7 +1,7 @@
 package me.vripper.gui.components.views
 
-import atlantafx.base.theme.CupertinoDark
-import atlantafx.base.theme.CupertinoLight
+import atlantafx.base.theme.NordDark
+import atlantafx.base.theme.NordLight
 import javafx.application.Application
 import kotlinx.coroutines.runBlocking
 import me.vripper.gui.controller.MainController
@@ -54,9 +54,9 @@ class AppView : View() {
 
         widgetsController.currentSettings.darkModeProperty.onChange {
             if (it) {
-                Application.setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)
+                Application.setUserAgentStylesheet(NordDark().userAgentStylesheet)
             } else {
-                Application.setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
+                Application.setUserAgentStylesheet(NordLight().userAgentStylesheet)
             }
         }
 
