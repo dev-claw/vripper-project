@@ -57,7 +57,7 @@ jobs:
       name: Package for Linux
       run: |
         cd jpackage
-        jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-app-image.cfg" --icon icon.png
+        jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.png
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-linux.cfg" --resource-dir resources --type deb
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-linux.cfg" --resource-dir resources --type rpm
         mv dist/vripper-${{ github.event.release.tag_name }}-1.x86_64.rpm dist/vripper-linux-${{ github.event.release.tag_name }}.x86_64.rpm
@@ -67,7 +67,7 @@ jobs:
       name: Package for Windows
       run: |
         cd jpackage
-        jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-app-image.cfg" --icon icon.ico
+        jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.ico
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-windows.cfg" --resource-dir resources --type msi
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-windows.cfg" --resource-dir resources --type exe
         cd dist
@@ -78,7 +78,7 @@ jobs:
       name: Package for macOS(arm64)
       run: |
         cd jpackage
-        jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-app-image.cfg" --icon icon.icns
+        jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.icns
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type pkg
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
         mv dist/VRipper-${{ github.event.release.tag_name }}.pkg dist/vripper-macos-${{ github.event.release.tag_name }}.arm64.pkg
@@ -88,7 +88,7 @@ jobs:
       name: Package for macOS(x86_64)
       run: |
         cd jpackage
-        jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-app-image.cfg" --icon icon.icns
+        jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.icns
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type pkg
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
         mv dist/VRipper-${{ github.event.release.tag_name }}.pkg dist/vripper-macos-${{ github.event.release.tag_name }}.x86_64.pkg
