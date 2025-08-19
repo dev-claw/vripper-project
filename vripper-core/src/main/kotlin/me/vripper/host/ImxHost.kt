@@ -71,6 +71,7 @@ internal class ImxHost : Host("imx.to", 8) {
     }
 
     private fun findPattern(image: ImageEntity, subDomain: String): String = image.thumbUrl
+        .replace("http:", "https:")
         .replace("imx.to", subDomain)
         .replace("upload/small/", "i/")
         .replace("u/t/", "i/")
