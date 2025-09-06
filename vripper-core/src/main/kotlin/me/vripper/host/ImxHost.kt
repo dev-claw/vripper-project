@@ -51,7 +51,12 @@ internal class ImxHost : Host("imx.to", 8) {
                     val imgUrl = findPattern(image, subDomain)
                     val result = runCatching {
                         RequestLimit.getPermit(1)
-                        val httpHead = HttpHead(imgUrl).also { context.requests.add(it) }
+                        val httpHead = HttpHead(imgUrl)
+                            .also {
+                                it.setAbsoluteRequestUri(true)
+                                context.requests.add(it)
+                            }
+                        log.info("Requesting: {}", httpHead)
                         failFastHttpClient.execute(httpHead) { response ->
                             if (response.code / 100 != 2) {
                                 throw HostException("Invalid response code ${response.code}")
