@@ -10,12 +10,15 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import javafx.scene.text.Text
+import javafx.stage.DirectoryChooser
+import me.vripper.gui.VripperGuiApplication
 import me.vripper.gui.components.Fragment
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.openLink
 import me.vripper.utilities.ApplicationProperties
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlin.io.path.Path
 import kotlin.io.path.pathString
 
 
@@ -90,6 +93,7 @@ class AboutFragment(width: Double, height: Double) : Fragment("About", width, he
             }
             Tab("System").apply {
                 GridPane().apply {
+                    padding = Insets(10.0)
                     alignment = Pos.TOP_LEFT
                     hgap = 10.0
                     vgap = 10.0
@@ -107,10 +111,14 @@ class AboutFragment(width: Double, height: Double) : Fragment("About", width, he
                     }
                     Button("Browse").apply {
                         onAction = EventHandler {
-//                            val directory = chooseDirectory(title = "Select previews folder")
-//                            if (directory != null) {
-//                                widgetsController.currentSettings.cachePathProperty.set(directory.path)
-//                            }
+
+                            val chooser = DirectoryChooser()
+                            chooser.title = "Select previews folder"
+                            chooser.initialDirectory = Path(widgetsController.currentSettings.cachePath).toFile()
+                            val directory = chooser.showDialog(VripperGuiApplication.PRIMARY_STAGE)
+                            if (directory != null) {
+                                widgetsController.currentSettings.cachePathProperty.set(directory.path)
+                            }
                         }
                         add(this, 2, 1)
                     }
