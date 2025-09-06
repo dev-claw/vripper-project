@@ -33,7 +33,7 @@ internal class ThreadLookupAPIParser(private val threadId: Long) : KoinComponent
                     "t",
                     threadId.toString()
                 )
-            }.build())
+            }.build()).also { it.setAbsoluteRequestUri(true) }
         val threadLookupAPIResponseHandler = ThreadLookupAPIResponseHandler()
         Tasks.increment()
         return try {
@@ -44,7 +44,7 @@ internal class ThreadLookupAPIParser(private val threadId: Long) : KoinComponent
                 )
             }.get(CheckedSupplier {
                 RequestLimit.getPermit(1)
-                log.info("Requesting {}", httpGet.uri)
+                log.info("Requesting {}", httpGet)
                 cm.client.execute(
                     httpGet, vgAuthService.createClickContext()
                 ) { response ->

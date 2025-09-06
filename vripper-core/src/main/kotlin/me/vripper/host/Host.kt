@@ -157,8 +157,11 @@ internal abstract class Host(
 
     @Throws(HostException::class)
     fun head(url: String, context: ImageDownloadContext): Array<Header> {
-        val httpHead = HttpHead(url).also { context.requests.add(it) }
-        log.debug(String.format("Requesting %s", url))
+        val httpHead = HttpHead(url).also {
+            it.setAbsoluteRequestUri(true)
+            context.requests.add(it)
+        }
+        log.info("Requesting {}", httpHead)
         return httpService.client.execute(
             httpHead,
             context.httpContext
@@ -177,8 +180,11 @@ internal abstract class Host(
         transformer: (ClassicHttpResponse) -> T
     ): T {
         val httpGet =
-            HttpGet(url).also { it.addHeader("Referer", context.imageEntity.url) }.also { context.requests.add(it) }
-        log.debug(String.format("Requesting %s", url))
+            HttpGet(url).also {
+                it.addHeader("Referer", context.imageEntity.url)
+                it.setAbsoluteRequestUri(true)
+            }.also { context.requests.add(it) }
+        log.info("Requesting {}", httpGet)
         return httpService.client.execute(httpGet, context.httpContext) {
             if (it.code / 100 != 2) {
                 throw DownloadException("Server returned code ${it.code}")

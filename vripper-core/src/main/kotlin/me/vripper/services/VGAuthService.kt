@@ -58,8 +58,9 @@ internal class VGAuthService(
                     BasicNameValuePair("vb_login_md5password", password)
                 )
             )
+            it.setAbsoluteRequestUri(true)
         }
-        log.info("Authenticating: ${postAuth.uri}")
+        log.info("Authenticating: {}", postAuth)
         try {
             val context = HttpClientContext.create().apply {
                 cookieStore =

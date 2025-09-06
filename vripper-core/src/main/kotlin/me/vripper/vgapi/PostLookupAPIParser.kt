@@ -32,7 +32,7 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
                 it.setParameter(
                     "p", postId.toString()
                 )
-            }.build())
+            }.build()).also { it.setAbsoluteRequestUri(true) }
         val threadLookupAPIResponseHandler = ThreadLookupAPIResponseHandler()
         Tasks.increment()
         return try {
@@ -42,7 +42,7 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
                 )
             }.get(CheckedSupplier {
                 RequestLimit.getPermit(1)
-                log.info("Requesting {}", httpGet.uri)
+                log.info("Requesting {}", httpGet)
                 httpService.client.execute(
                     httpGet,
                     vgAuthService.createClickContext()

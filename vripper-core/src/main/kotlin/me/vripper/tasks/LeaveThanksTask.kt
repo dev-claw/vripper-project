@@ -40,9 +40,10 @@ internal class LeaveThanksTask(
                         BasicNameValuePair("securitytoken", postEntity.token)
                     )
                 )
+                it.setAbsoluteRequestUri(true)
             }
             RequestLimit.getPermit(1)
-            log.info("Posting {}", postThanks.uri)
+            log.info("Posting {}", postThanks)
             cm.client.execute(postThanks, context) { response ->
                 if (response.code / 100 != 2) {
                     throw VripperException("Unexpected response code '${response.code}' for $postThanks")
