@@ -56,7 +56,7 @@ internal class ImxHost : Host("imx.to", 8) {
                                 it.setAbsoluteRequestUri(true)
                                 context.requests.add(it)
                             }
-                        log.info("Requesting: {}", httpHead)
+                        log.info("{}", httpHead)
                         failFastHttpClient.execute(httpHead) { response ->
                             if (response.code / 100 != 2) {
                                 throw HostException("Invalid response code ${response.code}")
@@ -79,6 +79,7 @@ internal class ImxHost : Host("imx.to", 8) {
         .replace("http:", "https:")
         .replace("imx.to", subDomain)
         .replace("upload/small/", "i/")
+        .replace("u/i/", "i/")
         .replace("u/t/", "i/")
         .replace("t/", "i/")
 }

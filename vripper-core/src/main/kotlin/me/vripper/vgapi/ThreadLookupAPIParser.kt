@@ -44,7 +44,7 @@ internal class ThreadLookupAPIParser(private val threadId: Long) : KoinComponent
                 )
             }.get(CheckedSupplier {
                 RequestLimit.getPermit(1)
-                log.info("Requesting {}", httpGet)
+                log.info("{}", httpGet)
                 cm.client.execute(
                     httpGet, vgAuthService.createClickContext()
                 ) { response ->

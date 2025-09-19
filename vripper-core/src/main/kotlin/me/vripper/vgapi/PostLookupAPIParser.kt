@@ -42,7 +42,7 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
                 )
             }.get(CheckedSupplier {
                 RequestLimit.getPermit(1)
-                log.info("Requesting {}", httpGet)
+                log.info("{}", httpGet)
                 httpService.client.execute(
                     httpGet,
                     vgAuthService.createClickContext()

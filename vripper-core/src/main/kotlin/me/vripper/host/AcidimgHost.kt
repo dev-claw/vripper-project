@@ -46,7 +46,7 @@ internal class AcidimgHost(
             )
             it.setAbsoluteRequestUri(true)
         }.also { context.requests.add(it) }
-        log.info("Requesting {}", httpPost)
+        log.info("{}", httpPost)
         val doc = try {
             httpService.client.execute(
                 httpPost, context.httpContext

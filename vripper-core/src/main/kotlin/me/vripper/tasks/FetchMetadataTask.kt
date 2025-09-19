@@ -44,7 +44,7 @@ internal class FetchMetadataTask(
             }.build()).also { it.setAbsoluteRequestUri(true) }
 
             RequestLimit.getPermit(1)
-            log.info("Requesting {}", httpGet)
+            log.info("{}", httpGet)
             val response = httpService.client.execute(httpGet, vgAuthService.createVgContext()) {
                 if (it.code / 100 != 2) {
                     throw DownloadException("Unexpected response code '${it.code}' for $httpGet")
