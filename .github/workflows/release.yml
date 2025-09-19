@@ -65,7 +65,9 @@ jobs:
       name: Build Docker image
       run: |
         mkdir docker_build && cp Dockerfile docker_build/Dockerfile && cp vripper-web/target/vripper-noarch-web-${{ github.event.release.tag_name }}.jar docker_build/vripper-web.jar
-        docker build -t ghcr.io/dev-claw/vripper-web:${{ github.event.release.tag_name }} docker_build
+        docker build -t ghcr.io/dev-claw/vripper-web docker_build
+        docker tag ghcr.io/dev-claw/vripper-web:latest ghcr.io/dev-claw/vripper-web:${{ github.event.release.tag_name }}
+        docker push ghcr.io/dev-claw/vripper-web:latest
         docker push ghcr.io/dev-claw/vripper-web:${{ github.event.release.tag_name }}
 
       # End building docker image in ubuntu only
