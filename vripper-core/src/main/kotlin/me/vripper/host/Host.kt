@@ -161,7 +161,7 @@ internal abstract class Host(
             it.setAbsoluteRequestUri(true)
             context.requests.add(it)
         }
-        log.info("Requesting {}", httpHead)
+        log.info("{}", httpHead)
         return httpService.client.execute(
             httpHead,
             context.httpContext
@@ -184,7 +184,7 @@ internal abstract class Host(
                 it.addHeader("Referer", context.imageEntity.url)
                 it.setAbsoluteRequestUri(true)
             }.also { context.requests.add(it) }
-        log.info("Requesting {}", httpGet)
+        log.info("{}", httpGet)
         return httpService.client.execute(httpGet, context.httpContext) {
             if (it.code / 100 != 2) {
                 throw DownloadException("Server returned code ${it.code}")
