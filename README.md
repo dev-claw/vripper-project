@@ -15,8 +15,6 @@ ETH: 0xDdac82B16dC5E3D742fc915ffF583D8548A301cA
 
 BTC: bc1qcqudnkrndwyadsjwrxww42svkf8trnzx3c8vlr
 
----
-
 ## Supported Image Hosts
 
 The following hosts are supported:
@@ -37,8 +35,6 @@ The following hosts are supported:
 * pixroute.to
 * vipr.im
 
----
-
 ## Installing VRipper
 
 <img src="https://github.com/stashapp/stash/raw/develop/docs/readme_assets/windows_logo.svg" width="100%" height="75"> Windows | <img src="https://github.com/stashapp/stash/raw/develop/docs/readme_assets/mac_logo.svg" width="100%" height="75"> macOS (Intel) | <img src="https://github.com/stashapp/stash/raw/develop/docs/readme_assets/mac_logo.svg" width="100%" height="75"> macOS (Apple silicon) | <img src="https://github.com/stashapp/stash/raw/develop/docs/readme_assets/linux_logo.svg" width="100%" height="75"> Linux  | <img src="https://images.vexels.com/media/users/3/166401/isolated/preview/b82aa7ac3f736dd78570dd3fa3fa9e24-java-programming-language-icon-by-vexels.png" width="100%" height="75"> Java
@@ -51,8 +47,6 @@ the [Releases page](https://github.com/dev-claw/vripper-project/releases).
 Application data (application logs, settings and persisted data) is stored in:  
 * Windows --> `C:\USERS\<your Windows username>\vripper` 
 * Linux and macOS --> `HOME_FOLDER/.config/vripper`
-
----
 
 ## Docker Support
 
@@ -114,8 +108,6 @@ environment:
     - Treat the value as a simple on/off toggle. To avoid ambiguity, set explicitly to `true` or `false`.
     - If you enable gRPC, make sure any required authentication (see `GRPC_PASSPHRASE`) is also configured.
 
----
-
 ### `GRPC_PASSPHRASE`
 
 - **Type:** String
@@ -136,8 +128,6 @@ The use of proxies within VRipper is worthless, please stop using them **for now
 
 If your ISP is blocking access to `vipergirls.to` domain, consider using a VPN or [Cloudflare WARP](https://one.one.one.one/) to bypass the block.
 
----
-
 ## Instructions to run from Jar file
 You need Java 21+, you can download from https://adoptium.net/
 
@@ -152,8 +142,6 @@ For the WEB app
     java -jar vripper-web.jar
 
 Application data (application logs, settings and persisted data) is stored in the location where you launched the jar for both GUI and WEB
-
----
 
 ## How to build
 
