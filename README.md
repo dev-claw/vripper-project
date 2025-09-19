@@ -50,8 +50,10 @@ Application data (application logs, settings and persisted data) is stored in:
 
 ## Docker Support
 
-This project is fully compatible with **Docker** and can be run as a container.  
-The provided Docker image exposes the service and allows you to configure runtime behavior via environment variables.
+The project is supplied as a container image and can be run locally or in production using Docker. By default:
+
+- **gRPC server/client** uses port **30000**
+- **Web UI** runs on port **8080**
 
 ### Run with `docker run`
 
@@ -122,6 +124,14 @@ environment:
 ```bash
 export GRPC_PASSPHRASE="my-very-strong-passphrase"
 ```
+
+## Default Ports
+
+- **gRPC server/client:** `30000`
+- **Web UI:** `8080`
+
+You can map these ports when running the container. The application supports overriding these defaults with environment
+variables (`GRPC_PORT`, `SERVER_PORT`), configure them as needed.
 
 ## Important Note About Proxies
 The use of proxies within VRipper is worthless, please stop using them **for now**. You will get **403 error** codes.  
