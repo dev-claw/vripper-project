@@ -58,6 +58,7 @@ The provided Docker image exposes the service and allows you to configure runtim
 ```bash
 docker run -d \
   -p 30000:30000 \
+  -p 8080:8080 \
   -e GRPC_ENABLED=true \
   -e GRPC_PASSPHRASE=my-secure-secret \
   ghcr.io/OWNER/IMAGE_NAME:latest
@@ -74,6 +75,7 @@ services:
       - GRPC_PASSPHRASE=super-secret-passphrase
     ports:
       - "30000:30000"
+      - "8080:8080"
 ```
 
 > **Tip:** For production, prefer storing the passphrase as a secret (see `Security Notes` below) rather than writing it
