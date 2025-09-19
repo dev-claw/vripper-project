@@ -10,6 +10,9 @@ jobs:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-13, macos-latest ]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
     steps:
     - uses: actions/checkout@v3
 
@@ -48,6 +51,24 @@ jobs:
       with:
         files: vripper-web/target/vripper-noarch-web-${{ github.event.release.tag_name }}.jar
     # End building WEB jar in ubuntu only
+
+      # Start building docker image in ubuntu only
+    - if: matrix.os == 'ubuntu-latest'
+      name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - if: matrix.os == 'ubuntu-latest'
+      name: Build Docker image
+      run: |
+        mkdir docker_build && cp Dockerfile docker_build/Dockerfile && cp vripper-web/target/vripper-noarch-web-${{ github.event.release.tag_name }}.jar docker_build/vripper-web.jar
+        docker build -t ghcr.io/dev-claw/vripper-web:${{ github.event.release.tag_name }} docker_build
+        docker push ghcr.io/dev-claw/vripper-web:${{ github.event.release.tag_name }}
+
+      # End building docker image in ubuntu only
 
     - name: Prepare Packaging
       run: |
