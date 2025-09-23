@@ -5,16 +5,14 @@ import kotlinx.coroutines.flow.map
 import me.vripper.entities.ImageEntity
 import me.vripper.model.*
 import me.vripper.proto.*
-import me.vripper.proto.EndpointServiceOuterClass.*
 import me.vripper.proto.EndpointServiceOuterClass.DownloadSpeed
 import me.vripper.proto.EndpointServiceOuterClass.ErrorCount
-import me.vripper.proto.EndpointServiceOuterClass.PostSelection
-import me.vripper.proto.EndpointServiceOuterClass.QueueState
 import me.vripper.proto.ImageOuterClass.Image
 import me.vripper.proto.ImagesOuterClass.Images
 import me.vripper.proto.LogOuterClass.Log
 import me.vripper.proto.ThreadsOuterClass.Threads
 import me.vripper.services.IAppEndpointService
+import me.vripper.services.download.MovePosition
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -26,154 +24,166 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
 
     private val appEndpointService: IAppEndpointService by inject(named("localAppEndpointService"))
 
-    override suspend fun scanLinks(request: Links): EmptyResponse {
+    override suspend fun scanLinks(request: EndpointServiceOuterClass.Links): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.scanLinks(request.links)
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override fun onNewPosts(request: EmptyRequest): Flow<PostOuterClass.Post> =
+    override fun onNewPosts(request: EndpointServiceOuterClass.EmptyRequest): Flow<PostOuterClass.Post> =
         appEndpointService.onNewPosts().map(::mapper)
 
 
-    override fun onUpdatePosts(request: EmptyRequest): Flow<PostOuterClass.Post> =
+    override fun onUpdatePosts(request: EndpointServiceOuterClass.EmptyRequest): Flow<PostOuterClass.Post> =
         appEndpointService.onUpdatePosts().map(::mapper)
 
 
-    override fun onDeletePosts(request: EmptyRequest): Flow<Id> =
-        appEndpointService.onDeletePosts().map { Id.newBuilder().setId(it).build() }
+    override fun onDeletePosts(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Id> =
+        appEndpointService.onDeletePosts().map { EndpointServiceOuterClass.Id.newBuilder().setId(it).build() }
 
 
-    override suspend fun findAllPosts(request: EmptyRequest): PostsOuterClass.Posts =
+    override suspend fun findAllPosts(request: EndpointServiceOuterClass.EmptyRequest): PostsOuterClass.Posts =
         PostsOuterClass.Posts.newBuilder().addAllPosts(appEndpointService.findAllPosts().map(::mapper)).build()
 
 
-    override suspend fun restartAll(request: IdList): EmptyResponse {
+    override suspend fun restartAll(request: EndpointServiceOuterClass.IdList): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.restartAll(request.idsList)
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun stopAll(request: IdList): EmptyResponse {
+    override suspend fun stopAll(request: EndpointServiceOuterClass.IdList): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.stopAll(request.idsList)
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun findPost(request: Id): PostOuterClass.Post {
+    override suspend fun findPost(request: EndpointServiceOuterClass.Id): PostOuterClass.Post {
         return mapper(appEndpointService.findPost(request.id))
     }
 
-    override suspend fun findImagesByPostId(request: Id): Images =
-        Images.newBuilder().addAllImages(appEndpointService.findImagesByPostId(request.id).map(::mapper)).build()
+    override suspend fun findImagesByPostId(request: EndpointServiceOuterClass.Id): Images =
+        Images.newBuilder().addAllImages(appEndpointService.findImagesByPostEntityId(request.id).map(::mapper)).build()
 
 
-    override fun onUpdateImages(request: EmptyRequest): Flow<Image> = appEndpointService.onUpdateImages().map(::mapper)
-    override fun onUpdateImagesByPostId(request: Id): Flow<Image> =
-        appEndpointService.onUpdateImagesByPostId(request.id).map(::mapper)
+    override fun onUpdateImages(request: EndpointServiceOuterClass.EmptyRequest): Flow<Image> =
+        appEndpointService.onUpdateImages().map(::mapper)
 
-    override fun onDownloadSpeed(request: EmptyRequest): Flow<DownloadSpeed> =
+    override fun onUpdateImagesByPostId(request: EndpointServiceOuterClass.Id): Flow<Image> =
+        appEndpointService.onUpdateImagesByPostEntityId(request.id).map(::mapper)
+
+    override fun onDownloadSpeed(request: EndpointServiceOuterClass.EmptyRequest): Flow<DownloadSpeed> =
         appEndpointService.onDownloadSpeed().map { DownloadSpeed.newBuilder().setSpeed(it.speed).build() }
 
-    override fun onVGUserUpdate(request: EmptyRequest): Flow<VGUser> =
-        appEndpointService.onVGUserUpdate().map { VGUser.newBuilder().setUser(it).build() }
+    override fun onVGUserUpdate(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.VGUser> =
+        appEndpointService.onVGUserUpdate().map { EndpointServiceOuterClass.VGUser.newBuilder().setUser(it).build() }
 
-    override fun onQueueStateUpdate(request: EmptyRequest): Flow<QueueState> = appEndpointService.onQueueStateUpdate()
-        .map { QueueState.newBuilder().setRunning(it.running).setRemaining(it.remaining).build() }
+    override fun onQueueStateUpdate(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.QueueState> =
+        appEndpointService.onQueueStateUpdate().map(::mapper)
 
-    override fun onErrorCountUpdate(request: EmptyRequest): Flow<ErrorCount> =
+    override suspend fun getQueueState(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.QueueState {
+        return mapper(appEndpointService.getQueueState())
+    }
+
+    override fun onErrorCountUpdate(request: EndpointServiceOuterClass.EmptyRequest): Flow<ErrorCount> =
         appEndpointService.onErrorCountUpdate().map { ErrorCount.newBuilder().setCount(it.count).build() }
 
-    override fun onTasksRunning(request: EmptyRequest): Flow<TasksRunning> =
-        appEndpointService.onTasksRunning().map { TasksRunning.newBuilder().setRunning(it).build() }
+    override fun onTasksRunning(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.TasksRunning> =
+        appEndpointService.onTasksRunning()
+            .map { EndpointServiceOuterClass.TasksRunning.newBuilder().setRunning(it).build() }
 
 
-    override fun onUpdateMetadata(request: EmptyRequest): Flow<MetadataOuterClass.Metadata> {
+    override fun onUpdateMetadata(request: EndpointServiceOuterClass.EmptyRequest): Flow<MetadataOuterClass.Metadata> {
         return appEndpointService.onUpdateMetadata().map { mapper(it) }
     }
 
-    override suspend fun remove(request: IdList): EmptyResponse {
+    override suspend fun remove(request: EndpointServiceOuterClass.IdList): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.remove(request.idsList)
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun clearCompleted(request: EmptyRequest): IdList {
-        return IdList.newBuilder().addAllIds(appEndpointService.clearCompleted()).build()
+    override suspend fun move(request: EndpointServiceOuterClass.MovePositionMessage): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.move(request.postEntityId, MovePosition.valueOf(request.position.name))
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun rename(request: Rename): EmptyResponse {
+    override suspend fun clearCompleted(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.IdList {
+        return EndpointServiceOuterClass.IdList.newBuilder().addAllIds(appEndpointService.clearCompleted()).build()
+    }
+
+    override suspend fun rename(request: EndpointServiceOuterClass.Rename): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.rename(request.postId, request.name)
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun renameToFirst(request: RenameToFirst): EmptyResponse {
+    override suspend fun renameToFirst(request: EndpointServiceOuterClass.RenameToFirst): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.renameToFirst(request.postIdsList)
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override fun onStopped(request: EmptyRequest): Flow<Id> {
-        return appEndpointService.onStopped().map { Id.newBuilder().setId(it).build() }
+    override fun onStopped(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Id> {
+        return appEndpointService.onStopped().map { EndpointServiceOuterClass.Id.newBuilder().setId(it).build() }
     }
 
-    override fun onNewLog(request: EmptyRequest): Flow<Log> {
+    override fun onNewLog(request: EndpointServiceOuterClass.EmptyRequest): Flow<Log> {
         return appEndpointService.onNewLog().map(::mapper)
     }
 
-    override suspend fun initLogger(request: EmptyRequest): EmptyResponse {
+    override suspend fun initLogger(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.initLogger()
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override fun onNewThread(request: EmptyRequest): Flow<ThreadOuterClass.Thread> {
+    override fun onNewThread(request: EndpointServiceOuterClass.EmptyRequest): Flow<ThreadOuterClass.Thread> {
         return appEndpointService.onNewThread().map(::mapper)
     }
 
-    override fun onUpdateThread(request: EmptyRequest): Flow<ThreadOuterClass.Thread> {
+    override fun onUpdateThread(request: EndpointServiceOuterClass.EmptyRequest): Flow<ThreadOuterClass.Thread> {
         return appEndpointService.onUpdateThread().map(::mapper)
     }
 
-    override fun onDeleteThread(request: EmptyRequest): Flow<Id> {
-        return appEndpointService.onDeleteThread().map { Id.newBuilder().setId(it).build() }
+    override fun onDeleteThread(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Id> {
+        return appEndpointService.onDeleteThread().map { EndpointServiceOuterClass.Id.newBuilder().setId(it).build() }
     }
 
-    override fun onClearThreads(request: EmptyRequest): Flow<EmptyResponse> {
-        return appEndpointService.onClearThreads().map { EmptyResponse.getDefaultInstance() }
+    override fun onClearThreads(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.EmptyResponse> {
+        return appEndpointService.onClearThreads().map { EndpointServiceOuterClass.EmptyResponse.getDefaultInstance() }
     }
 
-    override suspend fun findAllThreads(request: EmptyRequest): Threads {
+    override suspend fun findAllThreads(request: EndpointServiceOuterClass.EmptyRequest): Threads {
         return Threads.newBuilder().addAllThreads(appEndpointService.findAllThreads().map { mapper(it) }).build()
     }
 
-    override suspend fun threadRemove(request: IdList): EmptyResponse {
+    override suspend fun threadRemove(request: EndpointServiceOuterClass.IdList): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.threadRemove(request.idsList)
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun threadClear(request: EmptyRequest): EmptyResponse {
+    override suspend fun threadClear(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.threadClear()
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun grab(request: Id): PostSelectionList {
-        return PostSelectionList.newBuilder().addAllPostSelectionList(appEndpointService.grab(request.id).map(::mapper))
-            .build()
+    override suspend fun grab(request: EndpointServiceOuterClass.Id): EndpointServiceOuterClass.PostSelectionList {
+        return EndpointServiceOuterClass.PostSelectionList.newBuilder()
+            .addAllPostSelectionList(appEndpointService.grab(request.id).map(::mapper)).build()
     }
 
-    override suspend fun download(request: ThreadPostIdList): EmptyResponse {
+    override suspend fun download(request: EndpointServiceOuterClass.ThreadPostIdList): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.download(request.threadPostIdListList.map {
-            me.vripper.model.ThreadPostId(
+            ThreadPostId(
                 it.threadId, it.postId
             )
         })
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun getSettings(request: EmptyRequest): SettingsOuterClass.Settings {
+    override suspend fun getSettings(request: EndpointServiceOuterClass.EmptyRequest): SettingsOuterClass.Settings {
         return mapper(appEndpointService.getSettings())
     }
 
-    override fun onUpdateSettings(request: EmptyRequest): Flow<SettingsOuterClass.Settings> {
+    override fun onUpdateSettings(request: EndpointServiceOuterClass.EmptyRequest): Flow<SettingsOuterClass.Settings> {
         return appEndpointService.onUpdateSettings().map(::mapper)
     }
 
-    override suspend fun saveSettings(request: SettingsOuterClass.Settings): EmptyResponse {
+    override suspend fun saveSettings(request: SettingsOuterClass.Settings): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.saveSettings(
             Settings(
                 connectionSettings = ConnectionSettings(
@@ -206,22 +216,35 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                 )
             )
         )
-        return EmptyResponse.getDefaultInstance()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
-    override suspend fun getProxies(request: EmptyRequest): ProxyList {
-        return ProxyList.newBuilder().addAllProxies(appEndpointService.getProxies()).build()
+    override suspend fun getProxies(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.ProxyList {
+        return EndpointServiceOuterClass.ProxyList.newBuilder().addAllProxies(appEndpointService.getProxies()).build()
     }
 
-    override suspend fun loggedInUser(request: EmptyRequest): LoggedInUser =
-        LoggedInUser.newBuilder().setUser(appEndpointService.loggedInUser()).build()
+    override suspend fun loggedInUser(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.LoggedInUser =
+        EndpointServiceOuterClass.LoggedInUser.newBuilder().setUser(appEndpointService.loggedInUser()).build()
 
-    override suspend fun getVersion(request: EmptyRequest): Version =
-        Version.newBuilder().setVersion(appEndpointService.getVersion()).build()
+    override suspend fun getVersion(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.Version =
+        EndpointServiceOuterClass.Version.newBuilder().setVersion(appEndpointService.getVersion()).build()
 
-    override suspend fun dbMigration(request: EmptyRequest): DBMigrationResponse =
-        DBMigrationResponse.newBuilder().setMessage(appEndpointService.dbMigration()).build()
+    override suspend fun dbMigration(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.DBMigrationResponse =
+        EndpointServiceOuterClass.DBMigrationResponse.newBuilder().setMessage(appEndpointService.dbMigration()).build()
 
+
+    private fun mapper(queueState: QueueState): EndpointServiceOuterClass.QueueState {
+        return with(
+            EndpointServiceOuterClass.QueueState.newBuilder()
+        ) {
+            setRunning(queueState.running)
+            setRemaining(queueState.remaining)
+            addAllRank(queueState.rank.map { rank ->
+                EndpointServiceOuterClass.Rank.newBuilder().setPostEntityId(rank.postEntityId).setRank(rank.rank)
+                    .build()
+            }).build()
+        }
+    }
 
     private fun mapper(settings: Settings): SettingsOuterClass.Settings {
         val viperSettings = with(SettingsOuterClass.ViperSettings.newBuilder()) {
@@ -289,7 +312,6 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             folderName = post.folderName
             status = post.status.name
             done = post.done
-            rank = post.rank
             size = post.size
             downloaded = post.downloaded
             addAllPreviews(post.previews)
@@ -303,12 +325,11 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
     private fun mapper(image: ImageEntity): Image {
         return with(Image.newBuilder()) {
             id = image.id
-            postId = image.postId
             url = image.url
             thumbUrl = image.thumbUrl
             host = image.host.toInt()
             index = image.index
-            postIdRef = image.postIdRef
+            postIdRef = image.postEntityId
             size = image.size
             downloaded = image.downloaded
             status = image.status.name
@@ -320,7 +341,7 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
 
     private fun mapper(metadata: Metadata): MetadataOuterClass.Metadata {
         return with(MetadataOuterClass.Metadata.newBuilder()) {
-            postId = metadata.postId
+            postId = metadata.postIdRef
             postedBy = metadata.data.postedBy
             addAllResolvedNames(metadata.data.resolvedNames)
 
@@ -351,8 +372,8 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
         }
     }
 
-    private fun mapper(postSelection: me.vripper.model.PostSelection): PostSelection {
-        return with(PostSelection.newBuilder()) {
+    private fun mapper(postSelection: PostSelection): EndpointServiceOuterClass.PostSelection {
+        return with(EndpointServiceOuterClass.PostSelection.newBuilder()) {
             threadId = postSelection.threadId
             threadTitle = postSelection.threadTitle
             postId = postSelection.postId

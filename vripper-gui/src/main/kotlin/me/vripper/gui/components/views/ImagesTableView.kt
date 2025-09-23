@@ -25,19 +25,17 @@ import me.vripper.gui.utils.openLink
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
-import kotlin.io.path.Path
 
 class ImagesTableView : View("Photos") {
 
+    override val root = vbox(alignment = Pos.CENTER_RIGHT) {}
     private val tableView: TableView<ImageModel>
     private val imageController: ImageController by inject()
     private val widgetsController: WidgetsController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val items: ObservableList<ImageModel> = FXCollections.observableArrayList()
-    private var preview: Preview? = null
     val jobs = mutableListOf<Job>()
-
-    override val root = vbox(alignment = Pos.CENTER_RIGHT) {}
+    private val preview: Preview = Preview(currentStage!!)
 
     init {
         with(root) {
@@ -73,25 +71,21 @@ class ImagesTableView : View("Photos") {
                         }
                     }
                     cellFactory = Callback {
-                        val cell = PreviewTableCell<ImageModel>()
+                        val cell = PreviewTableCell<ImageModel, String>()
                         cell.onMouseExited = EventHandler {
-                            preview?.hide()
+                            preview.cleanup()
                         }
                         cell.onMouseMoved = EventHandler {
-                            preview?.previewPopup?.apply {
+                            preview.previewPopup.apply {
                                 x = it.screenX + 20
                                 y = it.screenY + 10
                             }
                         }
                         cell.onMouseEntered = EventHandler { mouseEvent ->
-                            preview?.hide()
+                            preview.cleanup()
                             if (cell.tableRow.item != null && cell.tableRow.item.thumbUrl.isNotEmpty()) {
-                                preview = Preview(
-                                    currentStage!!,
-                                    cell.tableRow.item.thumbUrl,
-                                    Path(widgetsController.currentSettings.cachePath)
-                                )
-                                preview?.previewPopup?.apply {
+                                preview.display(cell.tableRow.item.postEntityId, listOf(cell.tableRow.item.thumbUrl))
+                                preview.previewPopup.apply {
                                     x = mouseEvent.screenX + 20
                                     y = mouseEvent.screenY + 10
                                 }
@@ -241,7 +235,7 @@ class ImagesTableView : View("Photos") {
         modalStage?.width = 550.0
     }
 
-    fun setPostId(postId: Long?) {
+    fun setPostId(id: Long?) {
         runBlocking {
             jobs.forEach { it.cancelAndJoin() }
             jobs.clear()
@@ -249,11 +243,11 @@ class ImagesTableView : View("Photos") {
         runLater {
             items.clear()
         }
-        if (postId == null) {
+        if (id == null) {
             return
         }
         coroutineScope.launch {
-            val list = imageController.findImages(postId)
+            val list = imageController.findImages(id)
             runLater {
                 items.addAll(list)
                 tableView.sort()
@@ -262,7 +256,7 @@ class ImagesTableView : View("Photos") {
         }
 
         coroutineScope.launch {
-            imageController.onUpdateImages(postId).collect { image ->
+            imageController.onUpdateImages(id).collect { image ->
                 runLater {
                     val imageModel = items.find { it.id == image.id } ?: return@runLater
 

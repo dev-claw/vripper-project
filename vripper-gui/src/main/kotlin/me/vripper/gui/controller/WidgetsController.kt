@@ -15,6 +15,7 @@ class WidgetsController : Controller() {
             it.visibleToolbarPanel,
             it.visibleStatusBarPanel,
             it.darkMode,
+            it.theme,
             it.infoPanelDividerPosition,
             it.width,
             it.height,
@@ -47,6 +48,9 @@ class WidgetsController : Controller() {
             WidgetSettings.update(currentSettings)
         }
         currentSettings.darkModeProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.themeProperty.onChange {
             WidgetSettings.update(currentSettings)
         }
         currentSettings.postsColumnsModel.previewProperty.onChange {

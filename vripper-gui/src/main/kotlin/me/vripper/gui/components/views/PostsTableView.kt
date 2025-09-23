@@ -3,6 +3,7 @@ package me.vripper.gui.components.views
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
 import javafx.collections.FXCollections
+import javafx.collections.ObservableList
 import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.scene.control.*
@@ -11,13 +12,10 @@ import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseButton
 import javafx.util.Callback
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.javafx.asFlow
-import kotlinx.coroutines.launch
 import me.vripper.gui.components.Shared
 import me.vripper.gui.components.cells.PreviewTableCell
 import me.vripper.gui.components.cells.ProgressTableCell
@@ -31,12 +29,16 @@ import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openFileDirectory
 import me.vripper.gui.utils.openLink
+import me.vripper.model.QueueState
+import me.vripper.services.download.MovePosition
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
-import kotlin.io.path.Path
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PostsTableView : View() {
+
+    override val root = vbox {}
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val postController: PostController by inject()
     private val widgetsController: WidgetsController by inject()
@@ -44,15 +46,14 @@ class PostsTableView : View() {
 
     val tableView: TableView<PostModel>
     var items: SortedFilteredList<PostModel> = SortedFilteredList()
-    private var preview: Preview? = null
 
-    override val root = vbox {}
+    private val preview: Preview = Preview(currentStage!!)
 
     init {
         items.filterWhen(Shared.searchInput) { query, item ->
             item.title.contains(query, ignoreCase = true)
-                    || item.postId.toString().contains(query)
-                    || item.threadId.toString().contains(query)
+                    || item.vgPostId.toString().contains(query)
+                    || item.vgThreadId.toString().contains(query)
                     || item.hosts.contains(query, ignoreCase = true)
                     || item.status.contains(query, ignoreCase = true)
                     || item.path.contains(query, ignoreCase = true)
@@ -123,6 +124,42 @@ class PostsTableView : View() {
                         graphic = FontIcon.of(Feather.LINK)
                     }
 
+                    val moveToTop = MenuItem("Move to top").apply {
+                        setOnAction {
+                            coroutineScope.launch {
+                                postController.moveTo(tableRow.item.id, MovePosition.TOP)
+                            }
+                        }
+                        graphic = FontIcon.of(Feather.CHEVRONS_UP)
+                    }
+
+                    val moveUp = MenuItem("Move up").apply {
+                        setOnAction {
+                            coroutineScope.launch {
+                                postController.moveTo(tableRow.item.id, MovePosition.UP)
+                            }
+                        }
+                        graphic = FontIcon.of(Feather.CHEVRON_UP)
+                    }
+
+                    val moveDown = MenuItem("Move down").apply {
+                        setOnAction {
+                            coroutineScope.launch {
+                                postController.moveTo(tableRow.item.id, MovePosition.DOWN)
+                            }
+                        }
+                        graphic = FontIcon.of(Feather.CHEVRON_DOWN)
+                    }
+
+                    val moveToBottom = MenuItem("Move to bottom").apply {
+                        setOnAction {
+                            coroutineScope.launch {
+                                postController.moveTo(tableRow.item.id, MovePosition.BOTTOM)
+                            }
+                        }
+                        graphic = FontIcon.of(Feather.CHEVRONS_DOWN)
+                    }
+
                     val contextMenu = ContextMenu()
                     contextMenu.items.addAll(
                         startItem,
@@ -132,7 +169,12 @@ class PostsTableView : View() {
                         deleteItem,
                         SeparatorMenuItem(),
                         locationItem,
-                        urlItem
+                        urlItem,
+                        SeparatorMenuItem(),
+                        moveToTop,
+                        moveUp,
+                        moveDown,
+                        moveToBottom
                     )
                     tableRow.contextMenuProperty()
                         .bind(tableRow.emptyProperty().map { empty -> if (empty) null else contextMenu })
@@ -150,6 +192,23 @@ class PostsTableView : View() {
                         }
                     }
                 })
+                column("#", PostModel::orderProperty) {
+                    isVisible = widgetsController.currentSettings.postsColumnsModel.orderProperty.get()
+                    visibleProperty().onChange {
+                        widgetsController.currentSettings.postsColumnsModel.orderProperty.set(
+                            it
+                        )
+                    }
+                    prefWidth = widgetsController.currentSettings.postsColumnsWidthModel.order
+                    coroutineScope.launch {
+                        widthProperty().asFlow().debounce(200).collect {
+                            widgetsController.currentSettings.postsColumnsWidthModel.order = it as Double
+                        }
+                    }
+                    cellFactory = Callback {
+                        TextFieldTableCell<PostModel?, String?>().apply { alignment = Pos.CENTER_LEFT }
+                    }
+                }
                 column("Preview", PostModel::previewListProperty) {
                     isVisible = widgetsController.currentSettings.postsColumnsModel.previewProperty.get()
                     visibleProperty().onChange {
@@ -164,25 +223,24 @@ class PostsTableView : View() {
                         }
                     }
                     cellFactory = Callback {
-                        val cell = PreviewTableCell<PostModel>()
+                        val cell = PreviewTableCell<PostModel, ObservableList<String>>()
                         cell.onMouseExited = EventHandler {
-                            preview?.hide()
+                            preview.cleanup()
                         }
                         cell.onMouseMoved = EventHandler {
-                            preview?.previewPopup?.apply {
+                            preview.previewPopup.apply {
                                 x = it.screenX + 20
                                 y = it.screenY + 10
                             }
                         }
                         cell.onMouseEntered = EventHandler { mouseEvent ->
-                            preview?.hide()
+                            preview.cleanup()
                             if (cell.tableRow.item != null && cell.tableRow.item.previewList.isNotEmpty()) {
-                                preview = Preview(
-                                    currentStage!!,
-                                    cell.tableRow.item.previewList,
-                                    Path(widgetsController.currentSettings.cachePath)
+                                preview.display(
+                                    cell.tableRow.item.vgThreadId,
+                                    cell.tableRow.item.previewList
                                 )
-                                preview?.previewPopup?.apply {
+                                preview.previewPopup.apply {
                                     x = mouseEvent.screenX + 20
                                     y = mouseEvent.screenY + 10
                                 }
@@ -337,27 +395,10 @@ class PostsTableView : View() {
                             widgetsController.currentSettings.postsColumnsWidthModel.addedOn = it as Double
                         }
                     }
-                    cellFactory = Callback {
-                        TextFieldTableCell<PostModel?, String?>().apply { alignment = Pos.CENTER_LEFT }
-                    }
-                }
-                column("Order", PostModel::orderProperty) {
-                    isVisible = widgetsController.currentSettings.postsColumnsModel.orderProperty.get()
-                    visibleProperty().onChange {
-                        widgetsController.currentSettings.postsColumnsModel.orderProperty.set(
-                            it
-                        )
-                    }
-                    prefWidth = widgetsController.currentSettings.postsColumnsWidthModel.order
-                    coroutineScope.launch {
-                        widthProperty().asFlow().debounce(200).collect {
-                            widgetsController.currentSettings.postsColumnsWidthModel.order = it as Double
-                        }
-                    }
                     sortType = TableColumn.SortType.DESCENDING
                     sortOrder.add(this)
                     cellFactory = Callback {
-                        TextFieldTableCell<PostModel?, Number?>().apply { alignment = Pos.CENTER_LEFT }
+                        TextFieldTableCell<PostModel?, String?>().apply { alignment = Pos.CENTER_LEFT }
                     }
                 }
             }
@@ -371,10 +412,12 @@ class PostsTableView : View() {
                     when (it) {
                         GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
                             val postModelList = postController.findAllPosts().toList()
+                            val queueState = postController.getQueueState()
                             runLater {
                                 items.addAll(postModelList)
                                 tableView.sort()
                                 tableView.placeholder = Label("No content in table")
+                                updateQueueState(queueState)
                             }
                         }
 
@@ -389,12 +432,12 @@ class PostsTableView : View() {
             }
 
             launch {
-                postController.updateMetadataFlow.collect {
+                postController.updateMetadataFlow.collect { metadataEntity ->
                     runLater {
-                        val postModel = items.find { it.postId == it.postId } ?: return@runLater
+                        val postModel = items.find { it.id == metadataEntity.postIdRef } ?: return@runLater
 
-                        postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
-                        postModel.postedBy = it.data.postedBy
+                        postModel.altTitles = FXCollections.observableArrayList(metadataEntity.data.resolvedNames)
+                        postModel.postedBy = metadataEntity.data.postedBy
                     }
                 }
             }
@@ -402,7 +445,7 @@ class PostsTableView : View() {
             launch {
                 postController.deletedPostsFlow.collect {
                     runLater {
-                        items.items.removeIf { p -> p.postId == it }
+                        items.items.removeIf { p -> p.id == it }
                         tableView.sort()
                     }
                 }
@@ -411,13 +454,12 @@ class PostsTableView : View() {
             launch {
                 postController.updatePostsFlow.collect { post ->
                     runLater {
-                        val postModel = items.find { it.postId == post.postId } ?: return@runLater
+                        val postModel = items.find { it.id == post.id } ?: return@runLater
 
                         postModel.status = post.status.name
                         postModel.progressCount = postController.progressCount(
                             post.total, post.done, post.downloaded
                         )
-                        postModel.order = post.rank + 1
                         postModel.done = post.done
                         postModel.progress = postController.progress(
                             post.total, post.done
@@ -425,6 +467,12 @@ class PostsTableView : View() {
                         postModel.path = post.getDownloadFolder()
                         postModel.folderName = post.folderName
                     }
+                }
+            }
+
+            launch {
+                postController.queueStateUpdate.collect { queueState ->
+                    updateQueueState(queueState)
                 }
             }
 
@@ -439,12 +487,30 @@ class PostsTableView : View() {
         }
     }
 
+    private fun updateQueueState(queueState: QueueState) {
+        items.forEach { post ->
+            val rank = queueState.rank.find { it.postEntityId == post.id }
+            if (rank != null) {
+                runLater {
+                    post.order = rank.rank.toString()
+                }
+            } else if (post.order != "*") {
+                runLater {
+                    post.order = "*"
+                }
+            }
+        }
+        runLater {
+            tableView.sort()
+        }
+    }
+
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "download-tab"
 
     private fun rename(post: PostModel) {
         find<RenameFragment>(
             mapOf(
-                RenameFragment::postId to post.postId,
+                RenameFragment::id to post.id,
                 RenameFragment::name to post.folderName,
                 RenameFragment::altTitles to post.altTitles
             )
@@ -457,40 +523,40 @@ class PostsTableView : View() {
     fun bulkRenameSelected() {
         val selectedItems = tableView.selectionModel.selectedItems
         coroutineScope.launch {
-            postController.renameToFirst(selectedItems.map { it.postId })
+            postController.renameToFirst(selectedItems.map { it.id })
         }
     }
 
     fun deleteSelected() {
-        val postIdList = tableView.selectionModel.selectedItems.map { it.postId }
+        val postEntityIdList = tableView.selectionModel.selectedItems.map { it.id }
         confirm(
             "",
-            "Confirm removal of ${postIdList.size} post${if (postIdList.size > 1) "s" else ""}?",
+            "Confirm removal of ${postEntityIdList.size} post${if (postEntityIdList.size > 1) "s" else ""}?",
             ButtonType.YES,
             ButtonType.NO,
             owner = primaryStage,
             title = "Remove posts"
         ) {
             coroutineScope.launch {
-                postController.delete(postIdList)
+                postController.delete(postEntityIdList)
                 runLater {
-                    items.items.removeIf { postIdList.contains(it.postId) }
+                    items.items.removeIf { postEntityIdList.contains(it.id) }
                 }
             }
         }
     }
 
     fun stopSelected() {
-        val postIdList = tableView.selectionModel.selectedItems.map { it.postId }
+        val postEntityIdList = tableView.selectionModel.selectedItems.map { it.id }
         coroutineScope.launch {
-            postController.stop(postIdList)
+            postController.stop(postEntityIdList)
         }
     }
 
     fun startSelected() {
-        val postIdList = tableView.selectionModel.selectedItems.map { it.postId }
+        val postEntityIdList = tableView.selectionModel.selectedItems.map { it.id }
         coroutineScope.launch {
-            postController.start(postIdList)
+            postController.start(postEntityIdList)
         }
     }
 }

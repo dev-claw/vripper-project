@@ -5,12 +5,13 @@ import kotlinx.coroutines.flow.filterIsInstance
 import me.vripper.event.EventBus
 import me.vripper.event.SettingsUpdateEvent
 import me.vripper.services.*
+import me.vripper.services.download.DownloadService
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 object AppManager : KoinComponent {
     private val eventBus: EventBus by inject()
-    private val dataTransaction: DataTransaction by inject()
+    private val dataAccessService: DataAccessService by inject()
     private val metadataService: MetadataService by inject()
     private val settingsService: SettingsService by inject()
     private val vgAuthService: VGAuthService by inject()
@@ -37,8 +38,8 @@ object AppManager : KoinComponent {
                 threadCacheService.invalidate()
             }
         }
-        dataTransaction.setDownloadingToStopped()
-        dataTransaction.stopImagesByPostIdAndIsNotCompleted()
+        dataAccessService.setDownloadingToStopped()
+        dataAccessService.stopImagesByPostEntityIdAndIsNotCompleted()
         settingsService.init()
         metadataService.fetchExisting()
         downloadSpeedService.init()

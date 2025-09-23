@@ -9,11 +9,11 @@ import javafx.scene.control.ToggleGroup
 import javafx.scene.layout.VBox
 import kotlinx.coroutines.runBlocking
 import me.vripper.gui.VripperGuiApplication
+import me.vripper.gui.components.views.AppView
+import me.vripper.gui.components.views.LoadingView
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.services.GrpcEndpointService
-import me.vripper.gui.utils.AppEndpointManager
-import me.vripper.listeners.AppManager
 import tornadofx.*
 
 class SessionFragment : Fragment("Change Session") {
@@ -32,11 +32,11 @@ class SessionFragment : Fragment("Change Session") {
             form {
                 fieldset("Source") {
                     radiobutton(text = "Start Local Session", group = toggleGroup) {
-                        id = "localSession"
+                        this.id = "localSession"
                         isSelected = widgetsController.currentSettings.localSession
                     }
                     val remoteRadio = radiobutton(text = "Connect to Remote Session", group = toggleGroup) {
-                        id = "remoteSession"
+                        this.id = "remoteSession"
                         isSelected = !widgetsController.currentSettings.localSession
                     }
                     field("Host") {
@@ -66,36 +66,25 @@ class SessionFragment : Fragment("Change Session") {
                         isDefaultButton = true
                         action {
                             val selectedToggle = toggleGroup.selectedToggle
-                            runBlocking {
-                                GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
-                                AppManager.stop()
-                                grpcEndpointService.disconnect()
-                            }
-                            when ((selectedToggle as RadioButton).id) {
-                                "localSession" -> {
-                                    runBlocking {
-                                        widgetsController.currentSettings.localSession = true
-                                        AppEndpointManager.set(GuiEventBus.LocalSession)
-                                        AppManager.start()
-                                        GuiEventBus.publishEvent(GuiEventBus.LocalSession)
-                                    }
-                                }
-                                "remoteSession" -> {
-                                    runBlocking {
-                                        widgetsController.currentSettings.localSession = false
-                                        AppEndpointManager.set(GuiEventBus.RemoteSession)
-                                        grpcEndpointService.connect(
-                                            widgetsController.currentSettings.remoteSessionModel.host,
-                                            widgetsController.currentSettings.remoteSessionModel.port,
-                                            widgetsController.currentSettings.remoteSessionModel.passcode,
-                                        )
-                                        GuiEventBus.publishEvent(GuiEventBus.RemoteSession)
-                                    }
-                                }
-
-                                else -> VripperGuiApplication.APP_INSTANCE.stop()
+                            runLater {
+                                find<AppView>().replaceWith(find<LoadingView>())
                             }
                             runLater {
+                                when ((selectedToggle as RadioButton).id) {
+                                    "localSession" -> {
+                                        widgetsController.currentSettings.localSession = true
+                                    }
+
+                                    "remoteSession" -> {
+                                        widgetsController.currentSettings.localSession = false
+                                    }
+
+                                    else -> VripperGuiApplication.APP_INSTANCE.stop()
+                                }
+                                runBlocking {
+                                    GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
+                                    GuiEventBus.publishEvent(GuiEventBus.ApplicationInitialized(emptyList()))
+                                }
                                 close()
                             }
                         }

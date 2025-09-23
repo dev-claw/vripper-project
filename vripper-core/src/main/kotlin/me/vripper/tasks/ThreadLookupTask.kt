@@ -3,7 +3,7 @@ package me.vripper.tasks
 import me.vripper.entities.ThreadEntity
 import me.vripper.model.Settings
 import me.vripper.model.ThreadPostId
-import me.vripper.services.DataTransaction
+import me.vripper.services.DataAccessService
 import me.vripper.services.SettingsService
 import me.vripper.services.ThreadCacheService
 import me.vripper.utilities.LoggerDelegate
@@ -13,7 +13,7 @@ import org.koin.core.component.inject
 
 internal class ThreadLookupTask(private val threadId: Long, private val settings: Settings) : KoinComponent, Runnable {
     private val log by LoggerDelegate()
-    private val dataTransaction by inject<DataTransaction>()
+    private val dataAccessService by inject<DataAccessService>()
     private val settingsService by inject<SettingsService>()
     private val threadCacheService by inject<ThreadCacheService>()
     private val link: String = "${settingsService.settings.viperSettings.host}/threads/$threadId"
@@ -21,7 +21,7 @@ internal class ThreadLookupTask(private val threadId: Long, private val settings
     override fun run() {
         try {
             Tasks.increment()
-            if (dataTransaction.findThreadByThreadId(threadId).isEmpty) {
+            if (dataAccessService.findThreadByThreadId(threadId).isEmpty) {
                 val threadLookupResult = threadCacheService[threadId]
                 if (threadLookupResult.error.isNotBlank()) {
                     log.error("Error loading $link: ${threadLookupResult.error}")
@@ -41,7 +41,7 @@ internal class ThreadLookupTask(private val threadId: Long, private val settings
                         })
                     )
                 } else {
-                        dataTransaction.save(
+                    dataAccessService.save(
                             ThreadEntity(
                                 title = threadLookupResult.title,
                                 link = link,

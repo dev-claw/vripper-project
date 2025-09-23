@@ -88,19 +88,6 @@ class AboutFragment : Fragment("About") {
                                 isEditable = false
                             }
                         }
-                        field("Previews Path") {
-                            textfield(widgetsController.currentSettings.cachePathProperty) {
-                                isEditable = false
-                            }
-                            button("Browse") {
-                                action {
-                                    val directory = chooseDirectory(title = "Select previews folder")
-                                    if (directory != null) {
-                                        widgetsController.currentSettings.cachePathProperty.set(directory.path)
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }

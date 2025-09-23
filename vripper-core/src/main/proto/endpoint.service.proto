@@ -27,9 +27,14 @@ message DownloadSpeed {
 message VGUser {
   string user = 1;
 }
+message Rank {
+  int64 postEntityId = 1;
+  int64 rank = 2;
+}
 message QueueState {
   int32 running = 1;
   int32 remaining = 2;
+  repeated Rank rank = 3;
 }
 message ErrorCount {
   int32 count = 1;
@@ -78,6 +83,16 @@ message Version {
 message DBMigrationResponse {
   string message = 1;
 }
+enum MovePositionEnum {
+  UP = 0;
+  DOWN = 1;
+  TOP = 2;
+  BOTTOM = 3;
+}
+message MovePositionMessage {
+  int64 postEntityId = 1;
+  MovePositionEnum position = 2;
+}
 
 service EndpointService {
   rpc scanLinks (Links) returns (EmptyResponse) {}
@@ -94,6 +109,7 @@ service EndpointService {
   rpc onDownloadSpeed (EmptyRequest) returns (stream DownloadSpeed) {}
   rpc onVGUserUpdate (EmptyRequest) returns (stream VGUser) {}
   rpc onQueueStateUpdate (EmptyRequest) returns (stream QueueState) {}
+  rpc getQueueState (EmptyRequest) returns (QueueState) {}
   rpc onErrorCountUpdate (EmptyRequest) returns (stream ErrorCount) {}
   rpc onTasksRunning (EmptyRequest) returns (stream TasksRunning) {}
   rpc onUpdateMetadata (EmptyRequest) returns (stream Metadata) {}
@@ -120,4 +136,5 @@ service EndpointService {
   rpc getVersion (EmptyRequest) returns (Version) {}
   rpc dbMigration (EmptyRequest) returns (DBMigrationResponse) {}
   rpc initLogger (EmptyRequest) returns (EmptyResponse) {}
+  rpc move (MovePositionMessage) returns (EmptyResponse) {}
 }

@@ -11,6 +11,8 @@ import me.vripper.data.repositories.impl.ThreadRepositoryImpl
 import me.vripper.event.EventBus
 import me.vripper.host.*
 import me.vripper.services.*
+import me.vripper.services.download.DownloadService
+import me.vripper.services.download.QueueManager
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -37,8 +39,8 @@ val coreModule = module {
     single<ThreadRepository> {
         ThreadRepositoryImpl()
     }
-    single<DataTransaction> {
-        DataTransaction(get(), get(), get(), get(), get(), get())
+    single<DataAccessService> {
+        DataAccessService(get(), get(), get(), get(), get(), get())
     }
     single<RetryPolicyService> {
         RetryPolicyService()
@@ -52,6 +54,9 @@ val coreModule = module {
     single<ThreadCacheService> {
         ThreadCacheService(get())
     }
+    single<QueueManager> {
+        QueueManager(get(), getAll(), get(), get(), get())
+    }
     single<DownloadService> {
         DownloadService(get(), get(), get(), get())
     }
@@ -60,11 +65,11 @@ val coreModule = module {
     }
 
     single<AppEndpointService> {
-        AppEndpointService(get(), get(), get(), get(), get(), get())
+        AppEndpointService(get(), get(), get(), get(), get(), get(), get())
     }
 
     single((named("localAppEndpointService"))) {
-        AppEndpointService(get(), get(), get(), get(), get(), get())
+        AppEndpointService(get(), get(), get(), get(), get(), get(), get())
     } bind IAppEndpointService::class
 
     single<MetadataService> {

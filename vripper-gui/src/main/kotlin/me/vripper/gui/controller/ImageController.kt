@@ -9,8 +9,10 @@ import tornadofx.Controller
 
 class ImageController : Controller() {
 
-    suspend fun findImages(postId: Long): List<ImageModel> {
-        return runCatching { currentAppEndpointService().findImagesByPostId(postId).map(::mapper) }.getOrDefault(
+    suspend fun findImages(postEntityId: Long): List<ImageModel> {
+        return runCatching {
+            currentAppEndpointService().findImagesByPostEntityId(postEntityId).map(::mapper)
+        }.getOrDefault(
             emptyList()
         )
     }
@@ -25,7 +27,8 @@ class ImageController : Controller() {
             it.size,
             it.downloaded,
             it.filename,
-            it.thumbUrl
+            it.thumbUrl,
+            it.postEntityId
         )
     }
 
@@ -38,7 +41,7 @@ class ImageController : Controller() {
     }
 
     fun onUpdateImages(postId: Long) =
-        currentAppEndpointService().onUpdateImagesByPostId(postId).retryWhen { _, _ -> delay(1000);true }
+        currentAppEndpointService().onUpdateImagesByPostEntityId(postId).retryWhen { _, _ -> delay(1000); true }
 
     fun onStopped() = currentAppEndpointService().onStopped().retryWhen { _, _ -> delay(1000);true }
 }

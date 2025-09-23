@@ -17,10 +17,9 @@ message Post {
   string folderName = 13;
   string status = 14;
   int32 done = 15;
-  int32 rank = 16;
-  int64 size = 17;
-  int64 downloaded = 18;
-  repeated string previews = 19;
-  string postedBy = 20;
-  repeated string resolvedNames = 21;
+  int64 size = 16;
+  int64 downloaded = 17;
+  repeated string previews = 18;
+  string postedBy = 19;
+  repeated string resolvedNames = 20;
 }

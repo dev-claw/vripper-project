@@ -73,7 +73,7 @@ class DataBroadcast(
 
         coroutineScope.launch {
             appEndpointService.onUpdateImages().collect {
-                template.convertAndSend("/topic/images/${it.postId}", listOf(it))
+                template.convertAndSend("/topic/images/${it.postEntityId}", listOf(it))
             }
         }
 

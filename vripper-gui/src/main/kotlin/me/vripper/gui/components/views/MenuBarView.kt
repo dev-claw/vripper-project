@@ -3,6 +3,7 @@ package me.vripper.gui.components.views
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.scene.control.ButtonType
+import javafx.scene.control.ToggleGroup
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyCodeCombination
 import javafx.scene.input.KeyCombination
@@ -14,6 +15,7 @@ import me.vripper.gui.components.fragments.SessionFragment
 import me.vripper.gui.components.fragments.SettingsFragment
 import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
+import me.vripper.gui.controller.SettingsController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.openLink
 import me.vripper.services.IAppEndpointService
@@ -29,6 +31,7 @@ class MenuBarView : View() {
     private val widgetsController: WidgetsController by inject()
     private val postController: PostController by inject()
     private val actionBarController: ActionBarController by inject()
+    private val settingsController: SettingsController by inject()
     private lateinit var appEndpointService: IAppEndpointService
     private val running = SimpleIntegerProperty(0)
 
@@ -81,7 +84,7 @@ class MenuBarView : View() {
                             coroutineScope.launch {
                                 val clearPosts = async { postController.clearPosts() }.await()
                                 runLater {
-                                    postsTableView.tableView.items.removeIf { clearPosts.contains(it.postId) }
+                                    postsTableView.tableView.items.removeIf { clearPosts.contains(it.vgPostId) }
                                 }
                             }
                         }
@@ -91,9 +94,21 @@ class MenuBarView : View() {
                 item("Settings", KeyCodeCombination(KeyCode.P, KeyCombination.CONTROL_DOWN)).apply {
                     graphic = FontIcon.of(Feather.SETTINGS)
                     action {
-                        find<SettingsFragment>().openModal()?.apply {
-                            minWidth = 100.0
-                            minHeight = 100.0
+                        coroutineScope.launch {
+                            val downloadSettings = settingsController.findDownloadSettings()
+                            val connectionSettings = settingsController.findConnectionSettings()
+                            val viperGirlsSettings = settingsController.findViperGirlsSettings()
+                            val systemSettings = settingsController.findSystemSettings()
+                            runLater {
+                                find<SettingsFragment>(
+                                    mapOf(
+                                        SettingsFragment::downloadSettings to downloadSettings,
+                                        SettingsFragment::connectionSettings to connectionSettings,
+                                        SettingsFragment::viperSettings to viperGirlsSettings,
+                                        SettingsFragment::systemSettings to systemSettings,
+                                    )
+                                ).openModal()
+                            }
                         }
                     }
                 }
@@ -125,9 +140,64 @@ class MenuBarView : View() {
                 checkmenuitem(
                     "Status Bar", KeyCodeCombination(KeyCode.F8)
                 ).bind(widgetsController.currentSettings.visibleStatusBarPanelProperty)
-                checkmenuitem(
-                    "Dark mode"
-                ).bind(widgetsController.currentSettings.darkModeProperty)
+                menu("Theme") {
+                    val toggleGroup = ToggleGroup()
+
+                    val cupertinoLight = radiomenuitem("Cupertino Light", toggleGroup).apply {
+                        this.selectedProperty().onChange {
+                            widgetsController.currentSettings.theme = "CupertinoLight"
+                            widgetsController.currentSettings.darkMode = false
+
+                        }
+                    }
+                    val cupertinoDark = radiomenuitem("Cupertino Dark", toggleGroup).apply {
+                        this.selectedProperty().onChange {
+                            widgetsController.currentSettings.theme = "CupertinoDark"
+                            widgetsController.currentSettings.darkMode = true
+                        }
+                    }
+                    val nordLight = radiomenuitem("Nord Light", toggleGroup).apply {
+                        this.selectedProperty().onChange {
+                            widgetsController.currentSettings.theme = "NordLight"
+                            widgetsController.currentSettings.darkMode = false
+                        }
+                    }
+                    val nordDark = radiomenuitem("Nord Dark", toggleGroup).apply {
+                        this.selectedProperty().onChange {
+                            widgetsController.currentSettings.theme = "NordDark"
+                            widgetsController.currentSettings.darkMode = true
+                        }
+                    }
+                    val primerLight = radiomenuitem("Primer Light", toggleGroup).apply {
+                        this.selectedProperty().onChange {
+                            widgetsController.currentSettings.theme = "PrimerLight"
+                            widgetsController.currentSettings.darkMode = false
+                        }
+                    }
+                    val primerDark = radiomenuitem("Primer Dark", toggleGroup).apply {
+                        this.selectedProperty().onChange {
+                            widgetsController.currentSettings.theme = "PrimerDark"
+                            widgetsController.currentSettings.darkMode = true
+                        }
+                    }
+                    val dracula = radiomenuitem("Dracula", toggleGroup).apply {
+                        this.selectedProperty().onChange {
+                            widgetsController.currentSettings.theme = "Dracula"
+                            widgetsController.currentSettings.darkMode = true
+                        }
+                    }
+
+                    when (widgetsController.currentSettings.theme) {
+                        "CupertinoLight" -> cupertinoLight.isSelected = true
+                        "CupertinoDark" -> cupertinoDark.isSelected = true
+                        "NordLight" -> nordLight.isSelected = true
+                        "NordDark" -> nordDark.isSelected = true
+                        "PrimerLight" -> primerLight.isSelected = true
+                        "PrimerDark" -> primerDark.isSelected = true
+                        "Dracula" -> dracula.isSelected = true
+                        else -> cupertinoLight.isSelected = true
+                    }
+                }
             }
             menu("Help") {
                 item("Database migration").apply {

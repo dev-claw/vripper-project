@@ -7,14 +7,14 @@ import me.vripper.vgapi.ThreadLookupAPIParser
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
-internal class ThreadCacheService(val dataTransaction: DataTransaction) {
+internal class ThreadCacheService(val dataAccessService: DataAccessService) {
 
     private val cache: LoadingCache<Long, ThreadItem> =
         Caffeine.newBuilder().expireAfterWrite(20, TimeUnit.MINUTES).build { threadId ->
             val threadItem = ThreadLookupAPIParser(threadId).parse()
-            dataTransaction.findThreadByThreadId(threadItem.threadId).ifPresent {
+            dataAccessService.findThreadByThreadId(threadItem.threadId).ifPresent {
                 if (threadItem.postItemList.isNotEmpty()) {
-                    dataTransaction.update(it.copy(total = threadItem.postItemList.size))
+                    dataAccessService.update(it.copy(total = threadItem.postItemList.size))
                 }
             }
             threadItem

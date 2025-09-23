@@ -15,10 +15,9 @@ import me.vripper.vgapi.PostItem
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.pathString
 
-internal class DataTransaction(
+internal class DataAccessService(
     private val settingsService: SettingsService,
     private val postRepository: PostRepository,
     private val imageRepository: ImageRepository,
@@ -27,35 +26,29 @@ internal class DataTransaction(
     private val eventBus: EventBus,
 ) {
 
-    private val nextRank = AtomicInteger(transaction { getQueuePosition() }?.plus(1) ?: 0)
     private val postEntityIdCache: LoadingCache<Long, PostEntity> =
         Caffeine.newBuilder().expireAfterAccess(5, TimeUnit.MINUTES).build { id ->
             transaction { postRepository.findById(id) }
-        }
-
-    private val postPostIdCache: LoadingCache<Long, PostEntity> =
-        Caffeine.newBuilder().expireAfterAccess(5, TimeUnit.MINUTES).build { id ->
-            transaction { postRepository.findByPostId(id) }
         }
 
     private fun save(postEntities: List<PostEntity>): List<PostEntity> {
         return transaction { postRepository.save(postEntities) }
     }
 
-    fun saveAndNotify(postEntity: PostEntity, images: List<ImageEntity>) {
+    fun saveAndNotify(postEntity: PostEntity, images: List<ImageEntity>): PostEntity {
         val savedPost = transaction {
             val savedPost =
-                postRepository.save(listOf(postEntity.copy(rank = nextRank.andIncrement))).first()
-            save(images.map { it.copy(postIdRef = savedPost.id) })
+                postRepository.save(listOf(postEntity)).first()
+            save(images.map { it.copy(postEntityId = savedPost.id) })
             savedPost
         }
         eventBus.publishEvent(PostCreateEvent(listOf(savedPost)))
+        return savedPost
     }
 
     fun updatePosts(postEntities: List<PostEntity>) {
         transaction { postRepository.update(postEntities) }
         postEntities.forEach { postEntity ->
-            postPostIdCache.put(postEntity.postId, postEntity)
             postEntityIdCache.put(postEntity.id, postEntity)
         }
         eventBus.publishEvent(PostUpdateEvent(postEntities))
@@ -63,7 +56,6 @@ internal class DataTransaction(
 
     fun updatePost(postEntity: PostEntity) {
         transaction { postRepository.update(postEntity) }
-        postPostIdCache.put(postEntity.postId, postEntity)
         postEntityIdCache.put(postEntity.id, postEntity)
         eventBus.publishEvent(PostUpdateEvent(listOf(postEntity)))
     }
@@ -92,10 +84,14 @@ internal class DataTransaction(
         eventBus.publishEvent(ImageEvent(listOf(imageEntity)))
     }
 
-    fun exists(postId: Long): Boolean {
-        if (postPostIdCache.getIfPresent(postId) != null) {
+    fun exists(postEntityId: Long): Boolean {
+        if (postEntityIdCache.getIfPresent(postEntityId) != null) {
             return true
         }
+        return transaction { postRepository.existByPostEntityId(postEntityId) }
+    }
+
+    fun existsPostId(postId: Long): Boolean {
         return transaction { postRepository.existByPostId(postId) }
     }
 
@@ -106,13 +102,12 @@ internal class DataTransaction(
                 postTitle = postItem.title,
                 url = postItem.url,
                 token = postItem.securityToken,
-                postId = postItem.postId,
-                threadId = postItem.threadId,
+                vgPostId = postItem.postId,
+                vgThreadId = postItem.threadId,
                 total = postItem.imageCount,
                 hosts = postItem.hosts.map { "${it.first} (${it.second})" }.toSet(),
                 threadTitle = postItem.threadTitle,
                 forum = postItem.forum,
-                rank = nextRank.andIncrement,
                 downloadDirectory = PathUtils.calculateDownloadPath(
                     postItem.forum,
                     postItem.threadTitle,
@@ -124,7 +119,6 @@ internal class DataTransaction(
             )
             val imageEntities = postItem.imageItemList.mapIndexed { index, imageItem ->
                 ImageEntity(
-                    postId = postItem.postId,
                     url = imageItem.mainLink,
                     thumbUrl = imageItem.thumbLink,
                     host = imageItem.host.hostId,
@@ -137,10 +131,10 @@ internal class DataTransaction(
 
         val savedPosts = transaction {
             val savedPosts = save(posts.keys.toList())
-            savedPosts.associateWith {
-                posts[it]!!
+            savedPosts.associateWith { postEntity ->
+                posts.entries.find { postItem -> postItem.key.vgPostId == postEntity.vgPostId }?.value ?: emptyList()
             }.forEach { (key, value) ->
-                save(value.map { it.copy(postIdRef = key.id) })
+                save(value.map { it.copy(postEntityId = key.id) })
             }
             savedPosts
         }
@@ -148,17 +142,13 @@ internal class DataTransaction(
         return savedPosts
     }
 
-    private fun getQueuePosition(): Int? {
-        return postRepository.findMaxRank()
-    }
-
     private fun save(imageEntities: List<ImageEntity>) {
         transaction { imageRepository.save(imageEntities) }
     }
 
-    fun finishPost(postId: Long, automatic: Boolean = false) {
-        val post = findPostByPostId(postId)
-        val imagesInErrorStatus = findByPostIdAndIsError(post.postId)
+    fun finishPost(id: Long, automatic: Boolean = false) {
+        val post = findPostByEntityId(id)
+        val imagesInErrorStatus = findByIdAndIsError(id)
         if (imagesInErrorStatus.isNotEmpty()) {
             post.status = Status.ERROR
             updatePost(post)
@@ -171,31 +161,29 @@ internal class DataTransaction(
                 transaction {
                     updatePost(post)
                     if (settingsService.settings.downloadSettings.clearCompleted && automatic) {
-                        remove(listOf(post.postId))
+                        remove(listOf(post.id))
                     }
                 }
             }
         }
     }
 
-    private fun findByPostIdAndIsError(postId: Long): List<ImageEntity> {
-        return transaction { imageRepository.findByPostIdAndIsError(postId) }
-
+    private fun findByIdAndIsError(postEntityId: Long): List<ImageEntity> {
+        return transaction { imageRepository.findByPostEntityIdAndIsError(postEntityId) }
     }
 
-    private fun remove(postIds: List<Long>) {
+    private fun remove(postEntityIds: List<Long>) {
 
         transaction {
-            metadataRepository.deleteAllByPostId(postIds)
-            imageRepository.deleteAllByPostId(postIds)
-            postRepository.deleteAll(postIds)
-            sortPostsByRank()
+            metadataRepository.deleteAllByPostEntityId(postEntityIds)
+            imageRepository.deleteAllByPostEntityId(postEntityIds)
+            postRepository.deleteAll(postEntityIds)
         }
-        postIds.forEach { postId ->
-            postPostIdCache.get(postId)?.let { postEntityIdCache.invalidate(it.id) }
-            postPostIdCache.invalidate(postId)
+        postEntityIds.forEach { postEntityId ->
+            postEntityIdCache.get(postEntityId)?.let { postEntityIdCache.invalidate(it.id) }
+            postEntityIdCache.invalidate(postEntityId)
         }
-        eventBus.publishEvent(PostDeleteEvent(postIds = postIds))
+        eventBus.publishEvent(PostDeleteEvent(postEntityIds = postEntityIds))
         eventBus.publishEvent(ErrorCountEvent(ErrorCount(countImagesInError())))
     }
 
@@ -210,20 +198,20 @@ internal class DataTransaction(
         return completed
     }
 
-    fun removeAll(postIds: List<Long> = emptyList()) {
-        if (postIds.isNotEmpty()) {
-            remove(postIds)
+    fun removeAll(postEntityIds: List<Long> = emptyList()) {
+        if (postEntityIds.isNotEmpty()) {
+            remove(postEntityIds)
         } else {
-            remove(findAllPosts().map(PostEntity::postId))
+            remove(findAllPosts().map(PostEntity::id))
         }
     }
 
-    fun stopImagesByPostIdAndIsNotCompleted(postId: Long) {
-        transaction { imageRepository.stopByPostIdAndIsNotCompleted(postId) }
+    fun stopImagesByPostEntityIdAndIsNotCompleted(postEntityId: Long) {
+        transaction { imageRepository.stopByPostEntityIdAndIsNotCompleted(postEntityId) }
     }
 
-    fun stopImagesByPostIdAndIsNotCompleted() {
-        transaction { imageRepository.stopByPostIdAndIsNotCompleted() }
+    fun stopImagesByPostEntityIdAndIsNotCompleted() {
+        transaction { imageRepository.stopByPostEntityIdAndIsNotCompleted() }
     }
 
     fun saveMetadata(metadataEntity: MetadataEntity) {
@@ -236,19 +224,6 @@ internal class DataTransaction(
         eventBus.publishEvent(ThreadClearEvent())
     }
 
-    @Synchronized
-    fun sortPostsByRank() {
-        val postsToUpdate = mutableListOf<PostEntity>()
-        val postEntities = findAllPosts().sortedWith(Comparator.comparing(PostEntity::rank))
-        for (i in postEntities.indices) {
-            if (postEntities[i].rank != i) {
-                postsToUpdate.add(postEntities[i].copy(rank = i))
-            }
-        }
-        updatePosts(postsToUpdate)
-        nextRank.set(transaction { getQueuePosition() }?.plus(1) ?: 0)
-    }
-
     fun setDownloadingToStopped() {
         transaction { postRepository.setDownloadingToStopped() }
     }
@@ -257,12 +232,12 @@ internal class DataTransaction(
         return transaction { postRepository.findAll() }
     }
 
-    fun findPostById(id: Long): PostEntity {
+    fun findPostByEntityId(id: Long): PostEntity {
         return postEntityIdCache.get(id) ?: throw NoSuchElementException("Post with id = $id does not exist")
     }
 
-    fun findImagesByPostId(postId: Long): List<ImageEntity> {
-        return transaction { imageRepository.findByPostId(postId) }
+    fun findImagesByPostEntityId(postEntityId: Long): List<ImageEntity> {
+        return transaction { imageRepository.findByPostEntityId(postEntityId) }
     }
 
     fun findImageById(id: Long): Optional<ImageEntity> {
@@ -279,27 +254,23 @@ internal class DataTransaction(
         }
     }
 
-    fun findByPostIdAndIsNotCompleted(postId: Long): List<ImageEntity> {
-        return transaction { imageRepository.findByPostIdAndIsNotCompleted(postId) }
+    fun findByPostEntityIdAndIsNotCompleted(postEntityId: Long): List<ImageEntity> {
+        return transaction { imageRepository.findByPostEntityIdAndIsNotCompleted(postEntityId) }
     }
 
     fun countImagesInError(): Int {
         return transaction { imageRepository.countError() }
     }
 
-    fun findPostByPostId(postId: Long): PostEntity {
-        return postPostIdCache.get(postId) ?: throw NoSuchElementException("Post with postId = $postId does not exist")
-    }
-
     fun findThreadByThreadId(threadId: Long): Optional<ThreadEntity> {
         return transaction { threadRepository.findByThreadId(threadId) }
     }
 
-    fun findAllNonCompletedPostIds(): List<Long> {
-        return transaction { postRepository.findAllNonCompletedPostIds() }
+    fun findAllNonCompletedPostEntityIds(): List<Long> {
+        return transaction { postRepository.findAllNonCompletedPostEntityIds() }
     }
 
-    fun findMetadataByPostId(postId: Long): Optional<MetadataEntity> {
-        return transaction { metadataRepository.findByPostId(postId) }
+    fun findMetadataByPostEntityId(postEntityId: Long): Optional<MetadataEntity> {
+        return transaction { metadataRepository.findByPostEntityId(postEntityId) }
     }
 }

@@ -12,11 +12,13 @@ import me.vripper.model.DownloadSpeed
 import me.vripper.model.ErrorCount
 import me.vripper.model.PostSelection
 import me.vripper.model.QueueState
+import me.vripper.model.Rank
 import me.vripper.model.ThreadPostId
 import me.vripper.proto.*
 import me.vripper.proto.EndpointServiceOuterClass.*
 import me.vripper.proto.LogOuterClass.Log
 import me.vripper.services.IAppEndpointService
+import me.vripper.services.download.MovePosition
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -29,36 +31,36 @@ internal class GrpcEndpointService : IAppEndpointService {
         endpointServiceCoroutineStub!!.scanLinks(Links.newBuilder().setLinks(postLinks).build())
     }
 
-    override suspend fun restartAll(posIds: List<Long>) {
-        endpointServiceCoroutineStub!!.restartAll(IdList.newBuilder().addAllIds(posIds).build())
+    override suspend fun restartAll(postEntityIds: List<Long>) {
+        endpointServiceCoroutineStub!!.restartAll(IdList.newBuilder().addAllIds(postEntityIds).build())
     }
 
-    override suspend fun remove(postIdList: List<Long>) {
-        endpointServiceCoroutineStub!!.remove(IdList.newBuilder().addAllIds(postIdList).build())
+    override suspend fun remove(postEntityIds: List<Long>) {
+        endpointServiceCoroutineStub!!.remove(IdList.newBuilder().addAllIds(postEntityIds).build())
     }
 
-    override suspend fun stopAll(postIdList: List<Long>) {
-        endpointServiceCoroutineStub!!.stopAll(IdList.newBuilder().addAllIds(postIdList).build())
+    override suspend fun stopAll(postEntityIds: List<Long>) {
+        endpointServiceCoroutineStub!!.stopAll(IdList.newBuilder().addAllIds(postEntityIds).build())
     }
 
     override suspend fun clearCompleted(): List<Long> {
         return endpointServiceCoroutineStub!!.clearCompleted(EmptyRequest.getDefaultInstance()).idsList
     }
 
-    override suspend fun findPost(postId: Long): Post =
-        mapper(endpointServiceCoroutineStub!!.findPost(Id.newBuilder().setId(postId).build()))
+    override suspend fun findPost(postEntityId: Long): Post =
+        mapper(endpointServiceCoroutineStub!!.findPost(Id.newBuilder().setId(postEntityId).build()))
 
     override suspend fun findAllPosts(): List<Post> =
         endpointServiceCoroutineStub!!.findAllPosts(EmptyRequest.getDefaultInstance()).postsList.map(::mapper)
 
-    override suspend fun rename(postId: Long, newName: String) {
+    override suspend fun rename(postEntityId: Long, newName: String) {
         endpointServiceCoroutineStub!!.rename(
-            Rename.newBuilder().setPostId(postId).setName(newName).build()
+            Rename.newBuilder().setPostId(postEntityId).setName(newName).build()
         )
     }
 
-    override suspend fun renameToFirst(postIds: List<Long>) {
-        endpointServiceCoroutineStub!!.renameToFirst(RenameToFirst.newBuilder().addAllPostIds(postIds).build())
+    override suspend fun renameToFirst(postEntityIds: List<Long>) {
+        endpointServiceCoroutineStub!!.renameToFirst(RenameToFirst.newBuilder().addAllPostIds(postEntityIds).build())
     }
 
     override fun onNewPosts(): Flow<Post> =
@@ -71,24 +73,23 @@ internal class GrpcEndpointService : IAppEndpointService {
         }
 
 
-    override fun onDeletePosts() =
-        endpointServiceCoroutineStub!!.onDeletePosts(EmptyRequest.getDefaultInstance()).map {
-            it.id
-        }
+    override fun onDeletePosts() = endpointServiceCoroutineStub!!.onDeletePosts(EmptyRequest.getDefaultInstance()).map {
+        it.id
+    }
 
 
     override fun onUpdateMetadata(): Flow<Metadata> =
         endpointServiceCoroutineStub!!.onUpdateMetadata(EmptyRequest.getDefaultInstance()).map { mapper(it) }
 
 
-    override suspend fun findImagesByPostId(postId: Long): List<Image> =
+    override suspend fun findImagesByPostEntityId(postEntityId: Long): List<Image> =
         endpointServiceCoroutineStub!!.findImagesByPostId(
-            Id.newBuilder().setId(postId).build()
+            Id.newBuilder().setId(postEntityId).build()
         ).imagesList.map(::mapper)
 
 
-    override fun onUpdateImagesByPostId(postId: Long): Flow<Image> =
-        endpointServiceCoroutineStub!!.onUpdateImagesByPostId(Id.newBuilder().setId(postId).build()).map(::mapper)
+    override fun onUpdateImagesByPostEntityId(postEntityId: Long): Flow<Image> =
+        endpointServiceCoroutineStub!!.onUpdateImagesByPostId(Id.newBuilder().setId(postEntityId).build()).map(::mapper)
 
     override fun onUpdateImages(): Flow<Image> =
         endpointServiceCoroutineStub!!.onUpdateImages(EmptyRequest.getDefaultInstance()).map(::mapper)
@@ -125,6 +126,13 @@ internal class GrpcEndpointService : IAppEndpointService {
         endpointServiceCoroutineStub!!.threadRemove(IdList.newBuilder().addAllIds(threadIdList).build())
     }
 
+    override suspend fun move(postEntityId: Long, position: MovePosition) {
+        endpointServiceCoroutineStub!!.move(
+            MovePositionMessage.newBuilder().setPostEntityId(postEntityId)
+                .setPosition(MovePositionEnum.valueOf(position.name)).build()
+        )
+    }
+
     override suspend fun threadClear() {
         endpointServiceCoroutineStub!!.threadClear(EmptyRequest.getDefaultInstance())
     }
@@ -154,8 +162,11 @@ internal class GrpcEndpointService : IAppEndpointService {
         endpointServiceCoroutineStub!!.onVGUserUpdate(EmptyRequest.getDefaultInstance()).map { it.user }
 
     override fun onQueueStateUpdate(): Flow<QueueState> =
-        endpointServiceCoroutineStub!!.onQueueStateUpdate(EmptyRequest.getDefaultInstance())
-            .map { QueueState(it.running, it.remaining) }
+        endpointServiceCoroutineStub!!.onQueueStateUpdate(EmptyRequest.getDefaultInstance()).map(::mapper)
+
+    override suspend fun getQueueState(): QueueState =
+        mapper(endpointServiceCoroutineStub!!.getQueueState(EmptyRequest.getDefaultInstance()))
+
 
     override fun onErrorCountUpdate(): Flow<ErrorCount> =
         endpointServiceCoroutineStub!!.onErrorCountUpdate(EmptyRequest.getDefaultInstance())
@@ -232,40 +243,44 @@ internal class GrpcEndpointService : IAppEndpointService {
     override suspend fun dbMigration(): String =
         endpointServiceCoroutineStub!!.dbMigration(EmptyRequest.getDefaultInstance()).message
 
+    private fun mapper(queueState: EndpointServiceOuterClass.QueueState) =
+        QueueState(queueState.running, queueState.remaining, queueState.rankList.map {
+            Rank(it.postEntityId, it.rank)
+        })
 
-    private fun mapper(settings: SettingsOuterClass.Settings): Settings =
-        Settings(
-            viperSettings = ViperSettings(
-                login = settings.viperSettings.login,
-                username = settings.viperSettings.username,
-                password = settings.viperSettings.password,
-                thanks = settings.viperSettings.thanks,
-                host = settings.viperSettings.host,
-                requestLimit = settings.viperSettings.requestLimit,
-            ),
-            downloadSettings = DownloadSettings(
-                downloadPath = settings.downloadSettings.downloadPath,
-                autoStart = settings.downloadSettings.autoStart,
-                autoQueueThreshold = settings.downloadSettings.autoQueueThreshold,
-                forceOrder = settings.downloadSettings.forceOrder,
-                forumSubDirectory = settings.downloadSettings.forumSubDirectory,
-                threadSubLocation = settings.downloadSettings.threadSubLocation,
-                clearCompleted = settings.downloadSettings.clearCompleted,
-                appendPostId = settings.downloadSettings.appendPostId,
-            ),
-            connectionSettings = ConnectionSettings(
-                maxConcurrentPerHost = settings.connectionSettings.maxConcurrentPerHost,
-                maxGlobalConcurrent = settings.connectionSettings.maxGlobalConcurrent,
-                timeout = settings.connectionSettings.timeout,
-                maxAttempts = settings.connectionSettings.maxAttempts,
-            ),
-            systemSettings = SystemSettings(
-                tempPath = settings.systemSettings.tempPath,
-                enableClipboardMonitoring = settings.systemSettings.enableClipboardMonitoring,
-                clipboardPollingRate = settings.systemSettings.clipboardPollingRate,
-                maxEventLog = settings.systemSettings.maxEventLog,
-            ),
-        )
+    private fun mapper(settings: SettingsOuterClass.Settings): Settings = Settings(
+        viperSettings = ViperSettings(
+            login = settings.viperSettings.login,
+            username = settings.viperSettings.username,
+            password = settings.viperSettings.password,
+            thanks = settings.viperSettings.thanks,
+            host = settings.viperSettings.host,
+            requestLimit = settings.viperSettings.requestLimit,
+            fetchMetadata = settings.viperSettings.fetchMetadata,
+        ),
+        downloadSettings = DownloadSettings(
+            downloadPath = settings.downloadSettings.downloadPath,
+            autoStart = settings.downloadSettings.autoStart,
+            autoQueueThreshold = settings.downloadSettings.autoQueueThreshold,
+            forceOrder = settings.downloadSettings.forceOrder,
+            forumSubDirectory = settings.downloadSettings.forumSubDirectory,
+            threadSubLocation = settings.downloadSettings.threadSubLocation,
+            clearCompleted = settings.downloadSettings.clearCompleted,
+            appendPostId = settings.downloadSettings.appendPostId,
+        ),
+        connectionSettings = ConnectionSettings(
+            maxConcurrentPerHost = settings.connectionSettings.maxConcurrentPerHost,
+            maxGlobalConcurrent = settings.connectionSettings.maxGlobalConcurrent,
+            timeout = settings.connectionSettings.timeout,
+            maxAttempts = settings.connectionSettings.maxAttempts,
+        ),
+        systemSettings = SystemSettings(
+            tempPath = settings.systemSettings.tempPath,
+            enableClipboardMonitoring = settings.systemSettings.enableClipboardMonitoring,
+            clipboardPollingRate = settings.systemSettings.clipboardPollingRate,
+            maxEventLog = settings.systemSettings.maxEventLog,
+        ),
+    )
 
 
     private fun mapper(postEntity: PostOuterClass.Post): Post {
@@ -285,7 +300,6 @@ internal class GrpcEndpointService : IAppEndpointService {
             folderName = postEntity.folderName,
             status = Status.valueOf(postEntity.status),
             done = postEntity.done,
-            rank = postEntity.rank,
             size = postEntity.size,
             downloaded = postEntity.downloaded,
             previews = postEntity.previewsList.toList(),
@@ -297,12 +311,11 @@ internal class GrpcEndpointService : IAppEndpointService {
     private fun mapper(image: ImageOuterClass.Image): Image {
         return Image(
             id = image.id,
-            postId = image.postId,
             url = image.url,
             thumbUrl = image.thumbUrl,
             host = image.host.toByte(),
             index = image.index,
-            postIdRef = image.postIdRef,
+            postEntityId = image.postIdRef,
             size = image.size,
             downloaded = image.downloaded,
             status = Status.valueOf(image.status),
@@ -312,8 +325,7 @@ internal class GrpcEndpointService : IAppEndpointService {
 
     private fun mapper(metadata: MetadataOuterClass.Metadata): Metadata {
         return Metadata(
-            metadata.postId,
-            MetadataEntity.Data(metadata.postedBy, metadata.resolvedNamesList)
+            metadata.postId, MetadataEntity.Data(metadata.postedBy, metadata.resolvedNamesList)
         )
     }
 
@@ -356,12 +368,8 @@ internal class GrpcEndpointService : IAppEndpointService {
 
     fun connect(host: String, port: Int, passPhrase: String) {
         disconnect()
-        channel = ManagedChannelBuilder
-            .forAddress(host, port)
-            .maxInboundMessageSize(Integer.MAX_VALUE)
-            .usePlaintext()
-            .intercept(ClientE2eEncryptingInterceptor(passPhrase))
-            .build()
+        channel = ManagedChannelBuilder.forAddress(host, port).maxInboundMessageSize(Integer.MAX_VALUE).usePlaintext()
+            .intercept(ClientE2eEncryptingInterceptor(passPhrase)).build()
         endpointServiceCoroutineStub = EndpointServiceGrpcKt.EndpointServiceCoroutineStub(channel!!)
     }
 
@@ -370,6 +378,20 @@ internal class GrpcEndpointService : IAppEndpointService {
             channel?.shutdownNow()
         } catch (_: Exception) {
 
+        }
+    }
+
+    suspend fun versionCheck(): Boolean? {
+
+        val result = runCatching {
+            val version = getVersion()
+            version >= "6.6.0"
+        }
+
+        return if (result.isSuccess) {
+            result.getOrNull()
+        } else {
+            null
         }
     }
 

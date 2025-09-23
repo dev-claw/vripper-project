@@ -12,7 +12,7 @@ import tornadofx.*
 
 class RenameFragment : Fragment("Rename download post") {
 
-    val postId: Long by param()
+    val id: Long by param()
     val name: String by param()
     val altTitles: List<String> by param()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -43,7 +43,7 @@ class RenameFragment : Fragment("Rename download post") {
             disableWhen(comboBox.editor.textProperty().isEmpty)
             action {
                 coroutineScope.launch {
-                    postController.rename(postId, comboBox.editor.text.trim())
+                    postController.rename(this@RenameFragment.id, comboBox.editor.text.trim())
                 }
                 close()
             }

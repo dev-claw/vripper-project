@@ -142,4 +142,15 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet author="vripper" id="0007">
+        <renameColumn oldColumnName="POST_ID" newColumnName="POST_ID_REF" tableName="METADATA"/>
+    </changeSet>
+    <changeSet author="vripper" id="0009">
+        <dropIndex tableName="IMAGE" indexName="IMAGE_POST_ID_IDX"/>
+    </changeSet>
+    <changeSet author="vripper" id="0010">
+        <sql>
+            ALTER TABLE IMAGE DROP COLUMN POST_ID
+        </sql>
+    </changeSet>
 </databaseChangeLog>

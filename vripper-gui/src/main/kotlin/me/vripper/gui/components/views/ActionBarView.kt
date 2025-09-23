@@ -12,6 +12,7 @@ import me.vripper.gui.components.fragments.AddLinksFragment
 import me.vripper.gui.components.fragments.SettingsFragment
 import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
+import me.vripper.gui.controller.SettingsController
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -21,6 +22,7 @@ class ActionBarView : View() {
     private val postController: PostController by inject()
     private val postsTableView: PostsTableView by inject()
     private val actionBarController: ActionBarController by inject()
+    private val settingsController: SettingsController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val running = SimpleIntegerProperty(0)
 
@@ -28,7 +30,7 @@ class ActionBarView : View() {
 
     init {
         with(root) {
-            id = "action_toolbar"
+            this.id = "action_toolbar"
             padding = insets(all = 5)
             button("Add links", FontIcon.of(Feather.PLUS)) {
                 contentDisplay = ContentDisplay.GRAPHIC_ONLY
@@ -79,7 +81,7 @@ class ActionBarView : View() {
                         coroutineScope.launch {
                             val clearPosts = async { postController.clearPosts() }.await()
                             runLater {
-                                postsTableView.tableView.items.removeIf { clearPosts.contains(it.postId) }
+                                postsTableView.tableView.items.removeIf { clearPosts.contains(it.vgPostId) }
                             }
                         }
                     }
@@ -90,10 +92,23 @@ class ActionBarView : View() {
                 contentDisplay = ContentDisplay.GRAPHIC_ONLY
                 tooltip("Open settings menu [Ctrl+P]")
                 action {
-                    find<SettingsFragment>().openModal()?.apply {
-                        minWidth = 100.0
-                        minHeight = 100.0
+                    coroutineScope.launch {
+                        val downloadSettings = settingsController.findDownloadSettings()
+                        val connectionSettings = settingsController.findConnectionSettings()
+                        val viperGirlsSettings = settingsController.findViperGirlsSettings()
+                        val systemSettings = settingsController.findSystemSettings()
+                        runLater {
+                            find<SettingsFragment>(
+                                mapOf(
+                                    SettingsFragment::downloadSettings to downloadSettings,
+                                    SettingsFragment::connectionSettings to connectionSettings,
+                                    SettingsFragment::viperSettings to viperGirlsSettings,
+                                    SettingsFragment::systemSettings to systemSettings,
+                                )
+                            ).openModal()
+                        }
                     }
+
                 }
             }
             separator(Orientation.VERTICAL)

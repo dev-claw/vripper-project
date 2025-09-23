@@ -18,14 +18,14 @@ class PostInfoView : View() {
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val imagesTableView: ImagesTableView by inject()
     private val postModel: PostModel = PostModel(
-        -1, "", 0.0, "", "", 0, 0, "", "", -1, "", "", "", emptyList(), emptyList(), "", 0
+        -1, -1, "", 0.0, "", "", 0, 0, "", "", "*", "", "", "", emptyList(), emptyList(), "", 0
     )
 
     override val root = tabpane()
 
     init {
         with(root) {
-            id = "postinfo_panel"
+            this.id = "postinfo_panel"
             tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
             tab("General") {
                 graphic = FontIcon(Feather.INFO)
@@ -77,11 +77,10 @@ class PostInfoView : View() {
         }
     }
 
-    fun setPostId(postId: Long?) {
-        imagesTableView.setPostId(postId)
-        if (postId == null) {
+    fun setPostId(id: Long?) {
+        imagesTableView.setPostId(id)
+        if (id == null) {
             postModel.apply {
-                this.postId = -1
                 this.title = ""
                 this.progress = 0.0
                 this.status = ""
@@ -90,7 +89,7 @@ class PostInfoView : View() {
                 this.total = 0
                 this.hosts = ""
                 this.addedOn = ""
-                this.order = -1
+                this.order = "*"
                 this.path = ""
                 this.folderName = ""
                 this.progressCount = ""
@@ -101,13 +100,15 @@ class PostInfoView : View() {
             return
         }
         coroutineScope.launch {
-            val model: PostModel? = postController.find(postId)
+            val model: PostModel? = postController.find(id)
             if (model == null) {
                 return@launch
             }
             runLater {
                 postModel.apply {
-                    this.postId = model.postId
+                    this.id = model.id
+                    this.vgPostId = model.vgPostId
+                    this.vgThreadId = model.vgThreadId
                     this.title = model.title
                     this.progress = model.progress
                     this.status = model.status.lowercase().replaceFirstChar { it.uppercase() }
@@ -128,14 +129,13 @@ class PostInfoView : View() {
         }
         coroutineScope.launch {
             postController.updatePostsFlow.filter {
-                it.postId == postModel.postId
+                it.id == postModel.id
             }.collect { post ->
                 runLater {
                     postModel.status = post.status.stringValue.lowercase().replaceFirstChar { it.uppercase() }
                     postModel.progressCount = postController.progressCount(
                         post.total, post.done, post.downloaded
                     )
-                    postModel.order = post.rank + 1
                     postModel.done = post.done
                     postModel.progress = postController.progress(
                         post.total, post.done
@@ -148,7 +148,7 @@ class PostInfoView : View() {
 
         coroutineScope.launch {
             postController.updateMetadataFlow.filter {
-                it.postId == postModel.postId
+                it.postIdRef == postModel.id
             }.collect {
                 runLater {
                     postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)

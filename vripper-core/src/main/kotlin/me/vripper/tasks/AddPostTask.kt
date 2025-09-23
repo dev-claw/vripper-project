@@ -1,7 +1,11 @@
 package me.vripper.tasks
 
 import me.vripper.model.ThreadPostId
-import me.vripper.services.*
+import me.vripper.services.DataAccessService
+import me.vripper.services.MetadataService
+import me.vripper.services.SettingsService
+import me.vripper.services.ThreadCacheService
+import me.vripper.services.download.DownloadService
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.vgapi.PostItem
 import me.vripper.vgapi.PostLookupAPIParser
@@ -10,7 +14,7 @@ import org.koin.core.component.inject
 
 internal class AddPostTask(private val items: List<ThreadPostId>) : KoinComponent, Runnable {
     private val log by LoggerDelegate()
-    private val dataTransaction: DataTransaction by inject()
+    private val dataAccessService: DataAccessService by inject()
     private val settingsService: SettingsService by inject()
     private val downloadService: DownloadService by inject()
     private val threadCacheService: ThreadCacheService by inject()
@@ -21,7 +25,7 @@ internal class AddPostTask(private val items: List<ThreadPostId>) : KoinComponen
             Tasks.increment()
             val toProcess = mutableListOf<PostItem>()
             for ((threadId, postId) in items) {
-                if (dataTransaction.exists(postId)) {
+                if (dataAccessService.existsPostId(postId)) {
                     log.info("Post $postId already loaded")
                     continue
                 }
@@ -62,13 +66,13 @@ internal class AddPostTask(private val items: List<ThreadPostId>) : KoinComponen
             }
 
             val posts = try {
-                dataTransaction.newPosts(toProcess.toList())
+                dataAccessService.newPosts(toProcess.toList())
             } catch (e: Exception) {
                 e.printStackTrace()
                 emptyList()
             }
             posts.forEach {
-                metadataService.fetchMetadata(it.postId)
+                metadataService.fetchMetadata(it)
             }
             if (settingsService.settings.downloadSettings.autoStart) {
                 downloadService.restartAll(posts)

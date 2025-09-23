@@ -16,12 +16,11 @@ internal class ImageRepositoryImpl : ImageRepository {
             it[downloaded] = imageEntity.downloaded
             it[host] = imageEntity.host
             it[index] = imageEntity.index
-            it[postId] = imageEntity.postId
             it[status] = imageEntity.status.name
             it[size] = imageEntity.size
             it[url] = imageEntity.url
             it[thumbUrl] = imageEntity.thumbUrl
-            it[postIdRef] = imageEntity.postIdRef
+            it[postIdRef] = imageEntity.postEntityId
             it[filename] = imageEntity.filename
         }.value
         return imageEntity.copy(id = id)
@@ -32,23 +31,22 @@ internal class ImageRepositoryImpl : ImageRepository {
             this[ImageTable.downloaded] = it.downloaded
             this[ImageTable.host] = it.host
             this[ImageTable.index] = it.index
-            this[ImageTable.postId] = it.postId
             this[ImageTable.status] = it.status.name
             this[ImageTable.size] = it.size
             this[ImageTable.url] = it.url
             this[ImageTable.thumbUrl] = it.thumbUrl
-            this[ImageTable.postIdRef] = it.postIdRef
+            this[ImageTable.postIdRef] = it.postEntityId
             this[ImageTable.filename] = it.filename
         }
     }
 
-    override fun deleteAllByPostId(postId: Long) {
-        ImageTable.deleteWhere { ImageTable.postId eq postId }
+    override fun deleteAllByPostEntityId(postEntityId: Long) {
+        ImageTable.deleteWhere { ImageTable.postIdRef eq postEntityId }
     }
 
-    override fun findByPostId(postId: Long): List<ImageEntity> {
+    override fun findByPostEntityId(postEntityId: Long): List<ImageEntity> {
         return ImageTable.selectAll().where {
-            ImageTable.postId eq postId
+            ImageTable.postIdRef eq postEntityId
         }.map(this::transform)
     }
 
@@ -59,28 +57,28 @@ internal class ImageRepositoryImpl : ImageRepository {
             .count().toInt()
     }
 
-    override fun findByPostIdAndIsNotCompleted(postId: Long): List<ImageEntity> {
+    override fun findByPostEntityIdAndIsNotCompleted(postEntityId: Long): List<ImageEntity> {
         return ImageTable
             .selectAll().where {
-                (ImageTable.postId eq postId) and (ImageTable.status neq Status.FINISHED.name)
+                (ImageTable.postIdRef eq postEntityId) and (ImageTable.status neq Status.FINISHED.name)
             }.map(this::transform)
     }
 
-    override fun stopByPostIdAndIsNotCompleted(postId: Long): Int {
-        return ImageTable.update({ (ImageTable.postId eq postId) and (ImageTable.status neq Status.FINISHED.name) }) {
+    override fun stopByPostEntityIdAndIsNotCompleted(postEntityId: Long): Int {
+        return ImageTable.update({ (ImageTable.postIdRef eq postEntityId) and (ImageTable.status neq Status.FINISHED.name) }) {
             it[status] = Status.STOPPED.name
         }
     }
 
-    override fun stopByPostIdAndIsNotCompleted(): Int {
+    override fun stopByPostEntityIdAndIsNotCompleted(): Int {
         return ImageTable.update({ (ImageTable.status neq Status.FINISHED.name) }) {
             it[status] = Status.STOPPED.name
         }
     }
 
-    override fun findByPostIdAndIsError(postId: Long): List<ImageEntity> {
+    override fun findByPostEntityIdAndIsError(postEntityId: Long): List<ImageEntity> {
         return ImageTable.selectAll().where {
-            (ImageTable.postId eq postId) and (ImageTable.status eq Status.ERROR.name)
+            (ImageTable.postIdRef eq postEntityId) and (ImageTable.status eq Status.ERROR.name)
         }.map(this::transform)
     }
 
@@ -110,32 +108,31 @@ internal class ImageRepositoryImpl : ImageRepository {
             this[ImageTable.downloaded] = it.downloaded
             this[ImageTable.host] = it.host
             this[ImageTable.index] = it.index
-            this[ImageTable.postId] = it.postId
             this[ImageTable.status] = it.status.name
             this[ImageTable.size] = it.size
             this[ImageTable.url] = it.url
             this[ImageTable.thumbUrl] = it.thumbUrl
-            this[ImageTable.postIdRef] = it.postIdRef
+            this[ImageTable.postIdRef] = it.postEntityId
             this[ImageTable.filename] = it.filename
         }
     }
 
-    override fun deleteAllByPostId(postIds: List<Long>) {
+    override fun deleteAllByPostEntityId(postEntityIds: List<Long>) {
         val conn = TransactionManager.current().connection.connection as Connection
-        conn.prepareStatement("CREATE TEMPORARY TABLE IMAGES_DELETE(POST_ID BIGINT PRIMARY KEY)")
+        conn.prepareStatement("CREATE TEMPORARY TABLE IMAGES_DELETE(POST_ID_REF BIGINT PRIMARY KEY)")
             .use {
                 it.execute()
             }
 
         conn.prepareStatement("INSERT INTO IMAGES_DELETE VALUES ( ? )").use { ps ->
-            postIds.forEach {
+            postEntityIds.forEach {
                 ps.setLong(1, it)
                 ps.addBatch()
             }
             ps.executeBatch()
         }
 
-        conn.prepareStatement("DELETE FROM IMAGE WHERE POST_ID IN (SELECT POST_ID FROM IMAGES_DELETE)")
+        conn.prepareStatement("DELETE FROM IMAGE WHERE POST_ID_REF IN (SELECT POST_ID_REF FROM IMAGES_DELETE)")
             .use {
                 it.execute()
             }
@@ -147,7 +144,6 @@ internal class ImageRepositoryImpl : ImageRepository {
 
     private fun transform(resultRow: ResultRow): ImageEntity {
         val id = resultRow[ImageTable.id].value
-        val postId = resultRow[ImageTable.postId]
         val url = resultRow[ImageTable.url]
         val thumbUrl = resultRow[ImageTable.thumbUrl]
         val host = resultRow[ImageTable.host]
@@ -159,7 +155,6 @@ internal class ImageRepositoryImpl : ImageRepository {
         val filename = resultRow[ImageTable.filename]
         return ImageEntity(
             id,
-            postId,
             url,
             thumbUrl,
             host,

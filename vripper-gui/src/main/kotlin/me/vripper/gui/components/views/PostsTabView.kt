@@ -36,13 +36,13 @@ class PostsTabView : View() {
         })
         postsTableView.tableView.selectionModel.selectedItemProperty().onChange {
             if (widgetsController.currentSettings.visibleInfoPanel) {
-                postInfoView.setPostId(it?.postId)
+                postInfoView.setPostId(it?.id)
             }
         }
         widgetsController.currentSettings.visibleInfoPanelProperty.onChange { visible ->
             if (visible) {
                 val selectedItem = postsTableView.tableView.selectedItem
-                postInfoView.setPostId(selectedItem?.postId)
+                postInfoView.setPostId(selectedItem?.id)
                 root.add(postInfoView)
                 root.setDividerPositions(widgetsController.currentSettings.infoPanelDividerPosition)
             } else {

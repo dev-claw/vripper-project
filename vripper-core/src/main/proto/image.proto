@@ -3,14 +3,13 @@ option java_package = "me.vripper.proto";
 
 message Image {
   int64 id = 1;
-  int64 postId = 2;
-  string url = 3;
-  string thumbUrl = 4;
-  int32 host = 5;
-  int32 index = 6;
-  int64 postIdRef = 7;
-  int64 size = 8;
-  int64 downloaded = 9;
-  string status = 10;
-  string filename = 11;
+  string url = 2;
+  string thumbUrl = 3;
+  int32 host = 4;
+  int32 index = 5;
+  int64 postIdRef = 6;
+  int64 size = 7;
+  int64 downloaded = 8;
+  string status = 9;
+  string filename = 10;
 }

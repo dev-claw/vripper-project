@@ -18,17 +18,17 @@ internal class MetadataRepositoryImpl : MetadataRepository {
 
     override fun save(metadataEntity: MetadataEntity): MetadataEntity {
         MetadataTable.insert {
-            it[postId] = metadataEntity.postId
+            it[postIdRef] = metadataEntity.postIdRef
             it[data] = Json.encodeToString(metadataEntity.data)
         }
 
         return metadataEntity
     }
 
-    override fun findByPostId(postId: Long): Optional<MetadataEntity> {
+    override fun findByPostEntityId(postEntityId: Long): Optional<MetadataEntity> {
 
         val result = MetadataTable.selectAll().where {
-            MetadataTable.postId eq postId
+            MetadataTable.postIdRef eq postEntityId
         }.map(::transform)
 
         return if (result.isEmpty()) {
@@ -39,31 +39,31 @@ internal class MetadataRepositoryImpl : MetadataRepository {
     }
 
     private fun transform(row: ResultRow): MetadataEntity {
-        val id = row[MetadataTable.postId]
+        val postEntityId = row[MetadataTable.postIdRef]
         val data = Json.decodeFromString(row[MetadataTable.data]) as MetadataEntity.Data
-        return MetadataEntity(id, data)
+        return MetadataEntity(postEntityId, data)
     }
 
-    override fun deleteByPostId(postId: Long): Int {
-        return MetadataTable.deleteWhere { MetadataTable.postId eq postId }
+    override fun deleteByPostEntityId(postEntityId: Long): Int {
+        return MetadataTable.deleteWhere { MetadataTable.postIdRef eq postEntityId }
     }
 
-    override fun deleteAllByPostId(postIds: List<Long>) {
+    override fun deleteAllByPostEntityId(postEntityIds: List<Long>) {
         val conn = TransactionManager.current().connection.connection as Connection
-        conn.prepareStatement("CREATE TEMPORARY TABLE METADATA_DELETE(POST_ID BIGINT PRIMARY KEY)")
+        conn.prepareStatement("CREATE TEMPORARY TABLE METADATA_DELETE(POST_ID_REF BIGINT PRIMARY KEY)")
             .use {
                 it.execute()
             }
 
         conn.prepareStatement("INSERT INTO METADATA_DELETE VALUES ( ? )").use { ps ->
-            postIds.forEach {
+            postEntityIds.forEach {
                 ps.setLong(1, it)
                 ps.addBatch()
             }
             ps.executeBatch()
         }
 
-        conn.prepareStatement("DELETE FROM METADATA WHERE POST_ID IN (SELECT POST_ID FROM METADATA_DELETE)")
+        conn.prepareStatement("DELETE FROM METADATA WHERE POST_ID_REF IN (SELECT POST_ID_REF FROM METADATA_DELETE)")
             .use {
                 it.execute()
             }

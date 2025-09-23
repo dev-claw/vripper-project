@@ -1,9 +1,8 @@
 package me.vripper.host
 
-import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.DownloadService.ImageDownloadContext
+import me.vripper.services.download.ImageDownloadRunnable
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 
@@ -12,12 +11,11 @@ internal class ImageZillaHost : Host("imagezilla.net", 5) {
 
     @Throws(HostException::class)
     override fun resolve(
-        image: ImageEntity,
-        context: ImageDownloadContext
+        context: ImageDownloadRunnable.Context
     ): Pair<String, String> {
-        val document = fetchDocument(image.url, context)
+        val document = fetchDocument(context.imageEntity.url, context)
         val titleNode = try {
-            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.url))
+            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, context.imageEntity.url))
             XpathUtils.getAsNode(document, IMG_XPATH)
         } catch (e: XpathException) {
             throw HostException(e)
@@ -25,17 +23,17 @@ internal class ImageZillaHost : Host("imagezilla.net", 5) {
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 IMG_XPATH,
-                image.url
+                context.imageEntity.url
             )
         )
-        log.debug(String.format("Resolving name for %s", image.url))
+        log.debug(String.format("Resolving name for %s", context.imageEntity.url))
         var title = titleNode.attributes.getNamedItem("title").textContent.trim()
         titleNode.textContent.trim()
         if (title.isEmpty()) {
-            title = getDefaultImageName(image.url)
+            title = getDefaultImageName(context.imageEntity.url)
         }
         return try {
-            Pair(title, image.url.replace("show", "images"))
+            Pair(title, context.imageEntity.url.replace("show", "images"))
         } catch (e: Exception) {
             throw HostException("Unexpected error occurred", e)
         }
