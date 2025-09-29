@@ -30,7 +30,7 @@ process.on("uncaughtException", err => {
 createWindow = () => {
 
     if (process.platform === 'win32') {
-        app.setAppUserModelId('tn.mnlr.vripper');
+        app.setAppUserModelId('me.vripper.vripper-app');
     }
 
     let icon;

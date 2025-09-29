@@ -7,7 +7,7 @@
   "homepage": "https://github.com/dev-claw/vripper-project",
   "license": "ISC",
   "build": {
-    "appId": "tn.mnlr.vripper",
+    "appId": "me.vripper.vripper-app",
     "productName": "VRipper",
     "files": [
       "**/*",

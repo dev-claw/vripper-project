@@ -3,8 +3,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>tn.mnlr</groupId>
-        <artifactId>vripper</artifactId>
+        <groupId>me.vripper</groupId>
+        <artifactId>vripper-parent</artifactId>
         <version>3.6.0</version>
     </parent>
     <artifactId>vripper-server</artifactId>
@@ -76,7 +76,7 @@
             <artifactId>caffeine</artifactId>
         </dependency>
         <dependency>
-            <groupId>tn.mnlr</groupId>
+            <groupId>me.vripper</groupId>
             <artifactId>vripper-ui</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
