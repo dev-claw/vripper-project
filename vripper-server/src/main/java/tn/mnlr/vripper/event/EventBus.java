@@ -1,10 +1,9 @@
 package tn.mnlr.vripper.event;
 
+import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
-
-import javax.annotation.PreDestroy;
 
 @Service
 public class EventBus {

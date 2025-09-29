@@ -175,4 +175,11 @@
             </column>
         </addColumn>
     </changeSet>
+    <changeSet id="1759157222" author="death-claw">
+        <addColumn tableName="IMAGE">
+            <column name="THUMB_URL" type="VARCHAR(3000)" defaultValue="https://example.com">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

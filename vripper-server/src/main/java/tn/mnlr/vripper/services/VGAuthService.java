@@ -1,5 +1,9 @@
 package tn.mnlr.vripper.services;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.NameValuePair;
@@ -20,11 +24,6 @@ import tn.mnlr.vripper.event.EventBus;
 import tn.mnlr.vripper.exception.VripperException;
 import tn.mnlr.vripper.jpa.domain.Post;
 import tn.mnlr.vripper.tasks.LeaveThanksRunnable;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @Slf4j

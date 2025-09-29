@@ -5,7 +5,7 @@
     <parent>
         <groupId>tn.mnlr</groupId>
         <artifactId>vripper</artifactId>
-        <version>3.5.4</version>
+        <version>3.6.0</version>
     </parent>
     <artifactId>vripper-server</artifactId>
     <name>vripper-server</name>
@@ -55,6 +55,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
+            <version>4.5.14</version>
         </dependency>
         <dependency>
             <groupId>net.sourceforge.htmlcleaner</groupId>
@@ -79,6 +80,7 @@
             <artifactId>vripper-ui</artifactId>
             <version>${project.version}</version>
             <scope>runtime</scope>
+            <type>pom</type>
             <classifier>${buildClassifier}</classifier>
         </dependency>
     </dependencies>
@@ -86,7 +88,21 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
                 <configuration>
                     <classifier>${buildClassifier}</classifier>
                     <archive>
@@ -111,6 +127,11 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>2.5.2</version>
             </plugin>
         </plugins>
     </build>

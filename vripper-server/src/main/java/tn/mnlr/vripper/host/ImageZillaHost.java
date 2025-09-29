@@ -8,6 +8,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import tn.mnlr.vripper.exception.HostException;
 import tn.mnlr.vripper.exception.XpathException;
+import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.services.HostService;
 import tn.mnlr.vripper.services.XpathService;
 
@@ -39,16 +40,16 @@ public class ImageZillaHost extends Host {
   }
 
   @Override
-  public HostService.NameUrl getNameAndUrl(final String url, final HttpClientContext context)
+  public HostService.NameUrl getNameAndUrl(final Image image, final HttpClientContext context)
       throws HostException {
 
-    Document doc = hostService.getResponse(url, context).getDocument();
+    Document doc = hostService.getResponse(image.getUrl(), context).getDocument();
 
     String title;
     try {
-      log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, url));
+      log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.getUrl()));
       Node titleNode = xpathService.getAsNode(doc, IMG_XPATH).getAttributes().getNamedItem("title");
-      log.debug(String.format("Resolving name for %s", url));
+      log.debug(String.format("Resolving name for %s", image.getUrl()));
       if (titleNode != null) {
         title = titleNode.getTextContent().trim();
       } else {
@@ -59,11 +60,11 @@ public class ImageZillaHost extends Host {
     }
 
     if (title == null || title.isEmpty()) {
-      title = hostService.getDefaultImageName(url);
+      title = hostService.getDefaultImageName(image.getUrl());
     }
 
     try {
-      return new HostService.NameUrl(title, url.replace("show", "images"));
+      return new HostService.NameUrl(title, image.getUrl().replace("show", "images"));
     } catch (Exception e) {
       throw new HostException("Unexpected error occurred", e);
     }

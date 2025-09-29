@@ -4,12 +4,12 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>tn.mnlr</groupId>
     <artifactId>vripper</artifactId>
-    <version>3.5.4</version>
+    <version>3.6.0</version>
     <packaging>pom</packaging>
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.4.5</version>
+        <version>3.5.6</version>
         <relativePath/>
     </parent>
     <modules>

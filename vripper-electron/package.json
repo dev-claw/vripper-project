@@ -1,10 +1,10 @@
 {
   "name": "vripper-electron",
-  "version": "3.5.4",
+  "version": "3.6.0",
   "description": "A ripper for vipergirls.to built using web technolgies",
   "main": "main.js",
-  "author": "death-claw <53543762+death-claw@users.noreply.github.com>",
-  "homepage": "https://github.com/death-claw/vripper-project",
+  "author": "dev-claw",
+  "homepage": "https://github.com/dev-claw/vripper-project",
   "license": "ISC",
   "build": {
     "appId": "tn.mnlr.vripper",

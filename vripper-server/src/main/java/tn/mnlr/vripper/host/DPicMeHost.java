@@ -1,5 +1,7 @@
 package tn.mnlr.vripper.host;
 
+import java.util.Optional;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,11 +10,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import tn.mnlr.vripper.exception.HostException;
 import tn.mnlr.vripper.exception.XpathException;
+import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.services.HostService;
 import tn.mnlr.vripper.services.XpathService;
-
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -41,27 +41,28 @@ public class DPicMeHost extends Host {
   }
 
   @Override
-  public HostService.NameUrl getNameAndUrl(final String url, final HttpClientContext context)
+  public HostService.NameUrl getNameAndUrl(final Image image, final HttpClientContext context)
       throws HostException {
 
     HostService.Response response =
-        hostService.getResponse(url.replace("http://", "https://"), context);
+        hostService.getResponse(image.getUrl().replace("http://", "https://"), context);
     Document doc = response.getDocument();
 
     Node imgNode;
     try {
-      log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, url));
+      log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.getUrl()));
       imgNode = xpathService.getAsNode(doc, IMG_XPATH);
     } catch (XpathException e) {
       throw new HostException(e);
     }
 
     if (imgNode == null) {
-      throw new HostException(String.format("Xpath '%s' cannot be found in '%s'", IMG_XPATH, url));
+      throw new HostException(
+          String.format("Xpath '%s' cannot be found in '%s'", IMG_XPATH, image.getUrl()));
     }
 
     try {
-      log.debug(String.format("Resolving name and image url for %s", url));
+      log.debug(String.format("Resolving name and image url for %s", image.getUrl()));
       String imgTitle =
           Optional.ofNullable(imgNode.getAttributes().getNamedItem("alt"))
               .map(e -> e.getTextContent().trim())

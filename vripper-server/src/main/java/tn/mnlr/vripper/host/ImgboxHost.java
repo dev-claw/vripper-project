@@ -8,6 +8,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import tn.mnlr.vripper.exception.HostException;
 import tn.mnlr.vripper.exception.XpathException;
+import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.services.HostService;
 import tn.mnlr.vripper.services.XpathService;
 
@@ -38,21 +39,21 @@ public class ImgboxHost extends Host {
   }
 
   @Override
-  public HostService.NameUrl getNameAndUrl(final String url, final HttpClientContext context)
+  public HostService.NameUrl getNameAndUrl(final Image image, final HttpClientContext context)
       throws HostException {
 
-    Document doc = hostService.getResponse(url, context).getDocument();
+    Document doc = hostService.getResponse(image.getUrl(), context).getDocument();
 
     Node imgNode;
     try {
-      log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, url));
+      log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.getUrl()));
       imgNode = xpathService.getAsNode(doc, IMG_XPATH);
     } catch (XpathException e) {
       throw new HostException(e);
     }
 
     try {
-      log.debug(String.format("Resolving name and image url for %s", url));
+      log.debug(String.format("Resolving name and image url for %s", image.getUrl()));
       String imgTitle = imgNode.getAttributes().getNamedItem("title").getTextContent().trim();
       String imgUrl = imgNode.getAttributes().getNamedItem("src").getTextContent().trim();
 

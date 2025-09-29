@@ -1,14 +1,13 @@
 package tn.mnlr.vripper.jpa.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import tn.mnlr.vripper.host.Host;
 import tn.mnlr.vripper.jpa.domain.enums.Status;
-
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -22,6 +21,8 @@ public class Image {
 
   private String url;
 
+  private String thumbUrl;
+
   private int index;
 
   private long current = 0;
@@ -34,9 +35,10 @@ public class Image {
 
   @JsonIgnore private Long postIdRef;
 
-  public Image(String postId, String url, Host host, int index) {
+  public Image(String postId, String url, String thumbUrl, Host host, int index) {
     this.postId = postId;
     this.url = url;
+    this.thumbUrl = thumbUrl;
     this.host = host;
     this.index = index;
     status = Status.STOPPED;

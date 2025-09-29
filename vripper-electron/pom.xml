@@ -6,10 +6,11 @@
     <parent>
         <groupId>tn.mnlr</groupId>
         <artifactId>vripper</artifactId>
-        <version>3.5.4</version>
+        <version>3.6.0</version>
     </parent>
     <artifactId>vripper-electron</artifactId>
     <name>vripper-electron</name>
+    <packaging>pom</packaging>
     <build>
         <plugins>
             <plugin>

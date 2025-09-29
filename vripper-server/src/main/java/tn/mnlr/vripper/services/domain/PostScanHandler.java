@@ -1,5 +1,10 @@
 package tn.mnlr.vripper.services.domain;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
@@ -8,12 +13,6 @@ import tn.mnlr.vripper.host.Host;
 import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.jpa.domain.Post;
 import tn.mnlr.vripper.services.SettingsService;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 class PostScanHandler extends DefaultHandler {
@@ -72,10 +71,9 @@ class PostScanHandler extends DefaultHandler {
         break;
       case "image":
         index++;
+        String thumbUrl = attributes.getValue("thumb_url").trim();
         if (previews.size() < 4) {
-          Optional.ofNullable(attributes.getValue("thumb_url"))
-              .map(String::trim)
-              .ifPresent(previews::add);
+          previews.add(thumbUrl);
         }
 
         String mainUrl =
@@ -91,7 +89,7 @@ class PostScanHandler extends DefaultHandler {
                 String.format(
                     "Found supported host %s for %s",
                     foundHost.getClass().getSimpleName(), mainUrl));
-            images.add(new Image(postId, mainUrl, foundHost, index));
+            images.add(new Image(postId, mainUrl, thumbUrl, foundHost, index));
           } else {
             log.warn(String.format("unsupported host for %s, skipping", mainUrl));
           }

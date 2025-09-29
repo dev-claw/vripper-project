@@ -1,15 +1,7 @@
 package tn.mnlr.vripper.jpa;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-import tn.mnlr.vripper.download.DownloadService;
-import tn.mnlr.vripper.services.ThreadPoolService;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,6 +9,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import tn.mnlr.vripper.download.DownloadService;
+import tn.mnlr.vripper.services.ThreadPoolService;
 
 @Component
 @EnableScheduling

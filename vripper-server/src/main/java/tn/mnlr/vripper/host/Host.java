@@ -1,12 +1,12 @@
 package tn.mnlr.vripper.host;
 
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.springframework.stereotype.Service;
 import tn.mnlr.vripper.exception.HostException;
+import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.services.HostService;
-
-import java.util.Objects;
 
 @Service
 @Slf4j
@@ -21,7 +21,7 @@ public abstract class Host {
   }
 
   public abstract HostService.NameUrl getNameAndUrl(
-      final String url, final HttpClientContext context) throws HostException;
+      final Image image, final HttpClientContext context) throws HostException;
 
   @Override
   public boolean equals(Object o) {

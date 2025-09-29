@@ -1,5 +1,7 @@
 package tn.mnlr.vripper.host;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -15,13 +17,11 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import tn.mnlr.vripper.exception.HostException;
 import tn.mnlr.vripper.exception.XpathException;
+import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.services.ConnectionService;
 import tn.mnlr.vripper.services.HostService;
 import tn.mnlr.vripper.services.HtmlProcessorService;
 import tn.mnlr.vripper.services.XpathService;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @Slf4j
@@ -59,24 +59,26 @@ public class AcidimgHost extends Host {
   }
 
   @Override
-  public HostService.NameUrl getNameAndUrl(final String url, final HttpClientContext context)
+  public HostService.NameUrl getNameAndUrl(final Image image, final HttpClientContext context)
       throws HostException {
 
-    Document doc = hostService.getResponse(url, context).getDocument();
+    Document doc = hostService.getResponse(image.getUrl(), context).getDocument();
 
     Node contDiv;
     try {
-      log.debug(String.format("Looking for xpath expression %s in %s", CONTINUE_BUTTON_XPATH, url));
+      log.debug(
+          String.format(
+              "Looking for xpath expression %s in %s", CONTINUE_BUTTON_XPATH, image.getUrl()));
       contDiv = xpathService.getAsNode(doc, CONTINUE_BUTTON_XPATH);
     } catch (XpathException e) {
       throw new HostException(e);
     }
 
     if (contDiv != null) {
-      log.debug(String.format("Click button found for %s", url));
+      log.debug(String.format("Click button found for %s", image.getUrl()));
       HttpClient client = cm.getClient().build();
-      HttpPost httpPost = cm.buildHttpPost(url, context);
-      httpPost.addHeader("Referer", url);
+      HttpPost httpPost = cm.buildHttpPost(image.getUrl(), context);
+      httpPost.addHeader("Referer", image.getUrl());
       List<NameValuePair> params = new ArrayList<>();
       params.add(new BasicNameValuePair("imgContinue", "Continue to your image"));
       try {
@@ -98,7 +100,7 @@ public class AcidimgHost extends Host {
 
     Node imgNode;
     try {
-      log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, url));
+      log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.getUrl()));
       imgNode = xpathService.getAsNode(doc, IMG_XPATH);
     } catch (XpathException e) {
       throw new HostException(e);
@@ -109,7 +111,7 @@ public class AcidimgHost extends Host {
     }
 
     try {
-      log.debug(String.format("Resolving name and image url for %s", url));
+      log.debug(String.format("Resolving name and image url for %s", image.getUrl()));
       String imgTitle = imgNode.getAttributes().getNamedItem("alt").getTextContent().trim();
       String imgUrl = imgNode.getAttributes().getNamedItem("src").getTextContent().trim();
 

@@ -2,6 +2,10 @@ package tn.mnlr.vripper.services;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import jakarta.annotation.PreDestroy;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,11 +17,6 @@ import tn.mnlr.vripper.services.domain.MultiPostScanParser;
 import tn.mnlr.vripper.services.domain.MultiPostScanResult;
 import tn.mnlr.vripper.tasks.AddPostRunnable;
 import tn.mnlr.vripper.tasks.AddQueuedRunnable;
-
-import javax.annotation.PreDestroy;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j

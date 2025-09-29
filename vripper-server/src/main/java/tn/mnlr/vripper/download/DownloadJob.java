@@ -1,5 +1,15 @@
 package tn.mnlr.vripper.download;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.function.CheckedRunnable;
@@ -18,17 +28,6 @@ import tn.mnlr.vripper.jpa.domain.Post;
 import tn.mnlr.vripper.jpa.domain.enums.Status;
 import tn.mnlr.vripper.services.*;
 import tn.mnlr.vripper.services.domain.Settings;
-
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.util.*;
 
 @Slf4j
 public class DownloadJob implements CheckedRunnable {
@@ -98,7 +97,7 @@ public class DownloadJob implements CheckedRunnable {
       log.debug(
           String.format(
               "Getting image url and name from %s using %s", image.getUrl(), image.getHost()));
-      HostService.NameUrl nameAndUrl = image.getHost().getNameAndUrl(image.getUrl(), context);
+      HostService.NameUrl nameAndUrl = image.getHost().getNameAndUrl(image, context);
       log.debug(String.format("Resolved name for %s: %s", image.getUrl(), nameAndUrl.getName()));
       log.debug(
           String.format("Resolved image url for %s: %s", image.getUrl(), nameAndUrl.getUrl()));

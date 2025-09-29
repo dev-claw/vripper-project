@@ -1,5 +1,7 @@
 package tn.mnlr.vripper.services;
 
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +14,6 @@ import tn.mnlr.vripper.jpa.repositories.IMetadataRepository;
 import tn.mnlr.vripper.jpa.repositories.IPostRepository;
 import tn.mnlr.vripper.jpa.repositories.IQueuedRepository;
 import tn.mnlr.vripper.jpa.repositories.impl.LogEventRepository;
-
-import javax.annotation.PostConstruct;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional

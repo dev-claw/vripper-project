@@ -1,5 +1,13 @@
 package tn.mnlr.vripper.web.wsendpoints;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -11,15 +19,6 @@ import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.services.DataService;
 import tn.mnlr.vripper.services.domain.DownloadSpeed;
 import tn.mnlr.vripper.services.domain.GlobalState;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j

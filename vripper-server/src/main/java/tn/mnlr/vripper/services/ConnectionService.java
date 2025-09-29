@@ -1,5 +1,10 @@
 package tn.mnlr.vripper.services;
 
+import jakarta.annotation.PreDestroy;
+import java.net.URI;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.RetryPolicy;
@@ -21,12 +26,6 @@ import tn.mnlr.vripper.download.DownloadJob;
 import tn.mnlr.vripper.event.Event;
 import tn.mnlr.vripper.event.EventBus;
 import tn.mnlr.vripper.services.domain.Settings;
-
-import javax.annotation.PreDestroy;
-import java.net.URI;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @EnableScheduling

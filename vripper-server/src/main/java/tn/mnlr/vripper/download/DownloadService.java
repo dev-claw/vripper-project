@@ -1,5 +1,12 @@
 package tn.mnlr.vripper.download;
 
+import jakarta.annotation.PostConstruct;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,14 +19,6 @@ import tn.mnlr.vripper.services.DataService;
 import tn.mnlr.vripper.services.MetadataService;
 import tn.mnlr.vripper.services.SettingsService;
 import tn.mnlr.vripper.services.domain.Settings;
-
-import javax.annotation.PostConstruct;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j

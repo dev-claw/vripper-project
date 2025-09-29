@@ -8,6 +8,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import tn.mnlr.vripper.exception.HostException;
 import tn.mnlr.vripper.exception.XpathException;
+import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.services.HostService;
 import tn.mnlr.vripper.services.XpathService;
 
@@ -38,10 +39,10 @@ public class ImgSpiceHost extends Host {
   }
 
   @Override
-  public HostService.NameUrl getNameAndUrl(final String _url, final HttpClientContext context)
+  public HostService.NameUrl getNameAndUrl(final Image image, final HttpClientContext context)
       throws HostException {
 
-    String url = _url.replace("http://", "https://");
+    String url = image.getUrl().replace("http://", "https://");
     HostService.Response resp = hostService.getResponse(url, context);
     Document doc = resp.getDocument();
 

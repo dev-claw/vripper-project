@@ -1,5 +1,9 @@
 package tn.mnlr.vripper.jpa.repositories.impl;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -11,11 +15,6 @@ import tn.mnlr.vripper.host.Host;
 import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.jpa.domain.enums.Status;
 import tn.mnlr.vripper.jpa.repositories.IImageRepository;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ImageRepository implements IImageRepository {
@@ -37,7 +36,7 @@ public class ImageRepository implements IImageRepository {
   public Image save(Image image) {
     long id = nextId();
     jdbcTemplate.update(
-        "INSERT INTO IMAGE (ID, CURRENT, HOST, INDEX, POST_ID, STATUS, TOTAL, URL, POST_ID_REF) VALUES (?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO IMAGE (ID, CURRENT, HOST, INDEX, POST_ID, STATUS, TOTAL, URL, THUMB_URL, POST_ID_REF) VALUES (?,?,?,?,?,?,?,?,?,?)",
         id,
         image.getCurrent(),
         image.getHost().getHost(),
@@ -46,6 +45,7 @@ public class ImageRepository implements IImageRepository {
         image.getStatus().name(),
         image.getTotal(),
         image.getUrl(),
+        image.getThumbUrl(),
         image.getPostIdRef());
     image.setId(id);
     eventBus.publishEvent(Event.wrap(Event.Kind.IMAGE_UPDATE, id));
@@ -145,6 +145,7 @@ class ImageRowMapper implements RowMapper<Image> {
             .findAny()
             .orElse(null));
     image.setUrl(rs.getString("URL"));
+    image.setThumbUrl(rs.getString("THUMB_URL"));
     image.setIndex(rs.getInt("INDEX"));
     image.setCurrent(rs.getLong("CURRENT"));
     image.setTotal(rs.getLong("TOTAL"));

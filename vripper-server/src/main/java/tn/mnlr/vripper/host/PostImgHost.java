@@ -1,5 +1,6 @@
 package tn.mnlr.vripper.host;
 
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,10 +9,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import tn.mnlr.vripper.exception.HostException;
 import tn.mnlr.vripper.exception.XpathException;
+import tn.mnlr.vripper.jpa.domain.Image;
 import tn.mnlr.vripper.services.HostService;
 import tn.mnlr.vripper.services.XpathService;
-
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -41,10 +41,10 @@ public class PostImgHost extends Host {
   }
 
   @Override
-  public HostService.NameUrl getNameAndUrl(final String _url, final HttpClientContext context)
+  public HostService.NameUrl getNameAndUrl(final Image image, final HttpClientContext context)
       throws HostException {
 
-    String url = _url.replace("http://", "https://");
+    String url = image.getUrl().replace("http://", "https://");
     Document doc = hostService.getResponse(url, context).getDocument();
 
     Node urlNode, titleNode;
