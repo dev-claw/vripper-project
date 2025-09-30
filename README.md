@@ -63,7 +63,7 @@ docker run -d \
   -p 8080:8080 \
   -e GRPC_ENABLED=true \
   -e GRPC_PASSPHRASE=my-secure-secret \
-  ghcr.io/OWNER/IMAGE_NAME:latest
+  ghcr.io/dev-claw/vripper-web:latest
 ```
 
 ### Run with Docker Compose
