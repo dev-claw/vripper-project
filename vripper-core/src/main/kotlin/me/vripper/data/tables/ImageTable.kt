@@ -6,7 +6,6 @@ internal object ImageTable : LongIdTable(name = "IMAGE", columnName = "ID") {
     val downloaded = long("DOWNLOADED")
     val host = byte("HOST")
     val index = integer("INDEX")
-    val postId = long("POST_ID")
     val status = varchar("STATUS", 15)
     val filename = varchar("FILENAME", 260)
     val size = long("SIZE")

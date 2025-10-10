@@ -107,7 +107,7 @@ class StatusBarView : View("Status bar") {
     }
 
     override val root = borderpane {
-        id = "statusbar"
+        this.id = "statusbar"
         left {
             hbox {
                 label(remoteText) {

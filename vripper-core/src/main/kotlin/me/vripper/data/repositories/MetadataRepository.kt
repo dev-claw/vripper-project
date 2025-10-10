@@ -5,7 +5,7 @@ import java.util.*
 
 internal interface MetadataRepository {
     fun save(metadataEntity: MetadataEntity): MetadataEntity
-    fun findByPostId(postId: Long): Optional<MetadataEntity>
-    fun deleteByPostId(postId: Long): Int
-    fun deleteAllByPostId(postIds: List<Long>)
+    fun findByPostEntityId(postEntityId: Long): Optional<MetadataEntity>
+    fun deleteByPostEntityId(postEntityId: Long): Int
+    fun deleteAllByPostEntityId(postEntityIds: List<Long>)
 }

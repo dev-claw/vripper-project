@@ -9,13 +9,15 @@ import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
 import me.vripper.gui.utils.ChannelFlowBuilder
 import me.vripper.gui.utils.ChannelFlowBuilder.toFlow
 import me.vripper.model.Post
+import me.vripper.model.QueueState
+import me.vripper.services.download.MovePosition
 import me.vripper.utilities.formatSI
 import tornadofx.Controller
 import java.time.format.DateTimeFormatter
 
 class PostController : Controller() {
 
-    private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")
+    private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     val updatePostsFlow =
         ChannelFlowBuilder.build(
@@ -46,24 +48,29 @@ class PostController : Controller() {
         remoteAppEndpointService::onUpdateMetadata,
     )
 
+    val queueStateUpdate = ChannelFlowBuilder.build(
+        localAppEndpointService::onQueueStateUpdate,
+        remoteAppEndpointService::onQueueStateUpdate,
+    )
+
     suspend fun scan(postLinks: String) {
         runCatching { currentAppEndpointService().scanLinks(postLinks) }
     }
 
-    suspend fun start(postIdList: List<Long>) {
-        runCatching { currentAppEndpointService().restartAll(postIdList) }
+    suspend fun start(postEntityIdList: List<Long>) {
+        runCatching { currentAppEndpointService().restartAll(postEntityIdList) }
     }
 
     suspend fun startAll() {
         runCatching { currentAppEndpointService().restartAll() }
     }
 
-    suspend fun delete(postIdList: List<Long>) {
-        runCatching { currentAppEndpointService().remove(postIdList) }
+    suspend fun delete(postEntityIdList: List<Long>) {
+        runCatching { currentAppEndpointService().remove(postEntityIdList) }
     }
 
-    suspend fun stop(postIdList: List<Long>) {
-        runCatching { currentAppEndpointService().stopAll(postIdList) }
+    suspend fun stop(postEntityIdList: List<Long>) {
+        runCatching { currentAppEndpointService().stopAll(postEntityIdList) }
     }
 
     suspend fun clearPosts(): List<Long> {
@@ -74,24 +81,33 @@ class PostController : Controller() {
         runCatching { currentAppEndpointService().stopAll() }
     }
 
-    suspend fun find(postId: Long): PostModel? {
-        return runCatching { mapper(currentAppEndpointService().findPost(postId)) }.getOrNull()
+    suspend fun find(postEntityId: Long): PostModel? {
+        return runCatching { mapper(currentAppEndpointService().findPost(postEntityId)) }.getOrNull()
     }
 
     fun findAllPosts(): Flow<PostModel> {
         return toFlow { currentAppEndpointService().findAllPosts().map(::mapper) }
     }
 
-    suspend fun rename(postId: Long, value: String) {
-        runCatching { currentAppEndpointService().rename(postId, value) }
+    suspend fun getQueueState(): QueueState {
+        return runCatching { currentAppEndpointService().getQueueState() }.getOrDefault(QueueState(0, 0))
     }
 
-    suspend fun renameToFirst(postIds: List<Long>) {
-        runCatching { currentAppEndpointService().renameToFirst(postIds) }
+    suspend fun rename(postEntityId: Long, value: String) {
+        runCatching { currentAppEndpointService().rename(postEntityId, value) }
+    }
+
+    suspend fun renameToFirst(postEntityIds: List<Long>) {
+        runCatching { currentAppEndpointService().renameToFirst(postEntityIds) }
+    }
+
+    suspend fun moveTo(postEntityId: Long, position: MovePosition) {
+        runCatching { currentAppEndpointService().move(postEntityId, position) }
     }
 
     private fun mapper(post: Post): PostModel {
         return PostModel(
+            post.id,
             post.postId,
             post.postTitle,
             progress(post.total, post.done),
@@ -101,7 +117,7 @@ class PostController : Controller() {
             post.total,
             post.hosts.joinToString(separator = ", "),
             post.addedOn.format(dateTimeFormatter),
-            post.rank + 1,
+            "*",
             post.getDownloadFolder(),
             post.folderName,
             progressCount(post.total, post.done, post.downloaded),

@@ -1,13 +1,17 @@
 package me.vripper.gui.model
 
-import javafx.beans.property.*
+import javafx.beans.property.SimpleDoubleProperty
+import javafx.beans.property.SimpleIntegerProperty
+import javafx.beans.property.SimpleListProperty
+import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import tornadofx.getValue
 import tornadofx.setValue
 
 class PostModel(
-    postId: Long,
+    var id: Long,
+    var vgPostId: Long,
     title: String,
     progress: Double,
     status: String,
@@ -16,17 +20,15 @@ class PostModel(
     total: Int,
     hosts: String,
     addedOn: String,
-    order: Int,
+    order: String,
     path: String,
     folderName: String,
     progressCount: String,
     previewList: List<String>,
     altTitles: List<String>,
     postedBy: String,
-    val threadId: Long
+    var vgThreadId: Long
 ) {
-    val postIdProperty = SimpleLongProperty(postId)
-    var postId: Long by postIdProperty
 
     val titleProperty = SimpleStringProperty(title)
     var title: String by titleProperty
@@ -52,8 +54,8 @@ class PostModel(
     val addedOnProperty = SimpleStringProperty(addedOn)
     var addedOn: String by addedOnProperty
 
-    val orderProperty = SimpleIntegerProperty(order)
-    var order: Int by orderProperty
+    val orderProperty = SimpleStringProperty(order)
+    var order: String by orderProperty
 
     val pathProperty = SimpleStringProperty(path)
     var path: String by pathProperty

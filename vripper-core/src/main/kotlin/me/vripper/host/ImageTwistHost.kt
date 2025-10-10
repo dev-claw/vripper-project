@@ -1,9 +1,8 @@
 package me.vripper.host
 
-import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.DownloadService.ImageDownloadContext
+import me.vripper.services.download.ImageDownloadRunnable
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 import org.w3c.dom.Node
@@ -14,12 +13,11 @@ internal class ImageTwistHost : Host("imagetwist.com", 3) {
 
     @Throws(HostException::class)
     override fun resolve(
-        image: ImageEntity,
-        context: ImageDownloadContext
+        context: ImageDownloadRunnable.Context
     ): Pair<String, String> {
-        val document = fetchDocument(image.url, context)
+        val document = fetchDocument(context.imageEntity.url, context)
         val imgNode: Node = try {
-            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.url))
+            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, context.imageEntity.url))
             XpathUtils.getAsNode(document, IMG_XPATH)
         } catch (e: XpathException) {
             throw HostException(e)
@@ -27,11 +25,11 @@ internal class ImageTwistHost : Host("imagetwist.com", 3) {
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 IMG_XPATH,
-                image.url
+                context.imageEntity.url
             )
         )
         return try {
-            log.debug(String.format("Resolving name and image url for %s", image.url))
+            log.debug(String.format("Resolving name and image url for %s", context.imageEntity.url))
             val imgTitle =
                 Optional.ofNullable(imgNode.attributes.getNamedItem("alt"))
                     .map { obj: Node -> obj.textContent }

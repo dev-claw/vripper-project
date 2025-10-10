@@ -1,9 +1,8 @@
 package me.vripper.host
 
-import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.DownloadService.ImageDownloadContext
+import me.vripper.services.download.ImageDownloadRunnable
 import me.vripper.utilities.HtmlUtils
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
@@ -16,19 +15,18 @@ internal class PimpandhostHost : Host("pimpandhost.com", 9) {
 
     @Throws(HostException::class)
     override fun resolve(
-        image: ImageEntity,
-        context: ImageDownloadContext
+        context: ImageDownloadRunnable.Context
     ): Pair<String, String> {
         val newUrl: String
         try {
             newUrl = appendUri(
-                image.url.replace("http://", "https://").replace("-medium(\\.html)?".toRegex(), ""),
+                context.imageEntity.url.replace("http://", "https://").replace("-medium(\\.html)?".toRegex(), ""),
                 "size=original"
             )
         } catch (e: Exception) {
             throw HostException(e)
         }
-        val doc = fetch(newUrl, context) {
+        val doc = fetch(newUrl, context.imageEntity.url, context) {
             HtmlUtils.clean(it.entity.content)
         }
         val imgNode: Node = try {
@@ -40,7 +38,7 @@ internal class PimpandhostHost : Host("pimpandhost.com", 9) {
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 IMG_XPATH,
-                image.url
+                context.imageEntity.url
             )
         )
         return try {

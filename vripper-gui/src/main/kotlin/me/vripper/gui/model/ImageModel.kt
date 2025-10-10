@@ -1,8 +1,9 @@
 package me.vripper.gui.model
 
-import javafx.beans.property.*
-import javafx.collections.FXCollections
-import javafx.collections.ObservableList
+import javafx.beans.property.SimpleDoubleProperty
+import javafx.beans.property.SimpleIntegerProperty
+import javafx.beans.property.SimpleLongProperty
+import javafx.beans.property.SimpleStringProperty
 import me.vripper.utilities.formatSI
 import tornadofx.getValue
 import tornadofx.setValue
@@ -17,6 +18,7 @@ class ImageModel(
     downloaded: Long,
     filename: String,
     thumbUrl: String,
+    val postEntityId: Long
 ) {
 
     val idProperty = SimpleLongProperty(id)
@@ -37,8 +39,8 @@ class ImageModel(
     val filenameProperty = SimpleStringProperty(filename)
     var filename: String by filenameProperty
 
-    val thumbUrlProperty = SimpleListProperty(FXCollections.observableArrayList(thumbUrl))
-    var thumbUrl: ObservableList<String> by thumbUrlProperty
+    val thumbUrlProperty = SimpleStringProperty(thumbUrl)
+    var thumbUrl: String by thumbUrlProperty
 
     val sizeProperty = SimpleStringProperty(size.formatSI())
     var size = size

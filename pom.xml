@@ -8,18 +8,18 @@
     <packaging>pom</packaging>
     <version>${revision}</version>
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <maven.deploy.skip>false</maven.deploy.skip>
         <timestamp>${maven.build.timestamp}</timestamp>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <revision>6.5.8</revision>
-        <kotlin.version>2.0.21</kotlin.version>
+        <revision>6.6.0-alpha</revision>
+        <kotlin.version>2.2.20</kotlin.version>
         <slf4j.version>2.0.16</slf4j.version>
         <logback.version>1.5.12</logback.version>
-        <kotlinx-coroutines.version>1.9.0</kotlinx-coroutines.version>
+        <kotlinx-coroutines.version>1.10.2</kotlinx-coroutines.version>
         <exposed.version>0.55.0</exposed.version>
         <snakeyaml.version>2.0</snakeyaml.version>
         <koin.version>4.0.0</koin.version>
@@ -28,7 +28,7 @@
         <failsafe.version>3.3.2</failsafe.version>
         <caffeine.version>3.1.8</caffeine.version>
         <jna-platform.version>5.14.0</jna-platform.version>
-        <kotlinx-serialization-json.version>1.7.3</kotlinx-serialization-json.version>
+        <kotlinx-serialization-json.version>1.9.0</kotlinx-serialization-json.version>
         <httpclient5.version>5.4</httpclient5.version>
         <httpcore5.version>5.3</httpcore5.version>
         <liquibase-core.version>4.29.2</liquibase-core.version>

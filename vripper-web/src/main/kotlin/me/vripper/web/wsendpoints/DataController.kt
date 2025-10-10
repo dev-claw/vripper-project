@@ -41,7 +41,7 @@ class DataController : KoinComponent {
 
     @SubscribeMapping("/images/{postId}")
     fun postsDetails(@DestinationVariable("postId") postId: Long): List<Image> {
-        return runBlocking { appEndpointService.findImagesByPostId(postId) }
+        return runBlocking { appEndpointService.findImagesByPostEntityId(postId) }
     }
 
     @SubscribeMapping("/threads")

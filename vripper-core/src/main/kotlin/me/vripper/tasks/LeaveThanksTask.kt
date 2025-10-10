@@ -36,7 +36,7 @@ internal class LeaveThanksTask(
                     listOf(
                         BasicNameValuePair("do", "post_thanks_add"),
                         BasicNameValuePair("using_ajax", "1"),
-                        BasicNameValuePair("p", postEntity.postId.toString()),
+                        BasicNameValuePair("p", postEntity.vgPostId.toString()),
                         BasicNameValuePair("securitytoken", postEntity.token)
                     )
                 )

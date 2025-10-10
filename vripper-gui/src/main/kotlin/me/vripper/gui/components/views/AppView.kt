@@ -1,8 +1,7 @@
 package me.vripper.gui.components.views
 
-import atlantafx.base.theme.CupertinoDark
-import atlantafx.base.theme.CupertinoLight
-import javafx.application.Application
+import atlantafx.base.theme.*
+import javafx.application.Application.setUserAgentStylesheet
 import kotlinx.coroutines.runBlocking
 import me.vripper.gui.controller.MainController
 import me.vripper.gui.controller.WidgetsController
@@ -52,11 +51,16 @@ class AppView : View() {
             }
         }
 
-        widgetsController.currentSettings.darkModeProperty.onChange {
-            if (it) {
-                Application.setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)
-            } else {
-                Application.setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
+        widgetsController.currentSettings.themeProperty.onChange {
+            when (it) {
+                "CupertinoLight" -> setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
+                "CupertinoDark" -> setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)
+                "NordLight" -> setUserAgentStylesheet(NordLight().userAgentStylesheet)
+                "NordDark" -> setUserAgentStylesheet(NordDark().userAgentStylesheet)
+                "PrimerLight" -> setUserAgentStylesheet(PrimerLight().userAgentStylesheet)
+                "PrimerDark" -> setUserAgentStylesheet(PrimerDark().userAgentStylesheet)
+                "Dracula" -> setUserAgentStylesheet(Dracula().userAgentStylesheet)
+                else -> setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
             }
         }
 

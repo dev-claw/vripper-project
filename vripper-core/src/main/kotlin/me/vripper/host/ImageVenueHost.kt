@@ -1,9 +1,8 @@
 package me.vripper.host
 
-import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.DownloadService.ImageDownloadContext
+import me.vripper.services.download.ImageDownloadRunnable
 import me.vripper.utilities.HtmlUtils
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
@@ -14,21 +13,20 @@ internal class ImageVenueHost : Host("imagevenue.com", 4) {
 
     @Throws(HostException::class)
     override fun resolve(
-        image: ImageEntity,
-        context: ImageDownloadContext
+        context: ImageDownloadRunnable.Context
     ): Pair<String, String> {
         val doc = try {
-            val document = fetchDocument(image.url, context)
+            val document = fetchDocument(context.imageEntity.url, context)
             log.debug(
                 String.format(
                     "Looking for xpath expression %s in %s",
                     CONTINUE_BUTTON_XPATH,
-                    image.url
+                    context.imageEntity.url
                 )
             )
             if (XpathUtils.getAsNode(document, CONTINUE_BUTTON_XPATH) != null) {
                 // Button detected. No need to actually click it, just make the call again.
-                fetch(image.url, context) {
+                fetch(context.imageEntity.url, context.imageEntity.url, context) {
                     HtmlUtils.clean(it.entity.content)
                 }
             } else {
@@ -38,7 +36,7 @@ internal class ImageVenueHost : Host("imagevenue.com", 4) {
             throw HostException(e)
         }
         val imgNode: Node = try {
-            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, image.url))
+            log.debug(String.format("Looking for xpath expression %s in %s", IMG_XPATH, context.imageEntity.url))
             XpathUtils.getAsNode(doc, IMG_XPATH)
         } catch (e: XpathException) {
             throw HostException(e)
@@ -46,11 +44,11 @@ internal class ImageVenueHost : Host("imagevenue.com", 4) {
             String.format(
                 "Xpath '%s' cannot be found in '%s'",
                 IMG_XPATH,
-                image.url
+                context.imageEntity.url
             )
         )
         return try {
-            log.debug(String.format("Resolving name and image url for %s", image.url))
+            log.debug(String.format("Resolving name and image url for %s", context.imageEntity.url))
             val imgTitle = imgNode.attributes.getNamedItem("alt").textContent.trim { it <= ' ' }
             val imgUrl = imgNode.attributes.getNamedItem("src").textContent.trim { it <= ' ' }
             Pair(

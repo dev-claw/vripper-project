@@ -19,12 +19,11 @@ internal class PostRepositoryImpl :
             this[PostTable.status] = post.status.name
             this[PostTable.done] = post.done
             this[PostTable.total] = post.total
-            this[PostTable.rank] = post.rank
             this[PostTable.hosts] = post.hosts.joinToString(delimiter)
             this[PostTable.outputPath] = post.downloadDirectory
             this[PostTable.folderName] = post.folderName
-            this[PostTable.postId] = post.postId
-            this[PostTable.threadId] = post.threadId
+            this[PostTable.postId] = post.vgPostId
+            this[PostTable.threadId] = post.vgThreadId
             this[PostTable.postTitle] = post.postTitle
             this[PostTable.threadTitle] = post.threadTitle
             this[PostTable.forum] = post.forum
@@ -36,17 +35,10 @@ internal class PostRepositoryImpl :
         }.map(::transform)
     }
 
-    override fun findByPostId(postId: Long): PostEntity? {
-        val result = PostTable.selectAll().where {
-            PostTable.postId eq postId
-        }.map(::transform)
-        return result.firstOrNull()
-    }
-
     override fun findCompleted(): List<Long> {
-        return PostTable.select(PostTable.postId).where {
+        return PostTable.select(PostTable.id).where {
             (PostTable.status eq Status.FINISHED.name) and (PostTable.done greaterEq PostTable.total)
-        }.map { it[PostTable.postId] }
+        }.map { it[PostTable.id].value }
     }
 
     override fun findById(id: Long): PostEntity? {
@@ -60,8 +52,12 @@ internal class PostRepositoryImpl :
         return PostTable.selectAll().map { transform(it) }
     }
 
+    override fun existByPostEntityId(postEntityId: Long): Boolean {
+        return PostTable.select(PostTable.id).where { PostTable.id eq postEntityId }.count() > 0
+    }
+
     override fun existByPostId(postId: Long): Boolean {
-        return PostTable.select(PostTable.id).where { PostTable.postId eq postId }.count() > 0
+        return PostTable.select(PostTable.postId).where { PostTable.postId eq postId }.count() > 0
     }
 
     override fun setDownloadingToStopped(): Int {
@@ -70,15 +66,14 @@ internal class PostRepositoryImpl :
         }
     }
 
-    override fun deleteByPostId(postId: Long): Int {
-        return PostTable.deleteWhere { PostTable.postId eq postId }
+    override fun deleteByPostEntityId(postEntityId: Long): Int {
+        return PostTable.deleteWhere { PostTable.id eq postEntityId }
     }
 
     override fun update(postEntity: PostEntity) {
         PostTable.update({ PostTable.id eq postEntity.id }) {
             it[status] = postEntity.status.name
             it[done] = postEntity.done
-            it[rank] = postEntity.rank
             it[size] = postEntity.size
             it[downloaded] = postEntity.downloaded
             it[folderName] = postEntity.folderName
@@ -91,12 +86,11 @@ internal class PostRepositoryImpl :
             this[PostTable.status] = post.status.name
             this[PostTable.done] = post.done
             this[PostTable.total] = post.total
-            this[PostTable.rank] = post.rank
             this[PostTable.hosts] = post.hosts.joinToString(delimiter)
             this[PostTable.outputPath] = post.downloadDirectory
             this[PostTable.folderName] = post.folderName
-            this[PostTable.postId] = post.postId
-            this[PostTable.threadId] = post.threadId
+            this[PostTable.postId] = post.vgPostId
+            this[PostTable.threadId] = post.vgThreadId
             this[PostTable.postTitle] = post.postTitle
             this[PostTable.threadTitle] = post.threadTitle
             this[PostTable.forum] = post.forum
@@ -104,31 +98,26 @@ internal class PostRepositoryImpl :
             this[PostTable.token] = post.token
             this[PostTable.size] = post.size
             this[PostTable.downloaded] = post.downloaded
+            this[PostTable.addedAt] = post.addedOn
         }
     }
 
-    override fun findMaxRank(): Int? {
-        return PostTable.select(PostTable.rank.max())
-            .firstOrNull()
-            ?.get(PostTable.rank.max())
-    }
-
-    override fun deleteAll(postIds: List<Long>) {
+    override fun deleteAll(postEntityIds: List<Long>) {
         val conn = TransactionManager.current().connection.connection as Connection
-        conn.prepareStatement("CREATE TEMPORARY TABLE POSTS_DELETE(POST_ID BIGINT PRIMARY KEY)")
+        conn.prepareStatement("CREATE TEMPORARY TABLE POSTS_DELETE(ID BIGINT PRIMARY KEY)")
             .use {
                 it.execute()
             }
 
         conn.prepareStatement("INSERT INTO POSTS_DELETE VALUES ( ? )").use { ps ->
-            postIds.forEach {
+            postEntityIds.forEach {
                 ps.setLong(1, it)
                 ps.addBatch()
             }
             ps.executeBatch()
         }
 
-        conn.prepareStatement("DELETE FROM POST WHERE POST_ID IN (SELECT POST_ID FROM POSTS_DELETE)")
+        conn.prepareStatement("DELETE FROM POST WHERE ID IN (SELECT ID FROM POSTS_DELETE)")
             .use {
                 it.execute()
             }
@@ -144,10 +133,10 @@ internal class PostRepositoryImpl :
         }
     }
 
-    override fun findAllNonCompletedPostIds(): List<Long> {
-        return PostTable.select(PostTable.postId).where {
+    override fun findAllNonCompletedPostEntityIds(): List<Long> {
+        return PostTable.select(PostTable.id).where {
             PostTable.status neq Status.FINISHED.name
-        }.map { it[PostTable.postId] }
+        }.map { it[PostTable.id].value }
     }
 
     private fun transform(resultRow: ResultRow): PostEntity {
@@ -167,7 +156,6 @@ internal class PostRepositoryImpl :
         val downloadDirectory = resultRow[PostTable.outputPath]
         val folderName = resultRow[PostTable.folderName]
         val addedOn = resultRow[PostTable.addedAt]
-        val rank = resultRow[PostTable.rank]
         val size = resultRow[PostTable.size]
         val downloaded = resultRow[PostTable.downloaded]
         return PostEntity(
@@ -186,7 +174,6 @@ internal class PostRepositoryImpl :
             folderName,
             status,
             done,
-            rank,
             size,
             downloaded
         )
