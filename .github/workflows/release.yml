@@ -20,7 +20,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: '25'
-        distribution: 'jetbrains'
+        distribution: 'zulu'
         cache: maven
 
     - name: Build gui jar
