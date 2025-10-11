@@ -1,14 +1,11 @@
 package me.vripper.gui.controller
 
-import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
-import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
-import me.vripper.gui.utils.ChannelFlowBuilder
+import kotlinx.coroutines.flow.cancellable
+import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import tornadofx.Controller
 
 class ActionBarController : Controller() {
 
-    val onQueueStateUpdate = ChannelFlowBuilder.build(
-        localAppEndpointService::onQueueStateUpdate,
-        remoteAppEndpointService::onQueueStateUpdate
-    )
+    val onQueueStateUpdate =
+        currentAppEndpointService().onQueueStateUpdate().cancellable()
 }

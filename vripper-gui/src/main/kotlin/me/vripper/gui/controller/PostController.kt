@@ -1,12 +1,10 @@
 package me.vripper.gui.controller
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.map
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
-import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
-import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
-import me.vripper.gui.utils.ChannelFlowBuilder
 import me.vripper.gui.utils.ChannelFlowBuilder.toFlow
 import me.vripper.model.Post
 import me.vripper.model.QueueState
@@ -19,39 +17,15 @@ class PostController : Controller() {
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-    val updatePostsFlow =
-        ChannelFlowBuilder.build(
-            localAppEndpointService::onUpdatePosts,
-            remoteAppEndpointService::onUpdatePosts
-        )
+    val updatePostsFlow = currentAppEndpointService().onUpdatePosts().cancellable()
 
-    val newPostsFlow = ChannelFlowBuilder.build(
-        {
-            localAppEndpointService.onNewPosts().map { post ->
-                mapper(post)
-            }
-        }, {
-            remoteAppEndpointService.onNewPosts().map { post ->
-                mapper(post)
-            }
-        }
-    )
+    val newPostsFlow = currentAppEndpointService().onNewPosts().map(::mapper).cancellable()
 
-    val deletedPostsFlow =
-        ChannelFlowBuilder.build(
-            localAppEndpointService::onDeletePosts,
-            remoteAppEndpointService::onDeletePosts
-        )
+    val deletedPostsFlow = currentAppEndpointService().onDeletePosts().cancellable()
 
-    val updateMetadataFlow = ChannelFlowBuilder.build(
-        localAppEndpointService::onUpdateMetadata,
-        remoteAppEndpointService::onUpdateMetadata,
-    )
+    val updateMetadataFlow = currentAppEndpointService().onUpdateMetadata().cancellable()
 
-    val queueStateUpdate = ChannelFlowBuilder.build(
-        localAppEndpointService::onQueueStateUpdate,
-        remoteAppEndpointService::onQueueStateUpdate,
-    )
+    val queueStateUpdate = currentAppEndpointService().onQueueStateUpdate().cancellable()
 
     suspend fun scan(postLinks: String) {
         runCatching { currentAppEndpointService().scanLinks(postLinks) }

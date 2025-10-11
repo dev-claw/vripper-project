@@ -64,6 +64,5 @@ class PostsTabView : View() {
                 delay(1_000)
             }
         }
-        println("${this.javaClass.name} init")
     }
 }

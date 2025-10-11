@@ -1,9 +1,7 @@
 package me.vripper.gui.controller
 
+import kotlinx.coroutines.flow.cancellable
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
-import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
-import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
-import me.vripper.gui.utils.ChannelFlowBuilder
 import tornadofx.Controller
 
 class StatusBarController : Controller() {
@@ -19,28 +17,13 @@ class StatusBarController : Controller() {
         return currentAppEndpointService().getVersion()
     }
 
-    val vgUserUpdate = ChannelFlowBuilder.build(
-        localAppEndpointService::onVGUserUpdate,
-        remoteAppEndpointService::onVGUserUpdate,
-    )
+    val vgUserUpdate = currentAppEndpointService().onVGUserUpdate().cancellable()
 
-    val tasksRunning = ChannelFlowBuilder.build(
-        localAppEndpointService::onTasksRunning,
-        remoteAppEndpointService::onTasksRunning,
-    )
+    val tasksRunning = currentAppEndpointService().onTasksRunning().cancellable()
 
-    val downloadSpeed = ChannelFlowBuilder.build(
-        localAppEndpointService::onDownloadSpeed,
-        remoteAppEndpointService::onDownloadSpeed,
-    )
+    val downloadSpeed = currentAppEndpointService().onDownloadSpeed().cancellable()
 
-    val queueStateUpdate = ChannelFlowBuilder.build(
-        localAppEndpointService::onQueueStateUpdate,
-        remoteAppEndpointService::onQueueStateUpdate,
-    )
+    val queueStateUpdate = currentAppEndpointService().onQueueStateUpdate().cancellable()
 
-    val errorCountUpdate = ChannelFlowBuilder.build(
-        localAppEndpointService::onErrorCountUpdate,
-        remoteAppEndpointService::onErrorCountUpdate
-    )
+    val errorCountUpdate = currentAppEndpointService().onErrorCountUpdate().cancellable()
 }

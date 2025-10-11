@@ -13,6 +13,7 @@ import me.vripper.gui.components.fragments.SettingsFragment
 import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.SettingsController
+import me.vripper.gui.event.GuiEventBus
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -120,9 +121,27 @@ class ActionBarView : View() {
         downloadActiveProperty.bind(running.greaterThan(0))
 
         coroutineScope.launch {
-            actionBarController.onQueueStateUpdate.collect {
-                runLater {
-                    running.set(it.running)
+            var job: Job? = null
+            GuiEventBus.events.collect { event ->
+                when (event) {
+                    GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                        job = launch {
+                            actionBarController.onQueueStateUpdate.collect {
+                                runLater {
+                                    running.set(it.running)
+                                }
+                            }
+                        }
+                    }
+
+                    GuiEventBus.ChangingSession -> {
+                        job?.cancelAndJoin()
+                        runLater {
+                            running.set(0)
+                        }
+                    }
+
+                    else -> {}
                 }
             }
         }

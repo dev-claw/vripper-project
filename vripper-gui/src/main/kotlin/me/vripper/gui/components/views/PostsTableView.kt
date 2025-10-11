@@ -407,86 +407,83 @@ class PostsTableView : View() {
         tableView.placeholder = Label("Loading")
 
         coroutineScope.launch {
-            launch {
-                GuiEventBus.events.collect {
-                    when (it) {
-                        GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
-                            println("Collecting $it from PostsTableView")
-                            val postModelList = postController.findAllPosts().toList()
-                            val queueState = postController.getQueueState()
-                            runLater {
-                                items.addAll(postModelList)
-                                tableView.sort()
-                                tableView.placeholder = Label("No content in table")
+            val jobs = mutableListOf<Job>()
+            GuiEventBus.events.collect { event ->
+                when (event) {
+                    GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                        println("Collecting $event from PostsTableView")
+                        val postModelList = postController.findAllPosts().toList()
+                        val queueState = postController.getQueueState()
+                        runLater {
+                            items.addAll(postModelList)
+                            tableView.sort()
+                            tableView.placeholder = Label("No content in table")
+                            updateQueueState(queueState)
+                        }
+                        launch {
+                            postController.updateMetadataFlow.collect { metadataEntity ->
+                                runLater {
+                                    val postModel = items.find { it.id == metadataEntity.postIdRef } ?: return@runLater
+
+                                    postModel.altTitles =
+                                        FXCollections.observableArrayList(metadataEntity.data.resolvedNames)
+                                    postModel.postedBy = metadataEntity.data.postedBy
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                        launch {
+                            postController.deletedPostsFlow.collect {
+                                runLater {
+                                    items.items.removeIf { p -> p.id == it }
+                                    tableView.sort()
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                        launch {
+                            postController.updatePostsFlow.collect { post ->
+                                runLater {
+                                    val postModel = items.find { it.id == post.id } ?: return@runLater
+
+                                    postModel.status = post.status.name
+                                    postModel.progressCount = postController.progressCount(
+                                        post.total, post.done, post.downloaded
+                                    )
+                                    postModel.done = post.done
+                                    postModel.progress = postController.progress(
+                                        post.total, post.done
+                                    )
+                                    postModel.path = post.getDownloadFolder()
+                                    postModel.folderName = post.folderName
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                        launch {
+                            postController.queueStateUpdate.collect { queueState ->
                                 updateQueueState(queueState)
                             }
-                        }
+                        }.also { jobs.add(it) }
+                        launch {
+                            postController.newPostsFlow.collect {
+                                runLater {
+                                    items.addAll(it)
+                                    tableView.sort()
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                    }
 
-                        GuiEventBus.ChangingSession -> runLater {
+                    GuiEventBus.ChangingSession -> {
+                        jobs.forEach { it.cancelAndJoin() }
+                        runLater {
                             tableView.placeholder = Label("Loading")
                             items.clear()
                         }
-
-                        else -> {}
                     }
-                }
-            }
 
-            launch {
-                postController.updateMetadataFlow.collect { metadataEntity ->
-                    runLater {
-                        val postModel = items.find { it.id == metadataEntity.postIdRef } ?: return@runLater
-
-                        postModel.altTitles = FXCollections.observableArrayList(metadataEntity.data.resolvedNames)
-                        postModel.postedBy = metadataEntity.data.postedBy
-                    }
-                }
-            }
-
-            launch {
-                postController.deletedPostsFlow.collect {
-                    runLater {
-                        items.items.removeIf { p -> p.id == it }
-                        tableView.sort()
-                    }
-                }
-            }
-
-            launch {
-                postController.updatePostsFlow.collect { post ->
-                    runLater {
-                        val postModel = items.find { it.id == post.id } ?: return@runLater
-
-                        postModel.status = post.status.name
-                        postModel.progressCount = postController.progressCount(
-                            post.total, post.done, post.downloaded
-                        )
-                        postModel.done = post.done
-                        postModel.progress = postController.progress(
-                            post.total, post.done
-                        )
-                        postModel.path = post.getDownloadFolder()
-                        postModel.folderName = post.folderName
-                    }
-                }
-            }
-
-            launch {
-                postController.queueStateUpdate.collect { queueState ->
-                    updateQueueState(queueState)
-                }
-            }
-
-            launch {
-                postController.newPostsFlow.collect {
-                    runLater {
-                        items.addAll(it)
-                        tableView.sort()
-                    }
+                    else -> {}
                 }
             }
         }
-        println("${this.javaClass.name} init")
     }
 
     private fun updateQueueState(queueState: QueueState) {

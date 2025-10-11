@@ -50,13 +50,11 @@ class LoadingView : View("VRipper") {
                         message.set("Unable to connect to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}")
                         return@collect
                     } else if (!check) {
-                        println("Version Mismatch")
                         message.set("Version Mismatch, client must be >= 6.6.0")
                         return@collect
                     }
                 }
                 runLater {
-                    replaceWith(find<AppView>())
                     val sessionType = if (widgetsController.currentSettings.localSession) {
                         AppManager.start()
                         GuiEventBus.LocalSession
@@ -64,8 +62,8 @@ class LoadingView : View("VRipper") {
                         GuiEventBus.RemoteSession
                     }
                     AppEndpointManager.set(sessionType)
+                    replaceWith(find<AppView>())
                     runBlocking {
-                        println("Publishing $sessionType")
                         GuiEventBus.publishEvent(sessionType)
                     }
                 }

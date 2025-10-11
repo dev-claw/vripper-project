@@ -56,12 +56,6 @@ object PreviewCacheManager : KoinComponent {
     init {
         coroutineScope.launch {
             while (isActive) {
-//                println("Cache state check")
-//                println("Cache entries = ${entries.size}")
-//                println("Cache entries limit = $MAX_ENTRIES")
-//                println("Cache size = ${cacheSize.get().formatSI()}")
-//                println("Cache size LIMIT = ${THRESHOLD.formatSI()}")
-
                 val entriesDelta = entries.size - MAX_ENTRIES
                 if (entriesDelta > 0) {
                     val deleted = mutableListOf<Entry>()
@@ -85,8 +79,6 @@ object PreviewCacheManager : KoinComponent {
                         cacheSize.addAndGet(element.size * -1L)
                     } while (cacheSize.get() - THRESHOLD > 0)
                 }
-
-//                println("Cache state check completed")
                 delay(30_000)
             }
         }

@@ -155,56 +155,55 @@ class LogTableView : View() {
 
 
         coroutineScope.launch {
-            launch {
-                GuiEventBus.events.collect {
-                    when (it) {
-                        GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
-                            println("Collecting $it from LogTableView")
-                            while (isActive) {
-                                val result = runCatching { logController.getMaxEventLog() }
-                                if (result.isSuccess) {
-                                    maxLogEvent = result.getOrNull()!!
-                                    break
-                                }
-                            }
-                            while (isActive) {
-                                val result = runCatching { logController.initLogger() }
-                                if (result.isSuccess) {
-                                    break
-                                }
+            val jobs = mutableListOf<Job>()
+            GuiEventBus.events.collect { event ->
+                when (event) {
+                    GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                        println("Collecting $event from LogTableView")
+                        while (isActive) {
+                            val result = runCatching { logController.getMaxEventLog() }
+                            if (result.isSuccess) {
+                                maxLogEvent = result.getOrNull()!!
+                                break
                             }
                         }
+                        while (isActive) {
+                            val result = runCatching { logController.initLogger() }
+                            if (result.isSuccess) {
+                                break
+                            }
+                        }
+                        launch {
+                            logController.newLogs.collect {
+                                runLater {
+                                    items.sortWith(Comparator.comparing { it.sequence })
+                                    while (items.isNotEmpty() && (items.size >= maxLogEvent)) {
+                                        items.removeFirst()
+                                    }
+                                    items.add(it)
+                                    tableView.sort()
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                        launch {
+                            logController.updateSettings.collect {
+                                maxLogEvent = it.systemSettings.maxEventLog
+                            }
+                        }.also { jobs.add(it) }
+                    }
 
-                        GuiEventBus.ChangingSession -> runLater {
+                    GuiEventBus.ChangingSession -> {
+                        jobs.forEach { it.cancelAndJoin() }
+                        runLater {
                             items.clear()
                             tableView.placeholder = Label("Loading")
                         }
-
-                        else -> {}
                     }
-                }
-            }
 
-            launch {
-                logController.newLogs.collect {
-                    runLater {
-                        items.sortWith(Comparator.comparing { it.sequence })
-                        while (items.isNotEmpty() && (items.size >= maxLogEvent)) {
-                            items.removeFirst()
-                        }
-                        items.add(it)
-                        tableView.sort()
-                    }
-                }
-            }
-
-            launch {
-                logController.updateSettings.collect {
-                    maxLogEvent = it.systemSettings.maxEventLog
+                    else -> {}
                 }
             }
         }
-        println("${this.javaClass.name} init")
     }
 
     private fun openLog(item: LogModel) {

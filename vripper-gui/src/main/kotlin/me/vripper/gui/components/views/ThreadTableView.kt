@@ -7,13 +7,10 @@ import javafx.collections.ObservableList
 import javafx.scene.control.*
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.javafx.asFlow
-import kotlinx.coroutines.launch
 import me.vripper.gui.components.fragments.ThreadSelectionTableFragment
 import me.vripper.gui.controller.ThreadController
 import me.vripper.gui.controller.WidgetsController
@@ -158,64 +155,61 @@ class ThreadTableView : View() {
 
 
         coroutineScope.launch {
-            launch {
-                GuiEventBus.events.collect {
-                    when (it) {
-                        GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
-                            println("Collecting $it from ThreadTableView")
-                            val list = threadController.findAll().toList()
-                            runLater {
-                                items.clear()
-                                items.addAll(list)
-                                tableView.placeholder = Label("No content in table")
-                            }
+            val jobs = mutableListOf<Job>()
+            GuiEventBus.events.collect { event ->
+                when (event) {
+                    GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                        println("Collecting $event from ThreadTableView")
+                        val list = threadController.findAll().toList()
+                        runLater {
+                            items.clear()
+                            items.addAll(list)
+                            tableView.placeholder = Label("No content in table")
                         }
+                        launch {
+                            threadController.newThread.collect {
+                                runLater {
+                                    items.add(it)
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                        launch {
+                            threadController.updateThread.collect { thread ->
+                                runLater {
+                                    val threadModel = items.find { it.threadId == thread.threadId } ?: return@runLater
+                                    threadModel.total = thread.total
+                                    threadModel.title = thread.title
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                        launch {
+                            threadController.deleteThread.collect { threadId ->
+                                runLater {
+                                    tableView.items.removeIf { it.threadId == threadId }
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                        launch {
+                            threadController.clearThreads.collect {
+                                runLater {
+                                    tableView.items.clear()
+                                }
+                            }
+                        }.also { jobs.add(it) }
+                    }
 
-                        GuiEventBus.ChangingSession -> runLater {
+                    GuiEventBus.ChangingSession -> {
+                        jobs.forEach { it.cancelAndJoin() }
+                        runLater {
                             tableView.placeholder = Label("Loading")
                             items.clear()
                         }
-
-                        else -> {}
                     }
-                }
-            }
 
-            launch {
-                threadController.newThread.collect {
-                    runLater {
-                        items.add(it)
-                    }
-                }
-            }
-
-            launch {
-                threadController.updateThread.collect { thread ->
-                    runLater {
-                        val threadModel = items.find { it.threadId == thread.threadId } ?: return@runLater
-                        threadModel.total = thread.total
-                        threadModel.title = thread.title
-                    }
-                }
-            }
-
-            launch {
-                threadController.deleteThread.collect { threadId ->
-                    runLater {
-                        tableView.items.removeIf { it.threadId == threadId }
-                    }
-                }
-            }
-
-            launch {
-                threadController.clearThreads.collect {
-                    runLater {
-                        tableView.items.clear()
-                    }
+                    else -> {}
                 }
             }
         }
-        println("${this.javaClass.name} init")
     }
 
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "thread-tab"

@@ -17,6 +17,7 @@ import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.SettingsController
 import me.vripper.gui.controller.WidgetsController
+import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.utils.openLink
 import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.ApplicationProperties
@@ -271,9 +272,27 @@ class MenuBarView : View() {
         downloadActiveProperty.bind(running.greaterThan(0))
 
         coroutineScope.launch {
-            actionBarController.onQueueStateUpdate.collect {
-                runLater {
-                    running.set(it.running)
+            var job: Job? = null
+            GuiEventBus.events.collect { event ->
+                when (event) {
+                    GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                        job = launch {
+                            actionBarController.onQueueStateUpdate.collect {
+                                runLater {
+                                    running.set(it.running)
+                                }
+                            }
+                        }
+                    }
+
+                    GuiEventBus.ChangingSession -> {
+                        job?.cancelAndJoin()
+                        runLater {
+                            running.set(0)
+                        }
+                    }
+
+                    else -> {}
                 }
             }
         }

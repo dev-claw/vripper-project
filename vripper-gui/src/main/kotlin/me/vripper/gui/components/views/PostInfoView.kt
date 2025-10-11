@@ -2,11 +2,8 @@ package me.vripper.gui.components.views
 
 import javafx.collections.FXCollections
 import javafx.scene.control.TabPane
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.launch
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.model.PostModel
 import org.kordamp.ikonli.feather.Feather
@@ -20,6 +17,8 @@ class PostInfoView : View() {
     private val postModel: PostModel = PostModel(
         -1, -1, "", 0.0, "", "", 0, 0, "", "", "*", "", "", "", emptyList(), emptyList(), "", 0
     )
+    private var updatePostJob: Job? = null
+    private var updateMetadataJob: Job? = null
 
     override val root = tabpane()
 
@@ -78,6 +77,10 @@ class PostInfoView : View() {
     }
 
     fun setPostId(id: Long?) {
+        runBlocking {
+            updatePostJob?.cancelAndJoin()
+            updateMetadataJob?.cancelAndJoin()
+        }
         imagesTableView.setPostId(id)
         if (id == null) {
             postModel.apply {
@@ -127,7 +130,7 @@ class PostInfoView : View() {
                 }
             }
         }
-        coroutineScope.launch {
+        updatePostJob = coroutineScope.launch {
             postController.updatePostsFlow.filter {
                 it.id == postModel.id
             }.collect { post ->
@@ -146,7 +149,7 @@ class PostInfoView : View() {
             }
         }
 
-        coroutineScope.launch {
+        updateMetadataJob = coroutineScope.launch {
             postController.updateMetadataFlow.filter {
                 it.postIdRef == postModel.id
             }.collect {
