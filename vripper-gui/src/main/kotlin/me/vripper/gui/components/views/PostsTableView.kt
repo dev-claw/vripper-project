@@ -411,6 +411,7 @@ class PostsTableView : View() {
                 GuiEventBus.events.collect {
                     when (it) {
                         GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                            println("Collecting $it from PostsTableView")
                             val postModelList = postController.findAllPosts().toList()
                             val queueState = postController.getQueueState()
                             runLater {
@@ -485,6 +486,7 @@ class PostsTableView : View() {
                 }
             }
         }
+        println("${this.javaClass.name} init")
     }
 
     private fun updateQueueState(queueState: QueueState) {

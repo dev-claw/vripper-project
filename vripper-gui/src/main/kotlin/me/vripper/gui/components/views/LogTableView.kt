@@ -159,6 +159,7 @@ class LogTableView : View() {
                 GuiEventBus.events.collect {
                     when (it) {
                         GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                            println("Collecting $it from LogTableView")
                             while (isActive) {
                                 val result = runCatching { logController.getMaxEventLog() }
                                 if (result.isSuccess) {
@@ -203,6 +204,7 @@ class LogTableView : View() {
                 }
             }
         }
+        println("${this.javaClass.name} init")
     }
 
     private fun openLog(item: LogModel) {

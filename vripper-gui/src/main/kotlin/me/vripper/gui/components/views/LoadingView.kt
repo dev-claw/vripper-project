@@ -6,11 +6,8 @@ import javafx.scene.effect.DropShadow
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyCodeCombination
 import javafx.scene.input.KeyCombination
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.launch
 import me.vripper.gui.VripperGuiApplication
 import me.vripper.gui.components.fragments.SessionFragment
 import me.vripper.gui.controller.WidgetsController
@@ -42,19 +39,12 @@ class LoadingView : View("VRipper") {
                 message.set("")
                 AppManager.stop()
                 grpcEndpointService.disconnect()
-                if (widgetsController.currentSettings.localSession) {
-                    AppEndpointManager.set(GuiEventBus.LocalSession)
-                    GuiEventBus.publishEvent(GuiEventBus.LocalSession)
-                    AppManager.start()
-                } else {
-                    AppEndpointManager.set(GuiEventBus.RemoteSession)
-                    GuiEventBus.publishEvent(GuiEventBus.RemoteSession)
+                if (!widgetsController.currentSettings.localSession) {
                     grpcEndpointService.connect(
                         widgetsController.currentSettings.remoteSessionModel.host,
                         widgetsController.currentSettings.remoteSessionModel.port,
                         widgetsController.currentSettings.remoteSessionModel.passcode,
                     )
-
                     val check = grpcEndpointService.versionCheck()
                     if (check == null) {
                         message.set("Unable to connect to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}")
@@ -67,7 +57,19 @@ class LoadingView : View("VRipper") {
                 }
                 runLater {
                     replaceWith(find<AppView>())
+                    val sessionType = if (widgetsController.currentSettings.localSession) {
+                        AppManager.start()
+                        GuiEventBus.LocalSession
+                    } else {
+                        GuiEventBus.RemoteSession
+                    }
+                    AppEndpointManager.set(sessionType)
+                    runBlocking {
+                        println("Publishing $sessionType")
+                        GuiEventBus.publishEvent(sessionType)
+                    }
                 }
+
                 if (it.args.isNotEmpty()) {
                     Watcher.notify(it.args[0])
                 }
@@ -107,9 +109,4 @@ class LoadingView : View("VRipper") {
             effect = DropShadow()
         }
     }
-
-//    override fun onUndock() {
-//        println("Undowking")
-//        coroutineScope.cancel()
-//    }
 }

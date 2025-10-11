@@ -29,6 +29,7 @@ class StatusBarView : View("Status bar") {
             GuiEventBus.events.collect {
                 when (it) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                        println("Collecting $it from StatusBarView")
                         while (isActive) {
                             val result = runCatching { statusBarController.loggedInUser() }
                             if (result.isSuccess) {

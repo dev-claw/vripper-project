@@ -162,6 +162,7 @@ class ThreadTableView : View() {
                 GuiEventBus.events.collect {
                     when (it) {
                         GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                            println("Collecting $it from ThreadTableView")
                             val list = threadController.findAll().toList()
                             runLater {
                                 items.clear()
@@ -214,6 +215,7 @@ class ThreadTableView : View() {
                 }
             }
         }
+        println("${this.javaClass.name} init")
     }
 
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "thread-tab"

@@ -2,13 +2,10 @@ package me.vripper.gui.components.views
 
 import atlantafx.base.theme.*
 import javafx.application.Application.setUserAgentStylesheet
-import kotlinx.coroutines.runBlocking
 import me.vripper.gui.controller.MainController
 import me.vripper.gui.controller.WidgetsController
-import me.vripper.gui.event.GuiEventBus
 import tornadofx.View
 import tornadofx.onChange
-import tornadofx.runLater
 import tornadofx.vbox
 
 class AppView : View() {
@@ -61,18 +58,6 @@ class AppView : View() {
                 "PrimerDark" -> setUserAgentStylesheet(PrimerDark().userAgentStylesheet)
                 "Dracula" -> setUserAgentStylesheet(Dracula().userAgentStylesheet)
                 else -> setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
-            }
-        }
-
-        runLater {
-            if (widgetsController.currentSettings.localSession) {
-                runBlocking {
-                    GuiEventBus.publishEvent(GuiEventBus.LocalSession)
-                }
-            } else {
-                runBlocking {
-                    GuiEventBus.publishEvent(GuiEventBus.RemoteSession)
-                }
             }
         }
     }

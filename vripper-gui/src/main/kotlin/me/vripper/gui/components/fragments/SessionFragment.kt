@@ -13,13 +13,11 @@ import me.vripper.gui.components.views.AppView
 import me.vripper.gui.components.views.LoadingView
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
-import me.vripper.gui.services.GrpcEndpointService
 import tornadofx.*
 
 class SessionFragment : Fragment("Change Session") {
 
     private val widgetsController: WidgetsController by inject()
-    private val grpcEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
     private val toggleGroup = ToggleGroup()
     override val root = VBox().apply {
         alignment = Pos.CENTER
