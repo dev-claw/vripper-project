@@ -1,0 +1,24 @@
+name: Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release'
+        required: true
+        type: string
+
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-13, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Test
+        run: |
+          echo ${{ inputs.release }}
