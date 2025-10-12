@@ -18,8 +18,8 @@ object ClipboardManager : KoinComponent {
 
     fun init() {
         coroutineScope.launch {
-            GuiEventBus.events.collect { event ->
-                when (event) {
+            GuiEventBus.events.collect {
+                when (it) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
                         logger.info("Clipboard manager initialized")
                         while (isActive) {
@@ -30,6 +30,7 @@ object ClipboardManager : KoinComponent {
                             }
                             delay(1000)
                         }
+                        settingsUpdateJob?.cancelAndJoin()
                         settingsUpdateJob = launch {
                             AppEndpointManager.currentAppEndpointService().onUpdateSettings()
                                 .retryWhen { _, _ -> delay(1000); true }.collect {
@@ -37,9 +38,7 @@ object ClipboardManager : KoinComponent {
                                 }
                         }
                     }
-                    GuiEventBus.ChangingSession -> {
-                        settingsUpdateJob?.cancelAndJoin()
-                    }
+
                     else -> {}
                 }
             }

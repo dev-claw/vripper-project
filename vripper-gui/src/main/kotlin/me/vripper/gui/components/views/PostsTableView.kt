@@ -14,7 +14,6 @@ import javafx.scene.input.MouseButton
 import javafx.util.Callback
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.javafx.asFlow
 import me.vripper.gui.components.Shared
 import me.vripper.gui.components.cells.PreviewTableCell
@@ -51,12 +50,10 @@ class PostsTableView : View() {
 
     init {
         items.filterWhen(Shared.searchInput) { query, item ->
-            item.title.contains(query, ignoreCase = true)
-                    || item.vgPostId.toString().contains(query)
-                    || item.vgThreadId.toString().contains(query)
-                    || item.hosts.contains(query, ignoreCase = true)
-                    || item.status.contains(query, ignoreCase = true)
-                    || item.path.contains(query, ignoreCase = true)
+            item.title.contains(query, ignoreCase = true) || item.vgPostId.toString()
+                .contains(query) || item.vgThreadId.toString().contains(query) || item.hosts.contains(
+                query, ignoreCase = true
+            ) || item.status.contains(query, ignoreCase = true) || item.path.contains(query, ignoreCase = true)
         }
 
         with(root) {
@@ -237,8 +234,7 @@ class PostsTableView : View() {
                             preview.cleanup()
                             if (cell.tableRow.item != null && cell.tableRow.item.previewList.isNotEmpty()) {
                                 preview.display(
-                                    cell.tableRow.item.vgThreadId,
-                                    cell.tableRow.item.previewList
+                                    cell.tableRow.item.vgThreadId, cell.tableRow.item.previewList
                                 )
                                 preview.previewPopup.apply {
                                     x = mouseEvent.screenX + 20
@@ -406,13 +402,75 @@ class PostsTableView : View() {
         tableView.prefHeightProperty().bind(root.heightProperty())
         tableView.placeholder = Label("Loading")
 
+        postController.updateMetadataFlow.let { flow ->
+            coroutineScope.launch {
+                flow.collect { metadataEntity ->
+                    runLater {
+                        val postModel = items.find { it.id == metadataEntity.postIdRef } ?: return@runLater
+
+                        postModel.altTitles = FXCollections.observableArrayList(metadataEntity.data.resolvedNames)
+                        postModel.postedBy = metadataEntity.data.postedBy
+                    }
+                }
+            }
+        }
+
+        postController.deletedPostsFlow.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    runLater {
+                        items.items.removeIf { p -> p.id == it }
+                        tableView.sort()
+                    }
+                }
+            }
+        }
+
+        postController.updatePostsFlow.let { flow ->
+            coroutineScope.launch {
+                flow.collect { post ->
+                    runLater {
+                        val postModel = items.find { it.id == post.id } ?: return@runLater
+
+                        postModel.status = post.status.name
+                        postModel.progressCount = postController.progressCount(
+                            post.total, post.done, post.downloaded
+                        )
+                        postModel.done = post.done
+                        postModel.progress = postController.progress(
+                            post.total, post.done
+                        )
+                        postModel.path = post.getDownloadFolder()
+                        postModel.folderName = post.folderName
+                    }
+                }
+            }
+        }
+
+        postController.queueStateUpdate.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    updateQueueState(it)
+                }
+            }
+        }
+
+        postController.newPostsFlow.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    runLater {
+                        items.addAll(it)
+                        tableView.sort()
+                    }
+                }
+            }
+        }
+
         coroutineScope.launch {
-            val jobs = mutableListOf<Job>()
-            GuiEventBus.events.collect { event ->
-                when (event) {
+            GuiEventBus.events.collect {
+                when (it) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
-                        println("Collecting $event from PostsTableView")
-                        val postModelList = postController.findAllPosts().toList()
+                        val postModelList = postController.findAllPosts()
                         val queueState = postController.getQueueState()
                         runLater {
                             items.addAll(postModelList)
@@ -420,64 +478,11 @@ class PostsTableView : View() {
                             tableView.placeholder = Label("No content in table")
                             updateQueueState(queueState)
                         }
-                        launch {
-                            postController.updateMetadataFlow.collect { metadataEntity ->
-                                runLater {
-                                    val postModel = items.find { it.id == metadataEntity.postIdRef } ?: return@runLater
-
-                                    postModel.altTitles =
-                                        FXCollections.observableArrayList(metadataEntity.data.resolvedNames)
-                                    postModel.postedBy = metadataEntity.data.postedBy
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            postController.deletedPostsFlow.collect {
-                                runLater {
-                                    items.items.removeIf { p -> p.id == it }
-                                    tableView.sort()
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            postController.updatePostsFlow.collect { post ->
-                                runLater {
-                                    val postModel = items.find { it.id == post.id } ?: return@runLater
-
-                                    postModel.status = post.status.name
-                                    postModel.progressCount = postController.progressCount(
-                                        post.total, post.done, post.downloaded
-                                    )
-                                    postModel.done = post.done
-                                    postModel.progress = postController.progress(
-                                        post.total, post.done
-                                    )
-                                    postModel.path = post.getDownloadFolder()
-                                    postModel.folderName = post.folderName
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            postController.queueStateUpdate.collect { queueState ->
-                                updateQueueState(queueState)
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            postController.newPostsFlow.collect {
-                                runLater {
-                                    items.addAll(it)
-                                    tableView.sort()
-                                }
-                            }
-                        }.also { jobs.add(it) }
                     }
 
-                    GuiEventBus.ChangingSession -> {
-                        jobs.forEach { it.cancelAndJoin() }
-                        runLater {
-                            tableView.placeholder = Label("Loading")
-                            items.clear()
-                        }
+                    GuiEventBus.ChangingSession -> runLater {
+                        tableView.placeholder = Label("Loading")
+                        items.clear()
                     }
 
                     else -> {}

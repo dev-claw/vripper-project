@@ -26,9 +26,8 @@ class StatusBarView : View("Status bar") {
 
     init {
         coroutineScope.launch {
-            val jobs = mutableListOf<Job>()
-            GuiEventBus.events.collect { event ->
-                when (event) {
+            GuiEventBus.events.collect {
+                when (it) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
                         while (isActive) {
                             val result = runCatching { statusBarController.loggedInUser() }
@@ -40,57 +39,60 @@ class StatusBarView : View("Status bar") {
                             }
                             delay(1000)
                         }
-                        launch {
-                            statusBarController.vgUserUpdate.collect {
-                                runLater {
-                                    loggedUser.set(it)
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            statusBarController.tasksRunning.collect {
-                                runLater {
-                                    tasksRunning.set(it)
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            statusBarController.downloadSpeed.collect {
-                                runLater {
-                                    downloadSpeed.set(it.speed.formatSI())
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            statusBarController.queueStateUpdate.collect {
-                                runLater {
-                                    running.set(it.running)
-                                    pending.set(it.remaining)
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            statusBarController.errorCountUpdate.collect {
-                                runLater {
-                                    error.set(it.count)
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                    }
-
-                    GuiEventBus.ChangingSession -> {
-                        jobs.forEach { it.cancelAndJoin() }
-                        runLater {
-                            loggedUser.set("")
-                            tasksRunning.set(false)
-                            downloadSpeed.set(0L.formatSI())
-                            running.set(0)
-                            pending.set(0)
-                            error.set(0)
-                        }
                     }
 
                     else -> {}
+                }
+            }
+        }
+
+        statusBarController.vgUserUpdate.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    runLater {
+                        loggedUser.set(it)
+                    }
+                }
+            }
+        }
+
+        statusBarController.tasksRunning.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    runLater {
+                        tasksRunning.set(it)
+                    }
+                }
+            }
+        }
+
+        statusBarController.downloadSpeed.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    runLater {
+                        downloadSpeed.set(it.speed.formatSI())
+                    }
+                }
+            }
+        }
+
+        statusBarController.queueStateUpdate.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    runLater {
+                        running.set(it.running)
+                        pending.set(it.remaining)
+                    }
+                }
+            }
+        }
+
+        statusBarController.errorCountUpdate.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    runLater {
+                        error.set(it.count)
+                    }
                 }
             }
         }

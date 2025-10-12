@@ -63,6 +63,9 @@ class SessionFragment : Fragment("Change Session") {
                         addClass(Styles.ACCENT)
                         isDefaultButton = true
                         action {
+                            runBlocking {
+                                GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
+                            }
                             val selectedToggle = toggleGroup.selectedToggle
                             runLater {
                                 find<AppView>().replaceWith(find<LoadingView>())
@@ -80,7 +83,6 @@ class SessionFragment : Fragment("Change Session") {
                                     else -> VripperGuiApplication.APP_INSTANCE.stop()
                                 }
                                 runBlocking {
-                                    GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
                                     GuiEventBus.publishEvent(GuiEventBus.ApplicationInitialized(emptyList()))
                                 }
                                 close()

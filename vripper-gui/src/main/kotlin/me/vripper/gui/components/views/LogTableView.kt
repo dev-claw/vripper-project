@@ -153,13 +153,33 @@ class LogTableView : View() {
         tableView.placeholder = Label("Loading")
         tableView.sortOrder.add(tableView.columns.first { it.id == "time" })
 
+        logController.newLogs.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    runLater {
+                        items.sortWith(Comparator.comparing { it.sequence })
+                        while (items.isNotEmpty() && (items.size >= maxLogEvent)) {
+                            items.removeFirst()
+                        }
+                        items.add(it)
+                        tableView.sort()
+                    }
+                }
+            }
+        }
+
+        logController.updateSettings.let { flow ->
+            coroutineScope.launch {
+                flow.collect {
+                    maxLogEvent = it.systemSettings.maxEventLog
+                }
+            }
+        }
 
         coroutineScope.launch {
-            val jobs = mutableListOf<Job>()
-            GuiEventBus.events.collect { event ->
-                when (event) {
+            GuiEventBus.events.collect {
+                when (it) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
-                        println("Collecting $event from LogTableView")
                         while (isActive) {
                             val result = runCatching { logController.getMaxEventLog() }
                             if (result.isSuccess) {
@@ -173,31 +193,11 @@ class LogTableView : View() {
                                 break
                             }
                         }
-                        launch {
-                            logController.newLogs.collect {
-                                runLater {
-                                    items.sortWith(Comparator.comparing { it.sequence })
-                                    while (items.isNotEmpty() && (items.size >= maxLogEvent)) {
-                                        items.removeFirst()
-                                    }
-                                    items.add(it)
-                                    tableView.sort()
-                                }
-                            }
-                        }.also { jobs.add(it) }
-                        launch {
-                            logController.updateSettings.collect {
-                                maxLogEvent = it.systemSettings.maxEventLog
-                            }
-                        }.also { jobs.add(it) }
                     }
 
-                    GuiEventBus.ChangingSession -> {
-                        jobs.forEach { it.cancelAndJoin() }
-                        runLater {
-                            items.clear()
-                            tableView.placeholder = Label("Loading")
-                        }
+                    GuiEventBus.ChangingSession -> runLater {
+                        items.clear()
+                        tableView.placeholder = Label("Loading")
                     }
 
                     else -> {}

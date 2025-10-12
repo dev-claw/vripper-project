@@ -1,17 +1,26 @@
 package me.vripper.gui.controller
 
-import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.map
 import me.vripper.gui.model.LogModel
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
+import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
+import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
+import me.vripper.gui.utils.ChannelFlowBuilder
 import me.vripper.model.LogEntry
 import tornadofx.Controller
 
 class LogController : Controller() {
 
-    val newLogs = currentAppEndpointService().onNewLog().map(::mapper).cancellable()
+    val newLogs = ChannelFlowBuilder.build(
+        { localAppEndpointService.onNewLog().map(::mapper) },
+        { remoteAppEndpointService.onNewLog().map(::mapper) }
+    )
 
-    val updateSettings = currentAppEndpointService().onUpdateSettings().cancellable()
+    val updateSettings =
+        ChannelFlowBuilder.build(
+            localAppEndpointService::onUpdateSettings,
+            remoteAppEndpointService::onUpdateSettings
+        )
 
     private fun mapper(it: LogEntry): LogModel {
         return LogModel(

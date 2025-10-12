@@ -1,11 +1,11 @@
 package me.vripper.gui.controller
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.map
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
-import me.vripper.gui.utils.ChannelFlowBuilder.toFlow
+import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
+import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
+import me.vripper.gui.utils.ChannelFlowBuilder
 import me.vripper.model.Post
 import me.vripper.model.QueueState
 import me.vripper.services.download.MovePosition
@@ -17,15 +17,39 @@ class PostController : Controller() {
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-    val updatePostsFlow = currentAppEndpointService().onUpdatePosts().cancellable()
+    val updatePostsFlow =
+        ChannelFlowBuilder.build(
+            localAppEndpointService::onUpdatePosts,
+            remoteAppEndpointService::onUpdatePosts
+        )
 
-    val newPostsFlow = currentAppEndpointService().onNewPosts().map(::mapper).cancellable()
+    val newPostsFlow = ChannelFlowBuilder.build(
+        {
+            localAppEndpointService.onNewPosts().map { post ->
+                mapper(post)
+            }
+        }, {
+            remoteAppEndpointService.onNewPosts().map { post ->
+                mapper(post)
+            }
+        }
+    )
 
-    val deletedPostsFlow = currentAppEndpointService().onDeletePosts().cancellable()
+    val deletedPostsFlow =
+        ChannelFlowBuilder.build(
+            localAppEndpointService::onDeletePosts,
+            remoteAppEndpointService::onDeletePosts
+        )
 
-    val updateMetadataFlow = currentAppEndpointService().onUpdateMetadata().cancellable()
+    val updateMetadataFlow = ChannelFlowBuilder.build(
+        localAppEndpointService::onUpdateMetadata,
+        remoteAppEndpointService::onUpdateMetadata,
+    )
 
-    val queueStateUpdate = currentAppEndpointService().onQueueStateUpdate().cancellable()
+    val queueStateUpdate = ChannelFlowBuilder.build(
+        localAppEndpointService::onQueueStateUpdate,
+        remoteAppEndpointService::onQueueStateUpdate,
+    )
 
     suspend fun scan(postLinks: String) {
         runCatching { currentAppEndpointService().scanLinks(postLinks) }
@@ -59,8 +83,8 @@ class PostController : Controller() {
         return runCatching { mapper(currentAppEndpointService().findPost(postEntityId)) }.getOrNull()
     }
 
-    fun findAllPosts(): Flow<PostModel> {
-        return toFlow { currentAppEndpointService().findAllPosts().map(::mapper) }
+    suspend fun findAllPosts(): List<PostModel> {
+        return currentAppEndpointService().findAllPosts().map(::mapper)
     }
 
     suspend fun getQueueState(): QueueState {

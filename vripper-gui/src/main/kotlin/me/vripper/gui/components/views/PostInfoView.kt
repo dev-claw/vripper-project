@@ -2,8 +2,11 @@ package me.vripper.gui.components.views
 
 import javafx.collections.FXCollections
 import javafx.scene.control.TabPane
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.model.PostModel
 import org.kordamp.ikonli.feather.Feather
@@ -17,8 +20,6 @@ class PostInfoView : View() {
     private val postModel: PostModel = PostModel(
         -1, -1, "", 0.0, "", "", 0, 0, "", "", "*", "", "", "", emptyList(), emptyList(), "", 0
     )
-    private var updatePostJob: Job? = null
-    private var updateMetadataJob: Job? = null
 
     override val root = tabpane()
 
@@ -77,10 +78,6 @@ class PostInfoView : View() {
     }
 
     fun setPostId(id: Long?) {
-        runBlocking {
-            updatePostJob?.cancelAndJoin()
-            updateMetadataJob?.cancelAndJoin()
-        }
         imagesTableView.setPostId(id)
         if (id == null) {
             postModel.apply {
@@ -130,32 +127,37 @@ class PostInfoView : View() {
                 }
             }
         }
-        updatePostJob = coroutineScope.launch {
-            postController.updatePostsFlow.filter {
-                it.id == postModel.id
-            }.collect { post ->
-                runLater {
-                    postModel.status = post.status.stringValue.lowercase().replaceFirstChar { it.uppercase() }
-                    postModel.progressCount = postController.progressCount(
-                        post.total, post.done, post.downloaded
-                    )
-                    postModel.done = post.done
-                    postModel.progress = postController.progress(
-                        post.total, post.done
-                    )
-                    postModel.path = post.getDownloadFolder()
-                    postModel.folderName = post.folderName
+
+        postController.updatePostsFlow.let { flow ->
+            coroutineScope.launch {
+                flow.filter {
+                    it.id == postModel.id
+                }.collect { post ->
+                    runLater {
+                        postModel.status = post.status.stringValue.lowercase().replaceFirstChar { it.uppercase() }
+                        postModel.progressCount = postController.progressCount(
+                            post.total, post.done, post.downloaded
+                        )
+                        postModel.done = post.done
+                        postModel.progress = postController.progress(
+                            post.total, post.done
+                        )
+                        postModel.path = post.getDownloadFolder()
+                        postModel.folderName = post.folderName
+                    }
                 }
             }
         }
 
-        updateMetadataJob = coroutineScope.launch {
-            postController.updateMetadataFlow.filter {
-                it.postIdRef == postModel.id
-            }.collect {
-                runLater {
-                    postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
-                    postModel.postedBy = it.data.postedBy
+        postController.updateMetadataFlow.let { flow ->
+            coroutineScope.launch {
+                flow.filter {
+                    it.postIdRef == postModel.id
+                }.collect {
+                    runLater {
+                        postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
+                        postModel.postedBy = it.data.postedBy
+                    }
                 }
             }
         }
