@@ -31,8 +31,10 @@ class AddLinksFragment : Fragment("Add thread links") {
             action {
                 coroutineScope.launch {
                     postController.scan(textAreaProperty.value)
+                    runLater {
+                        close()
+                    }
                 }
-                close()
             }
         }
     }

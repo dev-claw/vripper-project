@@ -15,11 +15,12 @@ object ClipboardManager : KoinComponent {
     private var coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pollJob: Job? = null
     private var settingsUpdateJob: Job? = null
+    private val systemClipboard = Clipboard.getSystemClipboard()
 
     fun init() {
         coroutineScope.launch {
-            GuiEventBus.events.collect {
-                when (it) {
+            GuiEventBus.events.collect { event ->
+                when (event) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
                         logger.info("Clipboard manager initialized")
                         while (isActive) {
@@ -53,9 +54,8 @@ object ClipboardManager : KoinComponent {
                 var value: String? = null
                 while (isActive) {
                     runLater {
-                        val clipboard = Clipboard.getSystemClipboard()
-                        if (clipboard.hasString()) {
-                            value = clipboard.string
+                        if (systemClipboard.hasString()) {
+                            value = systemClipboard.string
                         }
                     }
                     if (!value.isNullOrBlank() && value != current) {
