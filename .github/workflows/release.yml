@@ -8,7 +8,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-13, macos-latest ]
+        os: [ ubuntu-latest, windows-latest, macos-15-intel, macos-latest ]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
@@ -105,8 +105,8 @@ jobs:
         jpackage --app-version ${{ github.event.release.tag_name }} "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
         mv dist/VRipper-${{ github.event.release.tag_name }}.pkg dist/vripper-macos-${{ github.event.release.tag_name }}.arm64.pkg
         mv dist/VRipper-${{ github.event.release.tag_name }}.dmg dist/vripper-macos-${{ github.event.release.tag_name }}.arm64.dmg
-    
-    - if: matrix.os == 'macos-13'
+
+    - if: matrix.os == 'macos-15-intel'
       name: Package for macOS(x86_64)
       run: |
         cd jpackage
@@ -142,8 +142,8 @@ jobs:
         directory: 'jpackage/dist'
         path: 'VRipper.app'
         filename: 'vripper-macos-portable-${{ github.event.release.tag_name }}.arm64.zip'
-    
-    - if: matrix.os == 'macos-13'
+
+    - if: matrix.os == 'macos-15-intel'
       name: Zip macOS(x86_64) portable
       uses: thedoctor0/zip-release@0.7.1
       with:
@@ -179,7 +179,7 @@ jobs:
           jpackage/dist/vripper-macos-${{ github.event.release.tag_name }}.arm64.dmg
           jpackage/dist/vripper-macos-portable-${{ github.event.release.tag_name }}.arm64.zip
           
-    - if: matrix.os == 'macos-13'
+    - if: matrix.os == 'macos-15-intel'
       name: Release packages for macOS(x86_64)
       uses: softprops/action-gh-release@v1
       with:
