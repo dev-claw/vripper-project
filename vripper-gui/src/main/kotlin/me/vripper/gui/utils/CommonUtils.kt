@@ -8,7 +8,7 @@ fun openFileDirectory(path: String) {
     if(os.contains("Windows")) {
         Shell32.INSTANCE.ShellExecuteW(null, WString("open"), WString(path), null, null, 1)
     } else if(os.contains("Linux")) {
-        Runtime.getRuntime().exec("xdg-open $path")
+        Runtime.getRuntime().exec(arrayOf("xdg-open", path))
     } else if(os.contains("Mac")) {
         Runtime.getRuntime().exec("open -R $path")
     }
