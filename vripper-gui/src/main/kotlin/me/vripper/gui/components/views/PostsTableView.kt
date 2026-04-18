@@ -203,7 +203,38 @@ class PostsTableView : View() {
                         }
                     }
                     cellFactory = Callback {
-                        TextFieldTableCell<PostModel?, String?>().apply { alignment = Pos.CENTER_LEFT }
+                        object : TableCell<PostModel, Number>() {
+                            override fun updateItem(item: Number?, empty: Boolean) {
+                                super.updateItem(item, empty)
+                                text = when {
+                                    empty -> null
+                                    item == null -> null
+                                    item.toLong() == -1L -> "*"  // Display "*" for -1
+                                    else -> item.toString()      // Display the actual value
+                                }
+                                alignment = Pos.CENTER_LEFT
+                            }
+                        }
+                    }
+                    comparator = Comparator { a, b ->
+                        when {
+                            a == null && b == null -> 0
+                            a == null -> 1  // Nulls to bottom
+                            b == null -> -1
+                            a.toLong() == -1L && b.toLong() == -1L -> 0  // Both -1, equal
+                            a.toLong() == -1L -> {
+                                // -1 always goes to bottom
+                                // In ascending: return 1 (a is greater, goes last)
+                                // In descending: return -1 (a is smaller, still goes last in reverse)
+                                if (sortType == TableColumn.SortType.ASCENDING) 1 else -1
+                            }
+
+                            b.toLong() == -1L -> {
+                                if (sortType == TableColumn.SortType.ASCENDING) -1 else 1
+                            }
+
+                            else -> a.toLong().compareTo(b.toLong())  // Normal numeric comparison
+                        }
                     }
                 }
                 column("Preview", PostModel::previewListProperty) {
@@ -496,11 +527,11 @@ class PostsTableView : View() {
             val rank = queueState.rank.find { it.postEntityId == post.id }
             if (rank != null) {
                 runLater {
-                    post.order = rank.rank.toString()
+                    post.order = rank.rank
                 }
-            } else if (post.order != "*") {
+            } else if (post.order != -1L) {
                 runLater {
-                    post.order = "*"
+                    post.order = -1L
                 }
             }
         }

@@ -76,7 +76,7 @@ val coreModule = module {
         MetadataService(get(), get())
     }
     single {
-        AcidimgHost(get())
+        AcidimgHost()
     } bind Host::class
     single {
         DPicMeHost()

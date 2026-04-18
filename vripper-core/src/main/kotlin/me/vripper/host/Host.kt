@@ -31,7 +31,7 @@ internal abstract class Host(
 ) : KoinComponent {
     private val log by LoggerDelegate()
 
-    private val httpService: HTTPService by inject()
+    protected val httpService: HTTPService by inject()
     private val dataAccessService: DataAccessService by inject()
     private val downloadSpeedService: DownloadSpeedService by inject()
 
@@ -61,7 +61,7 @@ internal abstract class Host(
         val imageMimeType = getImageMimeType(headers)
         val downloadedImage = if (imageMimeType != null) {
             // a direct link, awesome
-            val downloadedImage = fetch(context.imageEntity.url, context.imageEntity.url, context) {
+            val downloadedImage = fetch(context.imageEntity.url, context) {
                 handleImageDownload(it, context)
             }
             DownloadedImage(getDefaultImageName(context.imageEntity.url), downloadedImage.first, downloadedImage.second)
@@ -84,7 +84,7 @@ internal abstract class Host(
     private fun downloadByHost(context: Context): DownloadedImage {
         val resolvedImage = resolve(context)
         val downloadImage: Pair<Path, ImageMimeType> =
-            fetch(resolvedImage.second, context.imageEntity.url, context) {
+            fetch(resolvedImage.second, context) {
                 handleImageDownload(it, context)
             }
         return DownloadedImage(resolvedImage.first, downloadImage.first, downloadImage.second)
@@ -152,6 +152,7 @@ internal abstract class Host(
 
     fun head(context: Context): Array<Header> {
         val httpHead = HttpHead(context.imageEntity.url).also {
+            it.addHeader("Referer", "https://vipergirls.to/")
             it.setAbsoluteRequestUri(true)
             context.requests.add(it)
         }
@@ -169,8 +170,8 @@ internal abstract class Host(
 
     fun <T> fetch(
         url: String,
-        referer: String,
         context: Context,
+        referer: String = "https://vipergirls.to/",
         transformer: (ClassicHttpResponse) -> T
     ): T {
         val httpGet =
@@ -191,7 +192,7 @@ internal abstract class Host(
         url: String,
         context: Context
     ): Document {
-        return fetch(url, url, context) {
+        return fetch(url, context) {
             HtmlUtils.clean(it.entity.content)
         }.also {
             if (log.isDebugEnabled) {

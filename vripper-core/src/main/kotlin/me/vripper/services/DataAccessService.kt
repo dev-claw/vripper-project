@@ -9,6 +9,7 @@ import me.vripper.data.repositories.ThreadRepository
 import me.vripper.entities.*
 import me.vripper.event.*
 import me.vripper.model.ErrorCount
+import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils
 import me.vripper.utilities.PathUtils.sanitize
 import me.vripper.vgapi.PostItem
@@ -26,6 +27,8 @@ internal class DataAccessService(
     private val eventBus: EventBus,
 ) {
 
+    private val log by LoggerDelegate()
+
     private val postEntityIdCache: LoadingCache<Long, PostEntity> =
         Caffeine.newBuilder().expireAfterAccess(5, TimeUnit.MINUTES).build { id ->
             transaction { postRepository.findById(id) }
@@ -40,9 +43,10 @@ internal class DataAccessService(
             val savedPost =
                 postRepository.save(listOf(postEntity)).first()
             save(images.map { it.copy(postEntityId = savedPost.id) })
+            // Publish event inside transaction for consistency
+            eventBus.publishEvent(PostCreateEvent(listOf(savedPost)))
             savedPost
         }
-        eventBus.publishEvent(PostCreateEvent(listOf(savedPost)))
         return savedPost
     }
 
@@ -51,27 +55,34 @@ internal class DataAccessService(
         postEntities.forEach { postEntity ->
             postEntityIdCache.put(postEntity.id, postEntity)
         }
+        // Log and publish event after transaction commit but before returning
+        log.debug("[{}] Publishing event: PostUpdateEvent for {} posts", System.currentTimeMillis(), postEntities.size)
         eventBus.publishEvent(PostUpdateEvent(postEntities))
     }
 
     fun updatePost(postEntity: PostEntity) {
         transaction { postRepository.update(postEntity) }
         postEntityIdCache.put(postEntity.id, postEntity)
+        // Log and publish event after transaction commit but before returning
+        log.debug("[{}] Publishing event: PostUpdateEvent for post {}", System.currentTimeMillis(), postEntity.id)
         eventBus.publishEvent(PostUpdateEvent(listOf(postEntity)))
     }
 
     fun save(threadEntity: ThreadEntity) {
         val savedThread = transaction { threadRepository.save(threadEntity) }
+        log.debug("[{}] Publishing event: ThreadCreateEvent for thread {}", System.currentTimeMillis(), savedThread.id)
         eventBus.publishEvent(ThreadCreateEvent(savedThread))
     }
 
     fun update(threadEntity: ThreadEntity) {
         transaction { threadRepository.update(threadEntity) }
+        log.debug("[{}] Publishing event: ThreadUpdateEvent for thread {}", System.currentTimeMillis(), threadEntity.id)
         eventBus.publishEvent(ThreadUpdateEvent(threadEntity))
     }
 
     fun updateImages(imageEntities: List<ImageEntity>) {
         transaction { imageRepository.update(imageEntities) }
+        log.debug("[{}] Publishing event: ImageEvent for {} images", System.currentTimeMillis(), imageEntities.size)
         eventBus.publishEvent(ImageEvent(imageEntities))
     }
 
@@ -81,6 +92,7 @@ internal class DataAccessService(
                 imageRepository.update(imageEntity)
             }
         }
+        log.debug("[{}] Publishing event: ImageEvent for image {}", System.currentTimeMillis(), imageEntity.id)
         eventBus.publishEvent(ImageEvent(listOf(imageEntity)))
     }
 
@@ -183,12 +195,15 @@ internal class DataAccessService(
             postEntityIdCache.get(postEntityId)?.let { postEntityIdCache.invalidate(it.id) }
             postEntityIdCache.invalidate(postEntityId)
         }
+        log.debug("[{}] Publishing event: PostDeleteEvent for {} posts", System.currentTimeMillis(), postEntityIds.size)
         eventBus.publishEvent(PostDeleteEvent(postEntityIds = postEntityIds))
+        log.debug("[{}] Publishing event: ErrorCountEvent after post deletion", System.currentTimeMillis())
         eventBus.publishEvent(ErrorCountEvent(ErrorCount(countImagesInError())))
     }
 
     fun removeThread(threadId: Long) {
         transaction { threadRepository.deleteByThreadId(threadId) }
+        log.debug("[{}] Publishing event: ThreadDeleteEvent for thread {}", System.currentTimeMillis(), threadId)
         eventBus.publishEvent(ThreadDeleteEvent(threadId))
     }
 
@@ -216,11 +231,17 @@ internal class DataAccessService(
 
     fun saveMetadata(metadataEntity: MetadataEntity) {
         transaction { metadataRepository.save(metadataEntity) }
+        log.debug(
+            "[{}] Publishing event: MetadataUpdateEvent for post {}",
+            System.currentTimeMillis(),
+            metadataEntity.postIdRef
+        )
         eventBus.publishEvent(MetadataUpdateEvent(metadataEntity))
     }
 
     fun clearQueueLinks() {
         transaction { threadRepository.deleteAll() }
+        log.debug("[{}] Publishing event: ThreadClearEvent", System.currentTimeMillis())
         eventBus.publishEvent(ThreadClearEvent())
     }
 

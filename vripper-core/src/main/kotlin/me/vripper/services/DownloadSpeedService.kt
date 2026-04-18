@@ -6,6 +6,7 @@ import me.vripper.event.DownloadSpeedEvent
 import me.vripper.event.EventBus
 import me.vripper.event.QueueStateEvent
 import me.vripper.model.DownloadSpeed
+import me.vripper.utilities.LoggerDelegate
 import java.util.concurrent.atomic.AtomicLong
 
 internal class DownloadSpeedService(
@@ -16,6 +17,7 @@ internal class DownloadSpeedService(
         const val DOWNLOAD_POLL_RATE = 2500
     }
 
+    private val log by LoggerDelegate()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val bytesCount = AtomicLong(0)
     private var job: Job? = null
@@ -32,7 +34,13 @@ internal class DownloadSpeedService(
                             while (isActive) {
                                 delay(DOWNLOAD_POLL_RATE.toLong())
                                 val newValue = bytesCount.getAndSet(0)
-                                eventBus.publishEvent(DownloadSpeedEvent(DownloadSpeed(((newValue * 1000) / DOWNLOAD_POLL_RATE))))
+                                val speed = DownloadSpeed(((newValue * 1000) / DOWNLOAD_POLL_RATE))
+                                log.debug(
+                                    "[{}] Publishing event: DownloadSpeedEvent({})",
+                                    System.currentTimeMillis(),
+                                    speed
+                                )
+                                eventBus.publishEvent(DownloadSpeedEvent(speed))
                             }
                         }
                     }
@@ -40,6 +48,7 @@ internal class DownloadSpeedService(
                     job?.cancel()
                     coroutineScope.launch {
                         delay(DOWNLOAD_POLL_RATE + 500L)
+                        log.debug("[{}] Publishing event: DownloadSpeedEvent(0)", System.currentTimeMillis())
                         eventBus.publishEvent(DownloadSpeedEvent(DownloadSpeed(0L)))
                     }
                 }

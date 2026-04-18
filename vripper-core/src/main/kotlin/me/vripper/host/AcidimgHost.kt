@@ -2,7 +2,6 @@ package me.vripper.host
 
 import me.vripper.exception.HostException
 import me.vripper.exception.XpathException
-import me.vripper.services.HTTPService
 import me.vripper.services.download.ImageDownloadRunnable.Context
 import me.vripper.utilities.HtmlUtils
 import me.vripper.utilities.LoggerDelegate
@@ -12,9 +11,7 @@ import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
 import org.apache.hc.core5.http.message.BasicNameValuePair
 import org.w3c.dom.Node
 
-internal class AcidimgHost(
-    private val httpService: HTTPService,
-) : Host("acidimg.cc", 0) {
+internal class AcidimgHost : Host("acidimg.cc", 0) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

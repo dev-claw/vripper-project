@@ -26,7 +26,7 @@ internal class PimpandhostHost : Host("pimpandhost.com", 9) {
         } catch (e: Exception) {
             throw HostException(e)
         }
-        val doc = fetch(newUrl, context.imageEntity.url, context) {
+        val doc = fetch(newUrl, context) {
             HtmlUtils.clean(it.entity.content)
         }
         val imgNode: Node = try {

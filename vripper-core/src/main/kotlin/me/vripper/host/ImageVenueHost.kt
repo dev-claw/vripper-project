@@ -26,7 +26,7 @@ internal class ImageVenueHost : Host("imagevenue.com", 4) {
             )
             if (XpathUtils.getAsNode(document, CONTINUE_BUTTON_XPATH) != null) {
                 // Button detected. No need to actually click it, just make the call again.
-                fetch(context.imageEntity.url, context.imageEntity.url, context) {
+                fetch(context.imageEntity.url, context) {
                     HtmlUtils.clean(it.entity.content)
                 }
             } else {

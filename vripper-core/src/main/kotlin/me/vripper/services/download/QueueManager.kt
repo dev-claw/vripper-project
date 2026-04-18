@@ -66,19 +66,21 @@ internal class QueueManager(
     }
 
     fun accept(accepted: List<ImageQueueElement>) {
-        pending.forEach {
-            it.removeAll(accepted)
+        downloadManagerLock.withLock {
+            pending.forEach {
+                it.removeAll(accepted)
+            }
+            pending.removeIf { it.isEmpty() }
+            accepted.map {
+                ImageDownloadRunnable(
+                    dataAccessService.findImageById(it.imageEntityId).orElseThrow(), settingsService.settings.copy()
+                )
+            }.forEach {
+                launch(it)
+                running.add(it)
+            }
+            reportQueueState()
         }
-        pending.removeIf { it.isEmpty() }
-        accepted.map {
-            ImageDownloadRunnable(
-                dataAccessService.findImageById(it.imageEntityId).orElseThrow(), settingsService.settings.copy()
-            )
-        }.forEach {
-            launch(it)
-            running.add(it)
-        }
-        reportQueueState()
     }
 
     fun pending(): List<ImageQueueElement> {
@@ -121,8 +123,8 @@ internal class QueueManager(
                     }
                 }
             }
+            reportQueueState()
         }
-        reportQueueState()
     }
 
     fun getQueueState(): QueueState {
@@ -146,8 +148,6 @@ internal class QueueManager(
                 dataAccessService.updateImage(image)
             }.onComplete {
                 afterJobFinish(runnable)
-                reportQueueState()
-                eventBus.publishEvent(ErrorCountEvent(ErrorCount(dataAccessService.countImagesInError())))
                 log.debug(
                     "Finished downloading ${runnable.context.imageEntity.url}"
                 )
@@ -161,12 +161,21 @@ internal class QueueManager(
             if (!isPending(image.postEntityId) && !isRunning(image.postEntityId) && !imageDownloadRunnable.stopped) {
                 dataAccessService.finishPost(image.postEntityId, true)
             }
+            reportQueueState()
+            log.debug("[{}] Event published: ErrorCountEvent after job finish", System.currentTimeMillis())
+            eventBus.publishEvent(ErrorCountEvent(ErrorCount(dataAccessService.countImagesInError())))
             downloadManagerCondition.signal()
         }
     }
 
     private fun reportQueueState() {
         val queueState = getQueueState()
+        log.debug(
+            "[{}] Publishing event: QueueStateEvent(running={}, remaining={})",
+            System.currentTimeMillis(),
+            queueState.running,
+            queueState.remaining
+        )
         eventBus.publishEvent(QueueStateEvent(queueState))
     }
 }

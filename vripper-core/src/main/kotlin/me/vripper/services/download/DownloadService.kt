@@ -54,12 +54,20 @@ internal class DownloadService(
     }
 
     fun stop(postEntityIds: List<Long> = emptyList()) {
-        if (postEntityIds.isNotEmpty()) {
-            stopInternal(postEntityIds)
-            eventBus.publishEvent(StoppedEvent(postEntityIds))
-        } else {
-            stopAll()
-            eventBus.publishEvent(StoppedEvent(listOf(-1)))
+        downloadManagerLock.withLock {
+            if (postEntityIds.isNotEmpty()) {
+                stopInternal(postEntityIds)
+                log.debug(
+                    "[{}] Publishing event: StoppedEvent for {} posts",
+                    System.currentTimeMillis(),
+                    postEntityIds.size
+                )
+                eventBus.publishEvent(StoppedEvent(postEntityIds))
+            } else {
+                stopAll()
+                log.debug("[{}] Publishing event: StoppedEvent for all posts", System.currentTimeMillis())
+                eventBus.publishEvent(StoppedEvent(listOf(-1)))
+            }
         }
     }
 
@@ -125,24 +133,20 @@ internal class DownloadService(
     }
 
     private fun stopAll() {
-        downloadManagerLock.withLock {
-            queueManager.clearPending()
-            queueManager.clearRunning()
-            dataAccessService.findAllNonCompletedPostEntityIds().forEach {
-                dataAccessService.stopImagesByPostEntityIdAndIsNotCompleted(it)
-                dataAccessService.finishPost(it)
-            }
+        queueManager.clearPending()
+        queueManager.clearRunning()
+        dataAccessService.findAllNonCompletedPostEntityIds().forEach {
+            dataAccessService.stopImagesByPostEntityIdAndIsNotCompleted(it)
+            dataAccessService.finishPost(it)
         }
     }
 
     private fun stopInternal(postEntityIds: List<Long>) {
-        downloadManagerLock.withLock {
-            postEntityIds.forEach {
-                queueManager.clearPending(it)
-                queueManager.clearRunning(it)
-                dataAccessService.stopImagesByPostEntityIdAndIsNotCompleted(it)
-                dataAccessService.finishPost(it)
-            }
+        postEntityIds.forEach {
+            queueManager.clearPending(it)
+            queueManager.clearRunning(it)
+            dataAccessService.stopImagesByPostEntityIdAndIsNotCompleted(it)
+            dataAccessService.finishPost(it)
         }
     }
 

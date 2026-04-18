@@ -18,7 +18,7 @@ class PostInfoView : View() {
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val imagesTableView: ImagesTableView by inject()
     private val postModel: PostModel = PostModel(
-        -1, -1, "", 0.0, "", "", 0, 0, "", "", "*", "", "", "", emptyList(), emptyList(), "", 0
+        -1, -1, "", 0.0, "", "", 0, 0, "", "", -1, "", "", "", emptyList(), emptyList(), "", 0
     )
 
     override val root = tabpane()
@@ -89,7 +89,7 @@ class PostInfoView : View() {
                 this.total = 0
                 this.hosts = ""
                 this.addedOn = ""
-                this.order = "*"
+                this.order = -1
                 this.path = ""
                 this.folderName = ""
                 this.progressCount = ""

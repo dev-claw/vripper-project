@@ -8,7 +8,6 @@ import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 import org.apache.hc.client5.http.impl.cookie.BasicClientCookie
 import org.w3c.dom.Node
-import java.sql.Date
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.*
@@ -24,15 +23,13 @@ internal class ImageBamHost : Host("imagebam.com", 2) {
         val doc = try {
             log.debug(String.format("Looking for xpath expression %s in %s", CONTINUE_XPATH, context.imageEntity.url))
             if (XpathUtils.getAsNode(document, CONTINUE_XPATH) != null) {
-                val clientCookie = BasicClientCookie("nsfw_inter", "1")
-                clientCookie.domain = "www.imagebam.com"
-                clientCookie.path = "/"
-                clientCookie.expiryDate =
-                    Date.from(
-                        LocalDateTime.now().plusDays(3).atZone(ZoneId.systemDefault()).toInstant()
-                    )
-                context.httpContext.cookieStore.addCookie(clientCookie)
-                fetch(context.imageEntity.url, context.imageEntity.url, context) {
+                val sfwCookie = BasicClientCookie("sfw_inter", "1")
+                sfwCookie.domain = "www.imagebam.com"
+                sfwCookie.path = "/"
+                sfwCookie.setExpiryDate(LocalDateTime.now().plusDays(3).atZone(ZoneId.systemDefault()).toInstant())
+
+                context.httpContext.cookieStore.addCookie(sfwCookie)
+                fetch(context.imageEntity.url, context) {
                     HtmlUtils.clean(it.entity.content)
                 }
             } else {

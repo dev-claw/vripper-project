@@ -29,11 +29,14 @@ internal class VGAuthService(
     fun authenticate(settings: Settings) {
         if (!settings.viperSettings.login) {
             log.debug("Authentication option is disabled")
-            authenticated = false
-            loggedUser = ""
+            synchronized(this) {
+                authenticated = false
+                loggedUser = ""
+            }
             synchronized(vgCookies) {
                 vgCookies.clear()
             }
+            log.debug("[{}] Publishing event: VGUserLoginEvent", System.currentTimeMillis())
             eventBus.publishEvent(VGUserLoginEvent(loggedUser))
             return
         }
@@ -41,11 +44,14 @@ internal class VGAuthService(
         val password = settings.viperSettings.password
         if (username.isEmpty() || password.isEmpty()) {
             log.error("Cannot authenticate with ViperGirls credentials, username or password is empty")
-            authenticated = false
-            loggedUser = ""
+            synchronized(this) {
+                authenticated = false
+                loggedUser = ""
+            }
             synchronized(vgCookies) {
                 vgCookies.clear()
             }
+            log.debug("[{}] Publishing event: VGUserLoginEvent (empty credentials)", System.currentTimeMillis())
             eventBus.publishEvent(VGUserLoginEvent(loggedUser))
             return
         }
@@ -82,6 +88,7 @@ internal class VGAuthService(
                     "Failed to authenticate user with {}, missing vg_userid/vg_password cookie",
                     settings.viperSettings.host
                 )
+                log.debug("[${System.currentTimeMillis()}] Publishing event: VGUserLoginEvent (missing cookies)")
                 eventBus.publishEvent(VGUserLoginEvent(loggedUser))
                 return
             }
@@ -98,15 +105,21 @@ internal class VGAuthService(
             log.error(
                 "Failed to authenticate user with " + settings.viperSettings.host, e
             )
-            authenticated = false
-            loggedUser = ""
+            synchronized(this) {
+                authenticated = false
+                loggedUser = ""
+            }
+            log.debug("[{}] Publishing event: VGUserLoginEvent (exception)", System.currentTimeMillis())
             eventBus.publishEvent(VGUserLoginEvent(loggedUser))
             return
         }
-        authenticated = true
-        loggedUser = username
+        synchronized(this) {
+            authenticated = true
+            loggedUser = username
+        }
+        log.debug("[{}] Publishing event: VGUserLoginEvent for user {}", System.currentTimeMillis(), username)
         eventBus.publishEvent(VGUserLoginEvent(loggedUser))
-        log.info("Successfully logged in as: $loggedUser")
+        log.info("Successfully logged in as: {}", loggedUser)
     }
 
     fun leaveThanks(postEntity: PostEntity) {

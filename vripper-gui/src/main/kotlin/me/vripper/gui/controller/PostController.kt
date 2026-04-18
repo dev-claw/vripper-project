@@ -115,7 +115,7 @@ class PostController : Controller() {
             post.total,
             post.hosts.joinToString(separator = ", "),
             post.addedOn.format(dateTimeFormatter),
-            "*",
+            -1,
             post.getDownloadFolder(),
             post.folderName,
             progressCount(post.total, post.done, post.downloaded),
