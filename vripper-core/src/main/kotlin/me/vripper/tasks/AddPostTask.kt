@@ -1,6 +1,6 @@
 package me.vripper.tasks
 
-import me.vripper.model.ThreadPostId
+import me.vripper.model.PostIdentifier
 import me.vripper.services.DataAccessService
 import me.vripper.services.MetadataService
 import me.vripper.services.SettingsService
@@ -12,7 +12,7 @@ import me.vripper.vgapi.PostLookupAPIParser
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-internal class AddPostTask(private val items: List<ThreadPostId>) : KoinComponent, Runnable {
+internal class AddPostTask(private val items: List<PostIdentifier>) : KoinComponent, Runnable {
     private val log by LoggerDelegate()
     private val dataAccessService: DataAccessService by inject()
     private val settingsService: SettingsService by inject()
@@ -24,19 +24,19 @@ internal class AddPostTask(private val items: List<ThreadPostId>) : KoinComponen
         try {
             Tasks.increment()
             val toProcess = mutableListOf<PostItem>()
-            for ((threadId, postId) in items) {
+            for ((siteProxy, threadId, postId) in items) {
                 if (dataAccessService.existsPostId(postId)) {
                     log.info("Post $postId already loaded")
                     continue
                 }
 
                 val link =
-                    "${settingsService.settings.viperSettings.host}/threads/$threadId?p=$postId&viewfull=1#post$postId"
+                    "$siteProxy/threads/$threadId?p=$postId&viewfull=1#post$postId"
 
                 val cachedThread = threadCacheService.getIfPresent(threadId)
                 val threadItem = cachedThread ?:
                     PostLookupAPIParser(
-                        threadId, postId
+                        siteProxy, threadId, postId
                     ).parse()
 
 

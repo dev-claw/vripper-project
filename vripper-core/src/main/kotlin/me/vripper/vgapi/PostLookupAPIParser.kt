@@ -18,7 +18,11 @@ import org.koin.core.component.inject
 import java.io.ByteArrayInputStream
 import javax.xml.parsers.SAXParserFactory
 
-internal class PostLookupAPIParser(private val threadId: Long, private val postId: Long) : KoinComponent {
+internal class PostLookupAPIParser(
+    private val siteProxy: String,
+    private val threadId: Long,
+    private val postId: Long
+) : KoinComponent {
     private val log by LoggerDelegate()
     private val retryPolicyService: RetryPolicyService by inject()
     private val httpService: HTTPService by inject()
@@ -33,7 +37,7 @@ internal class PostLookupAPIParser(private val threadId: Long, private val postI
                     "p", postId.toString()
                 )
             }.build()).also { it.setAbsoluteRequestUri(true) }
-        val threadLookupAPIResponseHandler = ThreadLookupAPIResponseHandler()
+        val threadLookupAPIResponseHandler = ThreadLookupAPIResponseHandler(siteProxy)
         Tasks.increment()
         return try {
             Failsafe.with(retryPolicyService.buildRetryPolicy<Any>("Failed to parse $httpGet: ")).onFailure {

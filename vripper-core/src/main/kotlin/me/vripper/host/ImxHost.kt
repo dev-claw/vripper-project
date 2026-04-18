@@ -73,6 +73,8 @@ internal class ImxHost : Host("imx.to", 8) {
             "https://image.imx.to/u/i/" + url.replace("https://t.imx.to/t/", "")
         } else if (url.startsWith("https://imx.to/upload/small/")) {
             "https://image.imx.to/u/i/" + url.replace("https://imx.to/upload/small/", "")
+        } else if (url.startsWith("https://image.imx.to/u/i/")) {
+            url
         } else {
             throw HostException("Cannot find pattern for url ${image.thumbUrl}")
         }

@@ -14,11 +14,8 @@ import me.vripper.services.download.MovePosition
 import me.vripper.services.download.QueueManager
 import me.vripper.tasks.AddPostTask
 import me.vripper.tasks.ThreadLookupTask
-import me.vripper.utilities.ApplicationProperties
+import me.vripper.utilities.*
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
-import me.vripper.utilities.LoggerDelegate
-import me.vripper.utilities.PathUtils
-import me.vripper.utilities.taskRunner
 import org.h2.jdbc.JdbcSQLNonTransientConnectionException
 import java.sql.DriverManager
 import java.time.Duration
@@ -50,15 +47,17 @@ internal class AppEndpointService(
             }
             val urlList = postLinks.split(Pattern.compile("\\r?\\n")).dropLastWhile { it.isBlank() }.map { it.trim() }
                 .filter { it.isNotEmpty() }
+            val proxies = settingsService.getProxies()
             for (link in urlList) {
                 log.debug("Scanning: $link")
-                if (!link.startsWith(settingsService.settings.viperSettings.host)) {
+                val matchingProxy = proxies.find { link.startsWith(it) }
+                if (matchingProxy == null) {
                     continue
                 }
                 var threadId: Long
                 var postId: Long?
                 val m = Pattern.compile(
-                    Pattern.quote(settingsService.settings.viperSettings.host) + "/threads/(\\d+)((.*p=)(\\d+))?"
+                    Pattern.quote(matchingProxy) + "/threads/(\\d+)((.*p=)(\\d+))?"
                 ).matcher(link)
                 if (m.find()) {
                     threadId = m.group(1).toLong()
@@ -66,13 +65,13 @@ internal class AppEndpointService(
                     if (postId == null) {
                         taskRunner.submit(
                             ThreadLookupTask(
-                                threadId, settingsService.settings
+                                matchingProxy, threadId, settingsService.settings
                             )
                         )
                     } else {
                         taskRunner.submit(
                             AddPostTask(
-                                listOf(ThreadPostId(threadId, postId))
+                                listOf(PostIdentifier(matchingProxy, threadId, postId))
                             )
                         )
                     }
@@ -92,7 +91,13 @@ internal class AppEndpointService(
     }
 
     override suspend fun download(posts: List<ThreadPostId>) {
-        taskRunner.submit(AddPostTask(posts))
+        posts.map {
+            val thread = dataAccessService.findThreadByThreadId(it.threadId).getOrNull()
+                ?: throw PostParseException("Could not find thread with id ${it.threadId}")
+            PostIdentifier(thread.link.extractBaseUrl(), it.threadId, it.postId)
+        }.also {
+            taskRunner.submit(AddPostTask(it))
+        }
     }
 
     override suspend fun stopAll(postEntityIds: List<Long>) {
