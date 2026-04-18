@@ -36,3 +36,7 @@ fun String.hash256(): String {
     val digest = md.digest(bytes)
     return digest.fold("") { str, it -> str + "%02x".format(it) }
 }
+
+fun String.extractBaseUrl(): String {
+    return this.replaceFirst(Regex("(https?://[^/]+).*"), "$1")
+}

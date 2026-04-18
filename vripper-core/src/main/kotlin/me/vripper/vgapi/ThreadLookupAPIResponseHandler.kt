@@ -1,15 +1,12 @@
 package me.vripper.vgapi
 
 import me.vripper.host.Host
-import me.vripper.services.SettingsService
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 
-internal class ThreadLookupAPIResponseHandler : KoinComponent, DefaultHandler() {
+internal class ThreadLookupAPIResponseHandler(private val siteProxy: String) : KoinComponent, DefaultHandler() {
     private val supportedHosts: List<Host> = getKoin().getAll()
-    private val settingsService: SettingsService by inject()
     private var error: String = ""
     private val hostMap: MutableMap<Host, Int> = mutableMapOf()
     private val postItemList: MutableList<PostItem> = mutableListOf()
@@ -74,7 +71,7 @@ internal class ThreadLookupAPIResponseHandler : KoinComponent, DefaultHandler() 
                         postCounter,
                         postTitle,
                         imageItemList.size,
-                        "${settingsService.settings.viperSettings.host}/threads/$threadId?p=$postId&viewfull=1#post$postId",
+                        "$siteProxy/threads/$threadId?p=$postId&viewfull=1#post$postId",
                         hostMap.toMap().map { Pair(it.key.hostName, it.value) },
                         securityToken,
                         forum,
