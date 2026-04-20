@@ -69,6 +69,8 @@ internal class ImxHost : Host("imx.to", 8) {
             .replace("http:", "https:")
         return if (url.startsWith("https://image.imx.to/u/t/")) {
             "https://image.imx.to/u/i/" + url.replace("https://image.imx.to/u/t/", "")
+        } else if (url.startsWith("https://imx.to/u/t")) {
+            "https://image.imx.to/u/i/" + url.replace("https://imx.to/u/t", "")
         } else if (url.startsWith("https://t.imx.to/t/")) {
             "https://image.imx.to/u/i/" + url.replace("https://t.imx.to/t/", "")
         } else if (url.startsWith("https://imx.to/upload/small/")) {
