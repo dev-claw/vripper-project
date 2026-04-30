@@ -171,9 +171,9 @@ internal abstract class Host(
     fun <T> fetch(
         url: String,
         context: Context,
-        referer: String = "https://vipergirls.to/",
         transformer: (ClassicHttpResponse) -> T
     ): T {
+        val referer = context.headers["Referer"] ?: "https://vipergirls.to/"
         val httpGet =
             HttpGet(url).also {
                 it.addHeader("Referer", referer)

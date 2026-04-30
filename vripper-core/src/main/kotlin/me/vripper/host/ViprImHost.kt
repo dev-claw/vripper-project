@@ -35,6 +35,7 @@ internal class ViprImHost : Host("vipr.im", 15) {
                     .map { obj: Node -> obj.textContent }
                     .map { obj: String -> obj.trim() }.orElse(null)
             val imgUrl = imgNode.attributes.getNamedItem("src").textContent.trim()
+            context.headers["Referer"] = "https://vipr.im/"
             Pair(imgTitle!!, imgUrl)
         } catch (e: Exception) {
             throw HostException("Unexpected error occurred", e)
