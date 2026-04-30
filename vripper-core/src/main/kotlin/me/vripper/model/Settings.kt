@@ -24,7 +24,7 @@ data class Settings(
     val viperSettings: ViperSettings = ViperSettings(),
     val systemSettings: SystemSettings = SystemSettings(),
     val hostSettings: Map<HostName, Map<HostSettingKey, String>> = mapOf(
-        HostName.IMX to mapOf(HostSettingKey.TRY_TO_FETCH_ORIGINAL_FILENAME to "true")
+        HostName.IMX to mapOf(HostSettingKey.TRY_TO_FETCH_ORIGINAL_FILENAME to "false")
     )
 )
 
