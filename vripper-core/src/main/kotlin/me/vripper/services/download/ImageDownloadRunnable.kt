@@ -49,6 +49,7 @@ internal class ImageDownloadRunnable(
             cookieStore = HTTPService.cookieStore
         }
         val requests = mutableListOf<HttpUriRequestBase>()
+        val headers = mutableMapOf<String, String>()
 
         init {
             ApplicationProperties.VRIPPER_DIR.listDirectoryEntries()

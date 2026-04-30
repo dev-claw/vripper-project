@@ -23,11 +23,18 @@ internal class ImageBamHost : Host("imagebam.com", 2) {
         val doc = try {
             log.debug(String.format("Looking for xpath expression %s in %s", CONTINUE_XPATH, context.imageEntity.url))
             if (XpathUtils.getAsNode(document, CONTINUE_XPATH) != null) {
-                val sfwCookie = BasicClientCookie("sfw_inter", "1")
-                sfwCookie.domain = "www.imagebam.com"
-                sfwCookie.path = "/"
-                sfwCookie.setExpiryDate(LocalDateTime.now().plusDays(3).atZone(ZoneId.systemDefault()).toInstant())
+                val nsfwCookie = BasicClientCookie("nsfw_inter", "1").apply {
+                    domain = "www.imagebam.com"
+                    path = "/"
+                    setExpiryDate(LocalDateTime.now().plusDays(3).atZone(ZoneId.systemDefault()).toInstant())
+                }
+                val sfwCookie = BasicClientCookie("sfw_inter", "1").apply {
+                    domain = "www.imagebam.com"
+                    path = "/"
+                    setExpiryDate(LocalDateTime.now().plusDays(3).atZone(ZoneId.systemDefault()).toInstant())
+                }
 
+                context.httpContext.cookieStore.addCookie(nsfwCookie)
                 context.httpContext.cookieStore.addCookie(sfwCookie)
                 fetch(context.imageEntity.url, context) {
                     HtmlUtils.clean(it.entity.content)

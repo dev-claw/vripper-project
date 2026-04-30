@@ -213,13 +213,15 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     enableClipboardMonitoring = request.systemSettings.enableClipboardMonitoring,
                     clipboardPollingRate = request.systemSettings.clipboardPollingRate,
                     maxEventLog = request.systemSettings.maxEventLog,
-                ), hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
+                ),
+                hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
                     HostName.valueOf(hostSettings.key) to hostSettings.value.settingsMap.entries.associate {
                         HostSettingKey.valueOf(
                             it.key
                         ) to it.value
                     }
-                })
+                }
+            )
         )
         return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
