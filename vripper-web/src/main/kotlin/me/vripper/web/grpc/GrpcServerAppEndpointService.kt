@@ -293,11 +293,22 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             build()
         }
 
+        val hostSettings = settings.hostSettings.entries.associate {
+            val hostSettings = with(SettingsOuterClass.HostSettingsMap.newBuilder()) {
+                this.putAllSettings(it.value.entries.associate { setting ->
+                    setting.key.name to setting.value
+                })
+                build()
+            }
+            it.key.name to hostSettings
+        }
+
         return with(SettingsOuterClass.Settings.newBuilder()) {
             this.connectionSettings = connectionSettings
             this.downloadSettings = downloadSettings
             this.viperSettings = viperSettings
             this.systemSettings = systemSettings
+            this.putAllHostSettings(hostSettings)
             build()
         }
     }
