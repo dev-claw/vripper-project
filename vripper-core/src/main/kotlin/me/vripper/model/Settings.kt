@@ -5,12 +5,27 @@ import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
 import java.nio.file.Files
 import kotlin.io.path.pathString
 
+enum class HostName {
+    IMX
+}
+
+enum class HostSettingKey(val type: SettingType) {
+    TRY_TO_FETCH_ORIGINAL_FILENAME(SettingType.BOOLEAN)
+}
+
+enum class SettingType {
+    STRING, BOOLEAN, INT
+}
+
 @Serializable
 data class Settings(
     val connectionSettings: ConnectionSettings = ConnectionSettings(),
     val downloadSettings: DownloadSettings = DownloadSettings(),
     val viperSettings: ViperSettings = ViperSettings(),
-    val systemSettings: SystemSettings = SystemSettings()
+    val systemSettings: SystemSettings = SystemSettings(),
+    val hostSettings: Map<HostName, Map<HostSettingKey, String>> = mapOf(
+        HostName.IMX to mapOf(HostSettingKey.TRY_TO_FETCH_ORIGINAL_FILENAME to "true")
+    )
 )
 
 @Serializable
@@ -51,3 +66,4 @@ data class SystemSettings(
     val clipboardPollingRate: Int = 500,
     val maxEventLog: Int = 1_000,
 )
+

@@ -1,9 +1,6 @@
 package me.vripper.gui.controller
 
-import me.vripper.gui.model.settings.ConnectionSettingsModel
-import me.vripper.gui.model.settings.DownloadSettingsModel
-import me.vripper.gui.model.settings.SystemSettingsModel
-import me.vripper.gui.model.settings.ViperSettingsModel
+import me.vripper.gui.model.settings.*
 import me.vripper.gui.utils.AppEndpointManager
 import me.vripper.model.*
 import tornadofx.Controller
@@ -36,11 +33,18 @@ class SettingsController : Controller() {
         )
     }
 
+    suspend fun findHostSettings(): Map<HostName, Map<HostSettingKey, String>> {
+        return runCatching { AppEndpointManager.currentAppEndpointService().getSettings().hostSettings }.getOrDefault(
+            emptyMap()
+        )
+    }
+
     suspend fun saveNewSettings(
         downloadSettingsModel: DownloadSettingsModel,
         connectionSettingsModel: ConnectionSettingsModel,
         viperSettingsModel: ViperSettingsModel,
-        systemSettingsModel: SystemSettingsModel
+        systemSettingsModel: SystemSettingsModel,
+        hostSettingsModel: List<HostSettingsModel>,
     ) {
         runCatching {
             AppEndpointManager.currentAppEndpointService().saveSettings(
@@ -76,7 +80,17 @@ class SettingsController : Controller() {
                             systemSettingsModel.enable,
                             systemSettingsModel.pollingRate,
                             systemSettingsModel.logEntries
-                        )
+                        ),
+                    hostSettings = run {
+                        val hostSettingsMap = mutableMapOf<HostName, MutableMap<HostSettingKey, String>>()
+                        hostSettingsModel.forEach { model ->
+                            val hostName = model.host
+                            val settingKey = model.settingKey
+                            hostSettingsMap.computeIfAbsent(hostName) { mutableMapOf() }[settingKey] =
+                                model.valueProperty.value.toString()
+                        }
+                        hostSettingsMap
+                    }
                 )
             )
         }

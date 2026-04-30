@@ -36,9 +36,14 @@ message SystemSettings {
   int32 maxEventLog = 4;
 }
 
+message HostSettingsMap {
+  map<string, string> settings = 1;
+}
+
 message Settings {
   ConnectionSettings connectionSettings = 1;
   DownloadSettings downloadSettings = 2;
   ViperSettings viperSettings = 3;
   SystemSettings systemSettings = 4;
+  map<string, HostSettingsMap> hostSettings = 5;
 }

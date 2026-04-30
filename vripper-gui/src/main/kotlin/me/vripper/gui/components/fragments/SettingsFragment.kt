@@ -24,6 +24,7 @@ class SettingsFragment : Fragment("Settings") {
     val connectionSettings: ConnectionSettings by param()
     val viperSettings: ViperSettings by param()
     val systemSettings: SystemSettings by param()
+    val hostSettings: Map<String, Map<String, String>> by param()
     private val settingsController: SettingsController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadSettingsFragment: DownloadSettingsFragment =
@@ -34,6 +35,9 @@ class SettingsFragment : Fragment("Settings") {
         find(mapOf(ViperSettingsFragment::viperSettings to viperSettings))
     private val systemSettingsFragment: SystemSettingsFragment =
         find(mapOf(SystemSettingsFragment::systemSettings to systemSettings))
+    private val hostSettingsFragment: HostSettingsFragment =
+        find(mapOf(HostSettingsFragment::hostSettings to hostSettings))
+
 
     override val root = vbox(alignment = Pos.CENTER_RIGHT) {
         spacing = 5.0
@@ -60,6 +64,10 @@ class SettingsFragment : Fragment("Settings") {
                 add(viperSettingsFragment)
                 graphic = FontIcon.of(Feather.LINK_2)
             }
+            tab(hostSettingsFragment.title) {
+                add(hostSettingsFragment)
+                graphic = FontIcon.of(Feather.IMAGE)
+            }
         }
         borderpane {
             right {
@@ -75,7 +83,8 @@ class SettingsFragment : Fragment("Settings") {
                                     downloadSettingsFragment.downloadSettingsModel,
                                     connectionSettingsFragment.connectionSettingsModel,
                                     viperSettingsFragment.viperSettingsModel,
-                                    systemSettingsFragment.systemSettingsModel
+                                    systemSettingsFragment.systemSettingsModel,
+                                    hostSettingsFragment.hostSettingsModels
                                 )
                                 runLater {
                                     close()

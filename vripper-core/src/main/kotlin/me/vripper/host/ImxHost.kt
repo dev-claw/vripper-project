@@ -2,6 +2,8 @@ package me.vripper.host
 
 import me.vripper.entities.ImageEntity
 import me.vripper.exception.HostException
+import me.vripper.model.HostName
+import me.vripper.model.HostSettingKey
 import me.vripper.services.download.ImageDownloadRunnable
 import me.vripper.utilities.HtmlUtils
 import me.vripper.utilities.LoggerDelegate
@@ -20,9 +22,7 @@ internal class ImxHost : Host("imx.to", 8) {
         context: ImageDownloadRunnable.Context
     ): Pair<String, String> {
         log.debug("Resolving name and image url for ${context.imageEntity.url}")
-        val imgTitle = getTitle(context).ifEmpty {
-            getDefaultImageName(context.imageEntity.thumbUrl)
-        }
+        val imgTitle = getTitle(context)
         val imgUrl = findPattern(context.imageEntity)
         return Pair(
             imgTitle, imgUrl
@@ -30,7 +30,10 @@ internal class ImxHost : Host("imx.to", 8) {
     }
 
     private fun getTitle(context: ImageDownloadRunnable.Context): String {
-        return try {
+
+        return if (context.settings.hostSettings[HostName.IMX]?.get(HostSettingKey.TRY_TO_FETCH_ORIGINAL_FILENAME)
+                .toBoolean()
+        ) {
             val httpsUrl = context.imageEntity.url.replace("http:", "https:")
             val document = fetchDocument(httpsUrl, context)
             var value: String? = null
@@ -58,9 +61,10 @@ internal class ImxHost : Host("imx.to", 8) {
 
             log.debug("Resolving name for $httpsUrl")
             val imgTitle = imgNode?.attributes?.getNamedItem("alt")?.textContent?.trim() ?: ""
-            return imgTitle
-        } catch (_: Exception) {
-            ""
+            imgTitle
+
+        } else {
+            getDefaultImageName(context.imageEntity.thumbUrl)
         }
     }
 

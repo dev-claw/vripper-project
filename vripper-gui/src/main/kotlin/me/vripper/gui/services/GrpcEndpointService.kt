@@ -223,6 +223,15 @@ internal class GrpcEndpointService : IAppEndpointService {
             this.downloadSettings = downloadSettings
             this.viperSettings = viperSettings
             this.systemSettings = systemSettings
+            settings.hostSettings.forEach { (hostKey, hostSettings) ->
+                val hostSetting = with(SettingsOuterClass.HostSettingsMap.newBuilder()) {
+                    hostSettings.forEach { (settingKey, settingValue) ->
+                        this.putSettings(settingKey.name, settingValue)
+                    }
+                    build()
+                }
+                this.putHostSettings(hostKey.name, hostSetting)
+            }
             build()
         }
         endpointServiceCoroutineStub!!.saveSettings(settingsRequest)
@@ -280,6 +289,14 @@ internal class GrpcEndpointService : IAppEndpointService {
             clipboardPollingRate = settings.systemSettings.clipboardPollingRate,
             maxEventLog = settings.systemSettings.maxEventLog,
         ),
+        hostSettings = settings.hostSettingsMap.entries.associate {
+            val host = HostName.valueOf(it.key)
+            val hostSettings = it.value.settingsMap.entries.associate { hostSettingsEntry ->
+                val settingKey = HostSettingKey.valueOf(hostSettingsEntry.key)
+                settingKey to hostSettingsEntry.value
+            }
+            host to hostSettings
+        }
     )
 
 

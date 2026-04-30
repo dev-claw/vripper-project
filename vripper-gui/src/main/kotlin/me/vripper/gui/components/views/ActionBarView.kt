@@ -97,6 +97,7 @@ class ActionBarView : View() {
                         val connectionSettings = settingsController.findConnectionSettings()
                         val viperGirlsSettings = settingsController.findViperGirlsSettings()
                         val systemSettings = settingsController.findSystemSettings()
+                        val hostSettings = settingsController.findHostSettings()
                         runLater {
                             find<SettingsFragment>(
                                 mapOf(
@@ -104,6 +105,7 @@ class ActionBarView : View() {
                                     SettingsFragment::connectionSettings to connectionSettings,
                                     SettingsFragment::viperSettings to viperGirlsSettings,
                                     SettingsFragment::systemSettings to systemSettings,
+                                    SettingsFragment::hostSettings to hostSettings,
                                 )
                             ).openModal()
                         }
