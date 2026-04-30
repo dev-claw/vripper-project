@@ -213,15 +213,13 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     enableClipboardMonitoring = request.systemSettings.enableClipboardMonitoring,
                     clipboardPollingRate = request.systemSettings.clipboardPollingRate,
                     maxEventLog = request.systemSettings.maxEventLog,
-                ),
-                hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
+                ), hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
                     HostName.valueOf(hostSettings.key) to hostSettings.value.settingsMap.entries.associate {
                         HostSettingKey.valueOf(
                             it.key
                         ) to it.value
                     }
-                }
-            )
+                })
         )
         return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
@@ -293,11 +291,22 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             build()
         }
 
+        val hostSettings = settings.hostSettings.entries.associate {
+            val hostSettings = with(SettingsOuterClass.HostSettingsMap.newBuilder()) {
+                this.putAllSettings(it.value.entries.associate { setting ->
+                    setting.key.name to setting.value
+                })
+                build()
+            }
+            it.key.name to hostSettings
+        }
+
         return with(SettingsOuterClass.Settings.newBuilder()) {
             this.connectionSettings = connectionSettings
             this.downloadSettings = downloadSettings
             this.viperSettings = viperSettings
             this.systemSettings = systemSettings
+            this.putAllHostSettings(hostSettings)
             build()
         }
     }
