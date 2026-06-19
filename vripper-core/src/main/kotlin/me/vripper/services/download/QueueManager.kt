@@ -55,7 +55,7 @@ internal class QueueManager(
         val toProcess =
             if (postEntityId != null) running.filter { it.context.imageEntity.postEntityId == postEntityId } else running
         toProcess.forEach { it.stop() }
-        while (toProcess.count { !it.completed } > 0) {
+        while (toProcess.count { !it.context.completed } > 0) {
             Thread.sleep(100)
         }
         running.removeAll(toProcess)
@@ -158,7 +158,7 @@ internal class QueueManager(
         downloadManagerLock.withLock {
             val image = imageDownloadRunnable.context.imageEntity
             clearRunningRunnable(imageDownloadRunnable.context.imageEntity.id)
-            if (!isPending(image.postEntityId) && !isRunning(image.postEntityId) && !imageDownloadRunnable.stopped) {
+            if (!isPending(image.postEntityId) && !isRunning(image.postEntityId) && !imageDownloadRunnable.context.stopped) {
                 dataAccessService.finishPost(image.postEntityId, true)
             }
             reportQueueState()

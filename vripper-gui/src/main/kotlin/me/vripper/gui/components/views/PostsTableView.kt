@@ -516,6 +516,11 @@ class PostsTableView : View() {
                         items.clear()
                     }
 
+                    is GuiEventBus.RemoteError -> runLater {
+                        items.clear()
+                        tableView.placeholder = Label("Connection Failure")
+                    }
+
                     else -> {}
                 }
             }

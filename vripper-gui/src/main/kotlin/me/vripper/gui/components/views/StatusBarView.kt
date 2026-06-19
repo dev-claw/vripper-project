@@ -29,15 +29,15 @@ class StatusBarView : View("Status bar") {
             GuiEventBus.events.collect {
                 when (it) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
-                        while (isActive) {
-                            val result = runCatching { statusBarController.loggedInUser() }
-                            if (result.isSuccess) {
-                                runLater {
-                                    loggedUser.set(result.getOrNull())
-                                }
-                                break
+                        val result = runCatching { statusBarController.loggedInUser() }
+                        if (result.isSuccess) {
+                            runLater {
+                                loggedUser.set(result.getOrNull())
                             }
-                            delay(1000)
+                        } else {
+                            runLater {
+                                loggedUser.set(null)
+                            }
                         }
                     }
 

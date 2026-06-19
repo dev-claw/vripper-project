@@ -16,7 +16,7 @@ object AppEndpointManager : KoinComponent {
     val localAppEndpointService: IAppEndpointService by inject(named("localAppEndpointService"))
     val remoteAppEndpointService: IAppEndpointService by inject(named("remoteAppEndpointService"))
 
-    private lateinit var current: GUIEvent
+    private var current: GUIEvent = GuiEventBus.Undefined
 
     fun set(event: GUIEvent) {
         this.current = event

@@ -1,7 +1,5 @@
 package me.vripper.gui.controller
 
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.retryWhen
 import me.vripper.gui.model.ImageModel
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.model.Image
@@ -41,7 +39,7 @@ class ImageController : Controller() {
     }
 
     fun onUpdateImages(postId: Long) =
-        currentAppEndpointService().onUpdateImagesByPostEntityId(postId).retryWhen { _, _ -> delay(1000); true }
+        currentAppEndpointService().onUpdateImagesByPostEntityId(postId)
 
-    fun onStopped() = currentAppEndpointService().onStopped().retryWhen { _, _ -> delay(1000);true }
+    fun onStopped() = currentAppEndpointService().onStopped()
 }
