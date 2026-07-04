@@ -2,11 +2,13 @@ package me.vripper.gui.utils
 
 import javafx.scene.input.Clipboard
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.retryWhen
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.model.Settings
+import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.LoggerDelegate
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import tornadofx.runLater
 
 object ClipboardManager : KoinComponent {
@@ -14,35 +16,44 @@ object ClipboardManager : KoinComponent {
     private var current: String? = null
     private var coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pollJob: Job? = null
-    private var settingsUpdateJob: Job? = null
     private val systemClipboard = Clipboard.getSystemClipboard()
+    val localAppEndpointService: IAppEndpointService by inject(named("localAppEndpointService"))
+    val remoteAppEndpointService: IAppEndpointService by inject(named("remoteAppEndpointService"))
+    var initialized = false
 
+    @Synchronized
     fun init() {
-        coroutineScope.launch {
-            GuiEventBus.events.collect { event ->
-                when (event) {
-                    GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
-                        logger.info("Clipboard manager initialized")
-                        while (isActive) {
+        if (initialized) {
+            return
+        }
+        runBlocking {
+            val updateSettings = ChannelFlowBuilder.build(
+                localAppEndpointService::onUpdateSettings,
+                remoteAppEndpointService::onUpdateSettings
+            )
+            updateSettings.let { flow ->
+                coroutineScope.launch {
+                    flow.collect {
+                        update(it)
+                    }
+                }
+            }
+            coroutineScope.launch {
+                GuiEventBus.events.collect { event ->
+                    when (event) {
+                        GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                            logger.info("Clipboard manager initialized")
                             val result = runCatching { AppEndpointManager.currentAppEndpointService().getSettings() }
                             if (result.isSuccess) {
                                 update(result.getOrNull()!!)
-                                break
                             }
-                            delay(1000)
                         }
-                        settingsUpdateJob?.cancelAndJoin()
-                        settingsUpdateJob = launch {
-                            AppEndpointManager.currentAppEndpointService().onUpdateSettings()
-                                .retryWhen { _, _ -> delay(1000); true }.collect {
-                                    update(it)
-                                }
-                        }
-                    }
 
-                    else -> {}
+                        else -> {}
+                    }
                 }
             }
+            initialized = true
         }
     }
 

@@ -200,6 +200,11 @@ class LogTableView : View() {
                         tableView.placeholder = Label("Loading")
                     }
 
+                    is GuiEventBus.RemoteError -> runLater {
+                        items.clear()
+                        tableView.placeholder = Label("Connection Failure")
+                    }
+
                     else -> {}
                 }
             }

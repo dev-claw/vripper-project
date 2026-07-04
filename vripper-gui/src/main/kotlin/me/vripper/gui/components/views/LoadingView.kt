@@ -33,9 +33,11 @@ class LoadingView : View("VRipper") {
 
     init {
         DatabaseManager.connect()
-        ClipboardManager.init()
         coroutineScope.launch {
             GuiEventBus.events.filterIsInstance(GuiEventBus.ApplicationInitialized::class).collect {
+                runLater {
+                    ClipboardManager.init()
+                }
                 message.set("")
                 AppManager.stop()
                 grpcEndpointService.disconnect()

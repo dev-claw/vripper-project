@@ -42,16 +42,18 @@ internal class ImageDownloadRunnable(
     class Context(val imageEntity: ImageEntity, val settings: Settings) {
 
         private val log by LoggerDelegate()
-        private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        private lateinit var coroutineScope: CoroutineScope
         private val jobs = mutableListOf<Job>()
-
         val httpContext: HttpClientContext = HttpClientContext.create().apply {
             cookieStore = HTTPService.cookieStore
         }
         val requests = mutableListOf<HttpUriRequestBase>()
         val headers = mutableMapOf<String, String>()
+        var completed = false
+        var stopped = false
 
-        init {
+        fun init() {
+            coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
             ApplicationProperties.VRIPPER_DIR.listDirectoryEntries()
                 .filter { it.fileName.pathString.startsWith("cookies") }.forEach { cookiesPath ->
                     loadCookies(cookiesPath).also { cookies ->
@@ -83,6 +85,7 @@ internal class ImageDownloadRunnable(
                 }
         }
 
+        @Synchronized
         fun clear() {
             runBlocking {
                 requests.forEach { it.abort() }
@@ -102,8 +105,6 @@ internal class ImageDownloadRunnable(
     private val vgAuthService: VGAuthService by inject()
     private val hosts: List<Host> = getKoin().getAll()
     val context = Context(imageEntity, settings)
-    var completed = false
-    var stopped = false
 
     fun download() {
         try {
@@ -140,7 +141,7 @@ internal class ImageDownloadRunnable(
                 dataAccessService.updateImage(context.imageEntity)
             }
         } catch (e: Exception) {
-            if (stopped) {
+            if (context.stopped) {
                 return
             }
             context.imageEntity.status = Status.ERROR
@@ -189,20 +190,24 @@ internal class ImageDownloadRunnable(
 
     override fun run() {
         try {
-            if (stopped) {
+            context.init()
+            if (context.stopped) {
                 return
             }
             download()
         } finally {
-            completed = true
+            context.completed = true
             context.clear()
+            if (context.stopped && context.imageEntity.downloaded != context.imageEntity.size) {
+                context.imageEntity.status = Status.STOPPED
+            }
+            dataAccessService.updateImage(context.imageEntity)
         }
     }
 
     fun stop() {
-        stopped = true
+        context.stopped = true
         context.clear()
-        dataAccessService.updateImage(context.imageEntity)
     }
 
     override fun equals(other: Any?): Boolean {

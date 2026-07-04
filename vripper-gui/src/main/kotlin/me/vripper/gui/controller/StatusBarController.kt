@@ -12,7 +12,7 @@ class StatusBarController : Controller() {
     }
 
     fun connectionState(): String {
-        return currentAppEndpointService().connectionState()
+        return runCatching { currentAppEndpointService().connectionState() }.getOrElse { "" }
     }
 
     suspend fun getVersion(): String {

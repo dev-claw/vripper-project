@@ -4,12 +4,11 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.retryWhen
 import me.vripper.gui.event.GuiEventBus
 
 object ChannelFlowBuilder {
 
-    fun <T> build(localFlow: () -> Flow<T>, remoteFlow: () -> Flow<T>): Flow<T> {
+    fun <T> build(localFlow: () -> Flow<T>, remoteFlow: () -> Flow<T>, source: String = "remote"): Flow<T> {
         return channelFlow {
             var job: Job? = null
 
@@ -20,10 +19,14 @@ object ChannelFlowBuilder {
                     }
                 } else {
                     launch {
-                        remoteFlow().cancellable().retryWhen { _, _ ->
-                            delay(1000)
-                            true
-                        }.collect { if (isActive) send(it) }
+                        try {
+                            remoteFlow().cancellable().collect { if (isActive) send(it) }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (t: Throwable) {
+                            t.printStackTrace()
+                            GuiEventBus.publishEvent(GuiEventBus.RemoteError(source, t.message ?: t.toString()))
+                        }
                     }
                 }
             }

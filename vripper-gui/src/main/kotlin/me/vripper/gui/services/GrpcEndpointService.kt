@@ -412,5 +412,5 @@ internal class GrpcEndpointService : IAppEndpointService {
         }
     }
 
-    override fun connectionState(): String = channel?.getState(true)?.name ?: ConnectivityState.SHUTDOWN.name
+    override fun connectionState(): String = channel?.getState(false)?.name ?: ConnectivityState.SHUTDOWN.name
 }

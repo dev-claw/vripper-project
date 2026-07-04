@@ -17,6 +17,8 @@ object GuiEventBus {
     object ChangingSession : GUIEvent
     object LocalSession : GUIEvent
     object RemoteSession : GUIEvent
+    object Undefined : GUIEvent
+    data class RemoteError(val source: String, val message: String) : GUIEvent
 }
 
 sealed interface GUIEvent
