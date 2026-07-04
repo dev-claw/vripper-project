@@ -402,7 +402,7 @@ internal class GrpcEndpointService : IAppEndpointService {
 
         val result = runCatching {
             val version = getVersion()
-            version >= "6.6.0"
+            isAtLeastWithAlphaBeta(version, "6.6.0")
         }
 
         return if (result.isSuccess) {
@@ -410,6 +410,27 @@ internal class GrpcEndpointService : IAppEndpointService {
         } else {
             null
         }
+    }
+
+    fun isAtLeastWithAlphaBeta(actual: String, min: String): Boolean {
+        fun core(s: String) = s.substringBefore('-')
+        fun suffix(s: String): String? {
+            val i = s.indexOf('-')
+            return if (i >= 0 && i + 1 < s.length) s.substring(i + 1) else null
+        }
+
+        val aCore = core(actual).split('.').map { it.toInt() }
+        val mCore = core(min).split('.').map { it.toInt() }
+
+        val maxLen = maxOf(aCore.size, mCore.size)
+        for (i in 0 until maxLen) {
+            val ai = aCore.getOrElse(i) { 0 }
+            val mi = mCore.getOrElse(i) { 0 }
+            if (ai != mi) return ai > mi
+        }
+
+        // numeric parts equal => alpha/beta is NOT >= final
+        return suffix(actual) == null
     }
 
     override fun connectionState(): String = channel?.getState(false)?.name ?: ConnectivityState.SHUTDOWN.name
