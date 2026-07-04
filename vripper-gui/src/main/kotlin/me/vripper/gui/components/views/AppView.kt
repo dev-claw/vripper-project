@@ -2,11 +2,19 @@ package me.vripper.gui.components.views
 
 import atlantafx.base.theme.*
 import javafx.application.Application.setUserAgentStylesheet
+import javafx.event.EventHandler
+import javafx.scene.input.TransferMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import me.vripper.gui.controller.AppController
 import me.vripper.gui.controller.MainController
 import me.vripper.gui.controller.WidgetsController
 import tornadofx.View
 import tornadofx.onChange
 import tornadofx.vbox
+import java.net.URI
 
 class AppView : View() {
 
@@ -17,6 +25,8 @@ class AppView : View() {
     private val statusBarView: StatusBarView by inject()
     private val actionBarView: ActionBarView by inject()
     private val widgetsController: WidgetsController by inject()
+    private val appController: AppController by inject()
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     init {
         title = "VRipper ${mainController.version}"
         with(root) {
@@ -30,6 +40,24 @@ class AppView : View() {
             }
             prefWidth = widgetsController.currentSettings.width
             prefHeight = widgetsController.currentSettings.height
+            onDragOver = EventHandler { event ->
+                if (event.dragboard.hasString()) {
+                    event.acceptTransferModes(TransferMode.COPY)
+                }
+                event.consume()
+            }
+            onDragDropped = EventHandler { event ->
+                val dragBoard = event.dragboard
+                if (dragBoard != null && dragBoard.hasString()) {
+                    val url = dragBoard.string.trim()
+                    runCatching {
+                        val uri = URI(url)
+                        coroutineScope.launch {
+                            appController.scan(uri.toString())
+                        }
+                    }
+                }
+            }
         }
 
         widgetsController.currentSettings.visibleToolbarPanelProperty.onChange { it ->

@@ -41,7 +41,7 @@ internal class HTTPService {
                 connectionExpiryJob = coroutineScope.launch {
                     while (isActive) {
                         it.closeExpired()
-                        delay(60_000)
+                        delay(300_000)
                     }
                 }
             }
