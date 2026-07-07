@@ -17,6 +17,7 @@ import me.vripper.entities.Status
 import me.vripper.gui.components.cells.PreviewTableCell
 import me.vripper.gui.components.cells.ProgressTableCell
 import me.vripper.gui.components.cells.StatusTableCell
+import me.vripper.gui.components.fragments.PostWorkspaceFragment
 import me.vripper.gui.controller.ImageController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.ImageModel
@@ -44,14 +45,23 @@ class ImagesTableView : View("Photos") {
                 addClass(Styles.DENSE, Tweaks.EDGE_TO_EDGE)
                 setRowFactory {
                     val tableRow = TableRow<ImageModel>()
+                    tableRow.onDoubleClick {
+                        tableRow.item?.let { openViewer(it) }
+                    }
                     val urlItem = MenuItem("Open link").apply {
                         setOnAction {
                             openLink(tableRow.item.url)
                         }
                         graphic = FontIcon.of(Feather.LINK)
                     }
+                    val viewerItem = MenuItem("Open in viewer").apply {
+                        setOnAction {
+                            tableRow.item?.let { openViewer(it) }
+                        }
+                        graphic = FontIcon.of(Feather.EYE)
+                    }
                     val contextMenu = ContextMenu()
-                    contextMenu.items.addAll(urlItem)
+                    contextMenu.items.addAll(urlItem, viewerItem)
                     tableRow.contextMenuProperty().bind(
                         tableRow.emptyProperty()
                             .map { empty -> if (empty) null else contextMenu })
@@ -233,6 +243,28 @@ class ImagesTableView : View("Photos") {
         tableView.prefWidthProperty().bind(root.widthProperty())
         tableView.prefHeightProperty().bind(root.heightProperty())
         modalStage?.width = 550.0
+    }
+
+    private fun openViewer(item: ImageModel) {
+        preview.cleanup()
+        coroutineScope.launch {
+            val imageSources = imageController.getImageSources(item)
+            if (imageSources.none { it.key.id == item.id }) {
+                return@launch
+            }
+            val postEntityId = item.postEntityId
+            val initialIndex = item.index - 1
+            runLater {
+                PostWorkspaceFragment.openForPost(postEntityId, initialIndex) {
+                    find<PostWorkspaceFragment>(
+                        mapOf(
+                            PostWorkspaceFragment::sources to imageSources.map { it.value },
+                            PostWorkspaceFragment::initialIndex to initialIndex,
+                        )
+                    )
+                }
+            }
+        }
     }
 
     fun setPostId(id: Long?) {
