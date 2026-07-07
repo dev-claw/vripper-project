@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.onSubscription
 import me.vripper.gui.event.GuiEventBus
 
 object ChannelFlowBuilder {
@@ -34,6 +35,16 @@ object ChannelFlowBuilder {
             launch {
                 GuiEventBus
                     .events
+                    .onSubscription {
+                        // Late collectors (e.g. a workspace opened after
+                        // startup) do not receive the session event because it
+                        // is not replayed. Start from the current session.
+                        when (AppEndpointManager.currentAppState()) {
+                            GuiEventBus.LocalSession -> collect(true)
+                            GuiEventBus.RemoteSession -> collect(false)
+                            else -> {}
+                        }
+                    }
                     .collect {
                         if (job != null && job.isActive) {
                             job.cancelAndJoin()

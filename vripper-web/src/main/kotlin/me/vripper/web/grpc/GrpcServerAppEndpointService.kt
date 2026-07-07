@@ -1,5 +1,6 @@
 package me.vripper.web.grpc
 
+import com.google.protobuf.ByteString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.vripper.entities.ImageEntity
@@ -213,15 +214,13 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     enableClipboardMonitoring = request.systemSettings.enableClipboardMonitoring,
                     clipboardPollingRate = request.systemSettings.clipboardPollingRate,
                     maxEventLog = request.systemSettings.maxEventLog,
-                ),
-                hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
+                ), hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
                     HostName.valueOf(hostSettings.key) to hostSettings.value.settingsMap.entries.associate {
                         HostSettingKey.valueOf(
                             it.key
                         ) to it.value
                     }
-                }
-            )
+                })
         )
         return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
@@ -238,6 +237,18 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
 
     override suspend fun dbMigration(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.DBMigrationResponse =
         EndpointServiceOuterClass.DBMigrationResponse.newBuilder().setMessage(appEndpointService.dbMigration()).build()
+
+    override fun downloadImage(request: EndpointServiceOuterClass.DownloadRequest): Flow<EndpointServiceOuterClass.ImageChunk> {
+        return appEndpointService.downloadImage(DownloadRequest(request.imageId)).map {
+            with(EndpointServiceOuterClass.ImageChunk.newBuilder()) {
+                imageId = it.imageId
+                offset = it.offset
+                data = ByteString.copyFrom(it.data)
+                isLast = it.isLast
+                build()
+            }
+        }
+    }
 
 
     private fun mapper(queueState: QueueState): EndpointServiceOuterClass.QueueState {

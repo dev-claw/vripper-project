@@ -30,7 +30,9 @@ class WidgetsController : Controller() {
             it.imagesTableColumnsWidth,
             it.threadsTableColumnsWidth,
             it.threadSelectionColumnsWidth,
-            it.logsTableColumnsWidth
+            it.logsTableColumnsWidth,
+            it.imageViewerSettings,
+            it.workspaceSettings
         )
     }
 
@@ -243,6 +245,63 @@ class WidgetsController : Controller() {
             WidgetSettings.update(currentSettings)
         }
         currentSettings.cachePathProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceSettingsModel.browseLayoutProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceSettingsModel.detailsPanelVisibleProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceSettingsModel.detailsPanelDividerPositionProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsModel.previewProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsModel.indexProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsModel.linkProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsModel.progressProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsModel.filenameProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsModel.statusProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsModel.sizeProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsModel.downloadedProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsWidthModel.previewProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsWidthModel.indexProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsWidthModel.linkProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsWidthModel.progressProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsWidthModel.filenameProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsWidthModel.statusProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsWidthModel.sizeProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.workspaceImagesColumnsWidthModel.downloadedProperty.onChange {
             WidgetSettings.update(currentSettings)
         }
     }

@@ -8,8 +8,10 @@ import kotlinx.coroutines.flow.map
 import me.vripper.entities.MetadataEntity
 import me.vripper.entities.Status
 import me.vripper.model.*
+import me.vripper.model.DownloadRequest
 import me.vripper.model.DownloadSpeed
 import me.vripper.model.ErrorCount
+import me.vripper.model.ImageChunk
 import me.vripper.model.PostSelection
 import me.vripper.model.QueueState
 import me.vripper.model.Rank
@@ -251,6 +253,14 @@ internal class GrpcEndpointService : IAppEndpointService {
 
     override suspend fun dbMigration(): String =
         endpointServiceCoroutineStub!!.dbMigration(EmptyRequest.getDefaultInstance()).message
+
+    override fun downloadImage(downloadRequest: DownloadRequest): Flow<ImageChunk> =
+        endpointServiceCoroutineStub!!.downloadImage(
+            EndpointServiceOuterClass
+                .DownloadRequest
+                .newBuilder()
+                .setImageId(downloadRequest.imageId).build()
+        ).map { ImageChunk(it.missing, it.imageId, it.offset, it.data.toByteArray(), it.isLast) }
 
     private fun mapper(queueState: EndpointServiceOuterClass.QueueState) =
         QueueState(queueState.running, queueState.remaining, queueState.rankList.map {

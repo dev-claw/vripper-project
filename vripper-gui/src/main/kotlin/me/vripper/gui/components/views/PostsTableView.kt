@@ -20,6 +20,7 @@ import me.vripper.gui.components.cells.PreviewTableCell
 import me.vripper.gui.components.cells.ProgressTableCell
 import me.vripper.gui.components.cells.StatusTableCell
 import me.vripper.gui.components.fragments.AddLinksFragment
+import me.vripper.gui.components.fragments.PostWorkspaceFragment
 import me.vripper.gui.components.fragments.RenameFragment
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.WidgetsController
@@ -70,6 +71,9 @@ class PostsTableView : View() {
                 selectionModel.selectionMode = SelectionMode.MULTIPLE
                 setRowFactory {
                     val tableRow = TableRow<PostModel>()
+                    tableRow.onDoubleClick {
+                        tableRow.item?.let { openOverview(it) }
+                    }
 
                     val startItem = MenuItem("Start").apply {
                         setOnAction {
@@ -121,6 +125,13 @@ class PostsTableView : View() {
                         graphic = FontIcon.of(Feather.LINK)
                     }
 
+                    val overviewItem = MenuItem("Open overview").apply {
+                        setOnAction {
+                            tableRow.item?.let { openOverview(it) }
+                        }
+                        graphic = FontIcon.of(Feather.GRID)
+                    }
+
                     val moveToTop = MenuItem("Move to top").apply {
                         setOnAction {
                             coroutineScope.launch {
@@ -167,6 +178,7 @@ class PostsTableView : View() {
                         SeparatorMenuItem(),
                         locationItem,
                         urlItem,
+                        overviewItem,
                         SeparatorMenuItem(),
                         moveToTop,
                         moveUp,
@@ -546,6 +558,28 @@ class PostsTableView : View() {
     }
 
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "download-tab"
+
+    private fun openOverview(post: PostModel) {
+        preview.cleanup()
+        coroutineScope.launch {
+            val imageSources = postController.getImageSources(post)
+            if (imageSources.isEmpty()) {
+                return@launch
+            }
+            val postEntityId = post.id
+            runLater {
+                PostWorkspaceFragment.openForPost(postEntityId, 0, startInOverview = true) {
+                    find<PostWorkspaceFragment>(
+                        mapOf(
+                            PostWorkspaceFragment::sources to imageSources,
+                            PostWorkspaceFragment::initialIndex to 0,
+                            PostWorkspaceFragment::startInOverview to true,
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     private fun rename(post: PostModel) {
         find<RenameFragment>(
