@@ -16,6 +16,7 @@ object AppEndpointManager : KoinComponent {
     val localAppEndpointService: IAppEndpointService by inject(named("localAppEndpointService"))
     val remoteAppEndpointService: IAppEndpointService by inject(named("remoteAppEndpointService"))
 
+    @Volatile
     private var current: GUIEvent = GuiEventBus.Undefined
 
     fun set(event: GUIEvent) {
@@ -28,5 +29,9 @@ object AppEndpointManager : KoinComponent {
             GuiEventBus.RemoteSession -> remoteAppEndpointService
             else -> throw IllegalStateException("Unknown current state: $current")
         }
+    }
+
+    fun currentAppState(): GUIEvent {
+        return this.current
     }
 }

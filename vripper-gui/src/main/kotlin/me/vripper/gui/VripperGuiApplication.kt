@@ -6,6 +6,7 @@ import javafx.scene.image.Image
 import javafx.stage.Stage
 import javafx.stage.WindowEvent
 import kotlinx.coroutines.*
+import me.vripper.gui.components.fragments.PostWorkspaceFragment
 import me.vripper.gui.components.views.LoadingView
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
@@ -69,6 +70,11 @@ class VripperGuiApplication : App(
                 )
             )
         }
+        // Workspace windows are unowned so they can be minimized separately;
+        // close them explicitly when the main window goes away.
+        stage.setOnCloseRequest {
+            PostWorkspaceFragment.closeAll()
+        }
         coroutineScope.launch {
             while (isActive) {
                 if (!stage.isMaximized) {
@@ -103,6 +109,7 @@ class VripperGuiApplication : App(
     }
 
     override fun stop() {
+        PostWorkspaceFragment.closeAll()
         coroutineScope.cancel()
         super.stop()
         exitProcess(0)
