@@ -6,6 +6,7 @@ import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.event.EventHandler
 import javafx.geometry.Pos
+import javafx.scene.Cursor
 import javafx.scene.control.*
 import javafx.scene.control.cell.TextFieldTableCell
 import javafx.scene.input.KeyCode
@@ -20,6 +21,7 @@ import me.vripper.gui.components.cells.PreviewTableCell
 import me.vripper.gui.components.cells.ProgressTableCell
 import me.vripper.gui.components.cells.StatusTableCell
 import me.vripper.gui.components.fragments.AddLinksFragment
+import me.vripper.gui.components.fragments.PhotoViewerFragment
 import me.vripper.gui.components.fragments.RenameFragment
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.WidgetsController
@@ -253,6 +255,7 @@ class PostsTableView : View() {
                     cellFactory = Callback {
                         val cell = PreviewTableCell<PostModel, ObservableList<String>>()
                         cell.onMouseExited = EventHandler {
+                            cursor = Cursor.DEFAULT
                             preview.cleanup()
                         }
                         cell.onMouseMoved = EventHandler {
@@ -262,6 +265,7 @@ class PostsTableView : View() {
                             }
                         }
                         cell.onMouseEntered = EventHandler { mouseEvent ->
+                            cursor = Cursor.HAND
                             preview.cleanup()
                             if (cell.tableRow.item != null && cell.tableRow.item.previewList.isNotEmpty()) {
                                 preview.display(
@@ -270,6 +274,34 @@ class PostsTableView : View() {
                                 preview.previewPopup.apply {
                                     x = mouseEvent.screenX + 20
                                     y = mouseEvent.screenY + 10
+                                }
+                            }
+                        }
+                        cell.onLeftClick {
+                            preview.cleanup()
+                            coroutineScope.launch {
+                                val imageSources = postController.getImageSources(cell.tableRow.item)
+                                if (imageSources.isEmpty()) {
+                                    return@launch
+                                }
+                                runLater {
+                                    find<PhotoViewerFragment>(
+                                        mapOf(
+                                            PhotoViewerFragment::sources to imageSources,
+                                            PhotoViewerFragment::initialIndex to 0,
+                                        )
+                                    ).openModal()?.apply {
+                                        val w = 800.0
+                                        val h = 600.0
+                                        minWidth = 100.0
+                                        minHeight = 100.0
+                                        width = w
+                                        height = h
+                                        val x = owner.x + (owner.width - w) / 2
+                                        val y = owner.y + (owner.height - h) / 2
+                                        this.x = x
+                                        this.y = y
+                                    }
                                 }
                             }
                         }

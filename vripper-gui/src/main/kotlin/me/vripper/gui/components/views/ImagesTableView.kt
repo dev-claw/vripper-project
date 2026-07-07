@@ -6,6 +6,7 @@ import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.event.EventHandler
 import javafx.geometry.Pos
+import javafx.scene.Cursor
 import javafx.scene.control.*
 import javafx.scene.control.cell.TextFieldTableCell
 import javafx.scene.input.MouseButton
@@ -17,6 +18,7 @@ import me.vripper.entities.Status
 import me.vripper.gui.components.cells.PreviewTableCell
 import me.vripper.gui.components.cells.ProgressTableCell
 import me.vripper.gui.components.cells.StatusTableCell
+import me.vripper.gui.components.fragments.PhotoViewerFragment
 import me.vripper.gui.controller.ImageController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.ImageModel
@@ -73,6 +75,7 @@ class ImagesTableView : View("Photos") {
                     cellFactory = Callback {
                         val cell = PreviewTableCell<ImageModel, String>()
                         cell.onMouseExited = EventHandler {
+                            cursor = Cursor.DEFAULT
                             preview.cleanup()
                         }
                         cell.onMouseMoved = EventHandler {
@@ -82,12 +85,41 @@ class ImagesTableView : View("Photos") {
                             }
                         }
                         cell.onMouseEntered = EventHandler { mouseEvent ->
+                            cursor = Cursor.HAND
                             preview.cleanup()
                             if (cell.tableRow.item != null && cell.tableRow.item.thumbUrl.isNotEmpty()) {
                                 preview.display(cell.tableRow.item.postEntityId, listOf(cell.tableRow.item.thumbUrl))
                                 preview.previewPopup.apply {
                                     x = mouseEvent.screenX + 20
                                     y = mouseEvent.screenY + 10
+                                }
+                            }
+                        }
+                        cell.onLeftClick {
+                            preview.cleanup()
+                            coroutineScope.launch {
+                                val imageSources = imageController.getImageSources(cell.tableRow.item)
+                                if (imageSources.none { it.key.id == cell.tableRow.item.id }) {
+                                    return@launch
+                                }
+                                runLater {
+                                    find<PhotoViewerFragment>(
+                                        mapOf(
+                                            PhotoViewerFragment::sources to imageSources.map { it.value },
+                                            PhotoViewerFragment::initialIndex to cell.tableRow.item.index - 1,
+                                        )
+                                    ).openModal()?.apply {
+                                        val w = 800.0
+                                        val h = 600.0
+                                        minWidth = 100.0
+                                        minHeight = 100.0
+                                        width = w
+                                        height = h
+                                        val x = owner.x + (owner.width - w) / 2
+                                        val y = owner.y + (owner.height - h) / 2
+                                        this.x = x
+                                        this.y = y
+                                    }
                                 }
                             }
                         }

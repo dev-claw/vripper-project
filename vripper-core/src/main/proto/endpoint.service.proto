@@ -94,6 +94,18 @@ message MovePositionMessage {
   MovePositionEnum position = 2;
 }
 
+message DownloadRequest {
+  int64 imageId = 1;
+}
+
+message ImageChunk {
+  bool missing = 1;
+  int64 imageId = 2;
+  int64 offset = 3;
+  bytes data = 4;
+  bool isLast = 5;
+}
+
 service EndpointService {
   rpc scanLinks (Links) returns (EmptyResponse) {}
   rpc onNewPosts (EmptyRequest) returns (stream Post) {}
@@ -136,5 +148,6 @@ service EndpointService {
   rpc getVersion (EmptyRequest) returns (Version) {}
   rpc dbMigration (EmptyRequest) returns (DBMigrationResponse) {}
   rpc initLogger (EmptyRequest) returns (EmptyResponse) {}
-  rpc move (MovePositionMessage) returns (EmptyResponse) {}
+  rpc move(MovePositionMessage) returns (EmptyResponse) {}
+  rpc downloadImage(DownloadRequest) returns (stream ImageChunk);
 }
