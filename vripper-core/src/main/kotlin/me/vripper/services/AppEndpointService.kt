@@ -17,6 +17,7 @@ import me.vripper.tasks.ThreadLookupTask
 import me.vripper.utilities.*
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
 import org.h2.jdbc.JdbcSQLNonTransientConnectionException
+import java.nio.file.Files
 import java.sql.DriverManager
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
@@ -25,6 +26,7 @@ import kotlin.concurrent.withLock
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.jvm.optionals.getOrNull
+import kotlin.math.min
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 internal class AppEndpointService(
@@ -173,11 +175,8 @@ internal class AppEndpointService(
 
     override suspend fun renameToFirst(postEntityIds: List<Long>) {
         postEntityIds.forEach { postEntityId ->
-            dataAccessService
-                .findMetadataByPostEntityId(postEntityId)
-                .map { it.data.resolvedNames }
-                .filter { it.isNotEmpty() }
-                .getOrNull()?.let { rename(postEntityId, it.first()) }
+            dataAccessService.findMetadataByPostEntityId(postEntityId).map { it.data.resolvedNames }
+                .filter { it.isNotEmpty() }.getOrNull()?.let { rename(postEntityId, it.first()) }
         }
     }
 
@@ -329,11 +328,55 @@ internal class AppEndpointService(
         downloadService.move(postEntityId, position)
     }
 
+    override fun downloadImage(downloadRequest: DownloadRequest): Flow<ImageChunk> {
+        val imageEntity = dataAccessService.findImageById(downloadRequest.imageId).orElseThrow()
+        val postEntity = dataAccessService.findPostByEntityId(imageEntity.postEntityId)
+        val filePath = Path(postEntity.downloadDirectory).resolve(postEntity.folderName).resolve(imageEntity.filename)
+        return if (filePath.exists()) {
+            val chunkSize = 256 * 1024
+            val bytes = Files.readAllBytes(filePath)
+            flow {
+                var offset = 0L
+                while (offset < bytes.size) {
+                    val start = offset.toInt()
+                    val len = min(chunkSize, bytes.size - start)
+                    val part = bytes.copyOfRange(start, start + len)
+
+                    val isLast = (start + len) >= bytes.size
+
+                    emit(
+                        ImageChunk(
+                            missing = false,
+                            imageId = downloadRequest.imageId,
+                            offset = offset,
+                            data = part,
+                            isLast = isLast
+                        )
+                    )
+
+                    offset += len.toLong()
+                    if (isLast) break
+                }
+            }
+        } else {
+            flow {
+                emit(
+                    ImageChunk(
+                        missing = true,
+                        imageId = downloadRequest.imageId,
+                        offset = 0,
+                        data = ByteArray(0),
+                        isLast = true
+                    )
+                )
+            }
+        }
+    }
+
     override suspend fun dbMigration(): String {
 
         val conn = try {
-            DriverManager
-                .getConnection("jdbc:h2:file:$VRIPPER_DIR/vripper;DB_CLOSE_DELAY=-1;IFEXISTS=TRUE")
+            DriverManager.getConnection("jdbc:h2:file:$VRIPPER_DIR/vripper;DB_CLOSE_DELAY=-1;IFEXISTS=TRUE")
         } catch (_: JdbcSQLNonTransientConnectionException) {
             return "Old database not found, nothing to do"
         }
@@ -425,8 +468,7 @@ internal class AppEndpointService(
                                 if (set.next()) {
                                     val data = Json.decodeFromString(set.getString("DATA")) as MetadataEntity.Data
                                     val metadata = MetadataEntity(
-                                        postIdRef = savedPost.id,
-                                        data = data
+                                        postIdRef = savedPost.id, data = data
                                     )
                                     dataAccessService.saveMetadata(metadata)
                                 }
