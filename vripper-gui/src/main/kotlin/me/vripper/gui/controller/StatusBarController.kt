@@ -4,11 +4,13 @@ import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
 import me.vripper.gui.utils.ChannelFlowBuilder
+import me.vripper.gui.utils.GuiErrorReporter
 import tornadofx.Controller
 
 class StatusBarController : Controller() {
     suspend fun loggedInUser(): String {
-        return currentAppEndpointService().loggedInUser()
+        return GuiErrorReporter.call("status.user") { currentAppEndpointService().loggedInUser() }
+            .getOrDefault("")
     }
 
     fun connectionState(): String {
@@ -16,7 +18,8 @@ class StatusBarController : Controller() {
     }
 
     suspend fun getVersion(): String {
-        return currentAppEndpointService().getVersion()
+        return GuiErrorReporter.call("status.version") { currentAppEndpointService().getVersion() }
+            .getOrDefault("")
     }
 
     val vgUserUpdate = ChannelFlowBuilder.build(

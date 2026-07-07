@@ -4,10 +4,15 @@ import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.scene.control.*
+import javafx.scene.layout.Priority
+import javafx.scene.layout.VBox
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.javafx.asFlow
+import me.vripper.gui.components.cells.LogLevelTableCell
 import me.vripper.gui.components.fragments.LogMessageFragment
 import me.vripper.gui.controller.LogController
 import me.vripper.gui.controller.WidgetsController
@@ -30,6 +35,14 @@ class LogTableView : View() {
 
     init {
         with(root) {
+            hbox {
+                padding = Insets(8.0)
+                spacing = 8.0
+                alignment = Pos.CENTER_LEFT
+                button("Clear logs", FontIcon.of(Feather.TRASH_2)) {
+                    action { clearLogs() }
+                }
+            }
             tableView = tableview(items) {
                 isTableMenuButtonVisible = true
                 addClass(Styles.DENSE, Tweaks.EDGE_TO_EDGE)
@@ -43,27 +56,6 @@ class LogTableView : View() {
                     }
                     tableRow
                 }
-                contextMenu = ContextMenu()
-                contextMenu.items.add(MenuItem("Clear", FontIcon.of(Feather.TRASH_2)).apply {
-                    setOnAction {
-                        confirm(
-                            "",
-                            "Are you sure you want to clear the logs",
-                            ButtonType.YES,
-                            ButtonType.NO,
-                            owner = primaryStage,
-                            title = "Clear logs"
-                        ) {
-                            coroutineScope.launch {
-                                coroutineScope {
-                                    runLater {
-                                        items.clear()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                })
                 column("Time", LogModel::timestampProperty) {
                     isVisible = widgetsController.currentSettings.logsColumnsModel.timeProperty.get()
                     visibleProperty().onChange { widgetsController.currentSettings.logsColumnsModel.timeProperty.set(it) }
@@ -123,6 +115,9 @@ class LogTableView : View() {
                     }
                     id = "status"
                     isSortable = false
+                    setCellFactory {
+                        LogLevelTableCell()
+                    }
                 }
                 column("Message", LogModel::formattedMessageProperty) {
                     isVisible = widgetsController.currentSettings.logsColumnsModel.messageProperty.get()
@@ -139,8 +134,31 @@ class LogTableView : View() {
                     }
                     id = "status"
                     isSortable = false
+                    setCellFactory {
+                        object : TableCell<LogModel, String>() {
+                            private val levelStyles = listOf(
+                                Styles.WARNING,
+                                Styles.DANGER,
+                                Styles.TEXT_MUTED,
+                            )
+
+                            override fun updateItem(item: String?, empty: Boolean) {
+                                super.updateItem(item, empty)
+                                styleClass.removeAll(levelStyles)
+                                text = if (empty) null else item
+                                if (empty) return
+                                when (tableRow?.item?.levelString?.uppercase()) {
+                                    "WARN", "WARNING" -> styleClass.add(Styles.WARNING)
+                                    "ERROR", "FATAL" -> styleClass.add(Styles.DANGER)
+                                    "DEBUG", "TRACE" -> styleClass.add(Styles.TEXT_MUTED)
+                                }
+                            }
+                        }
+                    }
                 }
             }
+            tableView.maxHeight = Double.MAX_VALUE
+            VBox.setVgrow(tableView, Priority.ALWAYS)
         }
         titleProperty.bind(items.sizeProperty.map {
             if (it.toLong() > 0) {
@@ -149,7 +167,6 @@ class LogTableView : View() {
                 "Log"
             }
         })
-        tableView.prefHeightProperty().bind(root.heightProperty())
         tableView.placeholder = Label("Loading")
         tableView.sortOrder.add(tableView.columns.first { it.id == "time" })
 
@@ -208,6 +225,20 @@ class LogTableView : View() {
                     else -> {}
                 }
             }
+        }
+    }
+
+    private fun clearLogs() {
+        confirm(
+            "",
+            "Are you sure you want to clear all logs",
+            ButtonType.YES,
+            ButtonType.NO,
+            owner = primaryStage,
+            title = "Clear logs"
+        ) {
+            items.clear()
+            tableView.placeholder = Label("No logs")
         }
     }
 

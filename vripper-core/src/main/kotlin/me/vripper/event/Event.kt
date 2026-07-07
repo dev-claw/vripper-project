@@ -22,4 +22,7 @@ data class SettingsUpdateEvent(val settings: Settings)
 data class MetadataUpdateEvent(val metadataEntity: MetadataEntity)
 data class LogCreateEvent(val logEntryEntity: LogEntryEntity)
 data class LoadingTasks(val loading: Boolean)
+data class TaskCreateEvent(val taskEntity: TaskEntity)
+data class TaskUpdateEvent(val taskEntity: TaskEntity)
+class TaskClearEvent
 data class StoppedEvent(val postIds: List<Long>)

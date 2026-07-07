@@ -1,9 +1,13 @@
 package me.vripper.services
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.time.sample
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import me.vripper.entities.*
 import me.vripper.event.*
@@ -12,19 +16,23 @@ import me.vripper.model.*
 import me.vripper.services.download.DownloadService
 import me.vripper.services.download.MovePosition
 import me.vripper.services.download.QueueManager
-import me.vripper.tasks.AddPostTask
-import me.vripper.tasks.ThreadLookupTask
-import me.vripper.utilities.*
+import me.vripper.tasks.QueueItemsTask
+import me.vripper.tasks.RenameTask
+import me.vripper.tasks.ScanLinksTask
+import me.vripper.utilities.ApplicationProperties
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
+import me.vripper.utilities.LoggerDelegate
+import me.vripper.utilities.extractBaseUrl
 import org.h2.jdbc.JdbcSQLNonTransientConnectionException
+import java.lang.management.ManagementFactory
+import java.nio.file.Files
 import java.sql.DriverManager
 import java.time.Duration
-import java.util.concurrent.locks.ReentrantLock
-import java.util.regex.Pattern
-import kotlin.concurrent.withLock
 import kotlin.io.path.Path
 import kotlin.io.path.exists
+import kotlin.io.path.pathString
 import kotlin.jvm.optionals.getOrNull
+import java.nio.file.Path as NioPath
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 internal class AppEndpointService(
@@ -35,68 +43,36 @@ internal class AppEndpointService(
     private val settingsService: SettingsService,
     private val vgAuthService: VGAuthService,
     private val logService: LogService,
+    private val taskService: TaskService,
 ) : IAppEndpointService {
 
     private val log by LoggerDelegate()
-    private val lock = ReentrantLock()
+    private val lock = Mutex()
 
-    override suspend fun scanLinks(postLinks: String) {
-        lock.withLock {
-            if (postLinks.isBlank()) {
-                return
-            }
-            val urlList = postLinks.split(Pattern.compile("\\r?\\n")).dropLastWhile { it.isBlank() }.map { it.trim() }
-                .filter { it.isNotEmpty() }
-            val proxies = settingsService.getProxies()
-            for (link in urlList) {
-                log.debug("Scanning: $link")
-                val matchingProxy = proxies.find { link.startsWith(it) }
-                if (matchingProxy == null) {
-                    continue
-                }
-                var threadId: Long
-                var postId: Long?
-                val m = Pattern.compile(
-                    Pattern.quote(matchingProxy) + "/threads/(\\d+)((.*p=)(\\d+))?"
-                ).matcher(link)
-                if (m.find()) {
-                    threadId = m.group(1).toLong()
-                    postId = m.group(4)?.toLong()
-                    if (postId == null) {
-                        taskRunner.submit(
-                            ThreadLookupTask(
-                                matchingProxy, threadId, settingsService.settings
-                            )
-                        )
-                    } else {
-                        taskRunner.submit(
-                            AddPostTask(
-                                listOf(PostIdentifier(matchingProxy, threadId, postId))
-                            )
-                        )
-                    }
-                } else {
-                    log.error("Invalid link $link, link is missing the threadId")
-                    continue
-                }
-            }
-        }
+    override suspend fun scanLinks(postLinks: String, origin: IPostCommandEndpoint.ScanOrigin) {
+        taskService.submit(ScanLinksTask(postLinks, origin))
     }
 
     override suspend fun restartAll(postEntityIds: List<Long>) {
         lock.withLock {
-            downloadService.restartAll(postEntityIds.filter { dataAccessService.exists(it) }
-                .map { dataAccessService.findPostByEntityId(it) })
+            val posts = postEntityIds.mapNotNull { postEntityId ->
+                if (dataAccessService.existsAsync(postEntityId)) {
+                    dataAccessService.findPostByEntityIdAsync(postEntityId)
+                } else {
+                    null
+                }
+            }
+            downloadService.restartAll(posts)
         }
     }
 
     override suspend fun download(posts: List<ThreadPostId>) {
         posts.map {
-            val thread = dataAccessService.findThreadByThreadId(it.threadId).getOrNull()
+            val thread = dataAccessService.findThreadByThreadIdAsync(it.threadId).getOrNull()
                 ?: throw PostParseException("Could not find thread with id ${it.threadId}")
             PostIdentifier(thread.link.extractBaseUrl(), it.threadId, it.postId)
         }.also {
-            taskRunner.submit(AddPostTask(it))
+            taskService.submit(QueueItemsTask(it))
         }
     }
 
@@ -109,20 +85,20 @@ internal class AppEndpointService(
     override suspend fun remove(postEntityIds: List<Long>) {
         lock.withLock {
             downloadService.stop(postEntityIds)
-            dataAccessService.removeAll(postEntityIds)
+            dataAccessService.removeAllAsync(postEntityIds)
         }
     }
 
     override suspend fun clearCompleted(): List<Long> {
         lock.withLock {
-            return dataAccessService.clearCompleted()
+            return dataAccessService.clearCompletedAsync()
         }
     }
 
     override suspend fun grab(threadId: Long): List<PostSelection> {
         lock.withLock {
             return try {
-                val thread = dataAccessService.findThreadByThreadId(threadId).orElseThrow {
+                val thread = dataAccessService.findThreadByThreadIdAsync(threadId).orElseThrow {
                     PostParseException(
                         String.format(
                             "Unable to find links for threadId = %s", threadId
@@ -160,73 +136,64 @@ internal class AppEndpointService(
     override suspend fun threadRemove(threadIdList: List<Long>) {
         lock.withLock {
             threadIdList.forEach {
-                dataAccessService.removeThread(it)
+                dataAccessService.removeThreadAsync(it)
             }
         }
     }
 
     override suspend fun threadClear() {
         lock.withLock {
-            dataAccessService.clearQueueLinks()
+            dataAccessService.clearQueueLinksAsync()
         }
     }
 
     override suspend fun renameToFirst(postEntityIds: List<Long>) {
         postEntityIds.forEach { postEntityId ->
-            dataAccessService
-                .findMetadataByPostEntityId(postEntityId)
-                .map { it.data.resolvedNames }
-                .filter { it.isNotEmpty() }
-                .getOrNull()?.let { rename(postEntityId, it.first()) }
+            val metadata = dataAccessService.findMetadataByPostEntityIdAsync(postEntityId).orElse(null)
+            metadata?.data?.resolvedNames?.firstOrNull()?.let { rename(postEntityId, it) }
         }
     }
 
     override suspend fun rename(postEntityId: Long, newName: String) {
-        taskRunner.submit {
-            synchronized(postEntityId.toString().intern()) {
-                if (dataAccessService.exists(postEntityId)) {
-                    dataAccessService.findPostByEntityId(postEntityId).let { post ->
-                        if (Path(post.downloadDirectory, post.folderName).exists()) {
-                            PathUtils.rename(
-                                dataAccessService.findImagesByPostEntityId(postEntityId),
-                                post.downloadDirectory,
-                                post.folderName,
-                                newName
-                            )
-                        }
-                        post.folderName = PathUtils.sanitize(newName)
-                        dataAccessService.updatePost(post)
-                    }
-                }
-            }
-        }
+        taskService.submit(RenameTask(postEntityId, newName))
     }
 
     override fun onNewPosts(): Flow<Post> =
-        EventBus.events.filterIsInstance(PostCreateEvent::class).map { it.postEntities.map(::mapper) }
+        EventBus.events.filterIsInstance(PostCreateEvent::class)
+            .map { it.postEntities.map { post -> mapper(post) } }
             .flatMapConcat { it.asFlow() }
 
 
-    override fun onUpdatePosts() =
-        EventBus.events.filterIsInstance(PostUpdateEvent::class).map { it.postEntities.map(::mapper) }
+    override fun onUpdatePosts(): Flow<Post> =
+        EventBus.events.filterIsInstance(PostUpdateEvent::class)
+            .map { it.postEntities.map { post -> mapper(post) } }
             .flatMapConcat { it.asFlow() }
 
 
-    override fun onDeletePosts() =
+    override fun onDeletePosts(): Flow<Long> =
         EventBus.events.filterIsInstance(PostDeleteEvent::class).flatMapConcat { it.postEntityIds.asFlow() }
 
 
-    override fun onUpdateMetadata() =
+    override fun onUpdateMetadata(): Flow<Metadata> =
         EventBus.events.filterIsInstance(MetadataUpdateEvent::class).map { it.metadataEntity }
 
 
     override suspend fun findAllPosts(): List<Post> {
-        return dataAccessService.findAllPosts().map(::mapper)
+        val snapshot = dataAccessService.findAllPostsSnapshotAsync()
+        val imagesByPost = snapshot.images.groupBy { it.postEntityId }
+        val metadataByPost = snapshot.metadata.associateBy { it.postIdRef }
+        return snapshot.posts.map { postEntity ->
+            mapper(postEntity, imagesByPost[postEntity.id].orEmpty(), metadataByPost[postEntity.id])
+        }
     }
 
-    private fun mapper(postEntity: PostEntity): Post {
-        val metadata: Metadata? = dataAccessService.findMetadataByPostEntityId(postEntity.id).orElse(null)
-        val images = dataAccessService.findImagesByPostEntityId(postEntity.id)
+    private suspend fun mapper(postEntity: PostEntity): Post {
+        val images = dataAccessService.findImagesByPostEntityIdAsync(postEntity.id)
+        val metadata = dataAccessService.findMetadataByPostEntityIdAsync(postEntity.id).orElse(null)
+        return mapper(postEntity, images, metadata)
+    }
+
+    private fun mapper(postEntity: PostEntity, images: List<ImageEntity>, metadata: MetadataEntity?): Post {
         return Post(
             postEntity.id,
             postEntity.postTitle,
@@ -245,18 +212,19 @@ internal class AppEndpointService(
             postEntity.done,
             postEntity.size,
             postEntity.downloaded,
-            images.take(4).map { it.thumbUrl },
+            images.map { it.thumbUrl },
             metadata?.data?.postedBy ?: "",
             metadata?.data?.resolvedNames ?: emptyList(),
         )
     }
 
     override suspend fun findPost(postEntityId: Long): Post {
-        return mapper(dataAccessService.findPostByEntityId(postEntityId))
+        val snapshot = dataAccessService.findPostSnapshotAsync(postEntityId)
+        return mapper(snapshot.post, snapshot.images, snapshot.metadata)
     }
 
     override suspend fun findImagesByPostEntityId(postEntityId: Long): List<Image> {
-        return dataAccessService.findImagesByPostEntityId(postEntityId)
+        return dataAccessService.findImagesByPostEntityIdAsync(postEntityId)
     }
 
     override fun onUpdateImagesByPostEntityId(postEntityId: Long): Flow<Image> =
@@ -290,7 +258,7 @@ internal class AppEndpointService(
 
 
     override suspend fun findAllThreads(): List<Thread> {
-        return dataAccessService.findAllThreads()
+        return dataAccessService.findAllThreadsAsync()
     }
 
     override fun onDownloadSpeed(): Flow<DownloadSpeed> =
@@ -312,6 +280,19 @@ internal class AppEndpointService(
     override fun onTasksRunning(): Flow<Boolean> =
         EventBus.events.filterIsInstance(LoadingTasks::class).sample(Duration.ofMillis(500)).map { it.loading }
 
+    override suspend fun findAllTasks(): List<TaskEntity> = taskService.findAllAsync()
+
+    override fun onNewTask(): Flow<TaskEntity> =
+        EventBus.events.filterIsInstance(TaskCreateEvent::class).map { it.taskEntity }
+
+    override fun onUpdateTask(): Flow<TaskEntity> =
+        EventBus.events.filterIsInstance(TaskUpdateEvent::class).map { it.taskEntity }
+
+    override suspend fun clearTasks() = taskService.clearAsync()
+
+    override fun onClearTasks(): Flow<Unit> =
+        EventBus.events.filterIsInstance(TaskClearEvent::class).map { }
+
     override suspend fun getSettings(): Settings = settingsService.settings
 
     override suspend fun saveSettings(settings: Settings) = settingsService.newSettings(settings)
@@ -325,17 +306,118 @@ internal class AppEndpointService(
 
     override suspend fun getVersion(): String = ApplicationProperties.VERSION
 
+    override suspend fun getServerInfo(): ServerInfo {
+        val appDir = VRIPPER_DIR
+        val database = appDir.resolve("vripper.db")
+        val logFile = appDir.resolve("vripper.log")
+        val settingsFile = appDir.resolve("config.json")
+        val runtime = Runtime.getRuntime()
+        val gcBeans = ManagementFactory.getGarbageCollectorMXBeans()
+        val settings = settingsService.settings
+        return ServerInfo(
+            version = ApplicationProperties.VERSION.trim(),
+            applicationFolder = appDir.pathString,
+            databasePath = database.pathString,
+            databaseExists = Files.isRegularFile(database),
+            databaseSize = fileSize(database),
+            logPath = logFile.pathString,
+            logExists = Files.isRegularFile(logFile),
+            logSize = fileSize(logFile),
+            settingsPath = settingsFile.pathString,
+            settingsExists = Files.isRegularFile(settingsFile),
+            settingsSize = fileSize(settingsFile),
+            downloadPath = settings.downloadSettings.downloadPath,
+            tempPath = settings.systemSettings.tempPath,
+            operatingSystem = "${System.getProperty("os.name")} ${System.getProperty("os.version")} " +
+                    "(${System.getProperty("os.arch")})",
+            javaVersion = System.getProperty("java.version"),
+            javaVendor = System.getProperty("java.vendor"),
+            uptimeMillis = ManagementFactory.getRuntimeMXBean().uptime,
+            threadCount = ManagementFactory.getThreadMXBean().threadCount,
+            heapUsed = runtime.totalMemory() - runtime.freeMemory(),
+            heapCommitted = runtime.totalMemory(),
+            heapMax = runtime.maxMemory(),
+            processors = runtime.availableProcessors(),
+            gcCount = gcBeans.sumOf { it.collectionCount.coerceAtLeast(0) },
+            gcTimeMillis = gcBeans.sumOf { it.collectionTime.coerceAtLeast(0) },
+        )
+    }
+
+    private fun fileSize(path: NioPath): Long =
+        runCatching { if (Files.isRegularFile(path)) Files.size(path) else 0L }.getOrDefault(0L)
+
     override suspend fun move(postEntityId: Long, position: MovePosition) {
         downloadService.move(postEntityId, position)
     }
 
-    override suspend fun dbMigration(): String {
+    override fun downloadImage(downloadRequest: DownloadRequest): Flow<ImageChunk> = flow {
+        val imageEntity = dataAccessService.findImageByIdAsync(downloadRequest.imageId)
+            .orElseThrow { NoSuchElementException("Image with id = ${downloadRequest.imageId} does not exist") }
+        val postEntity = dataAccessService.findPostByEntityIdAsync(imageEntity.postEntityId)
+        val filePath = Path(postEntity.downloadDirectory)
+            .resolve(postEntity.folderName)
+            .resolve(imageEntity.filename)
+
+        if (imageEntity.filename.isBlank() || !filePath.exists()) {
+            emit(
+                ImageChunk(
+                    missing = true,
+                    imageId = downloadRequest.imageId,
+                    offset = 0,
+                    data = ByteArray(0),
+                    isLast = true
+                )
+            )
+            return@flow
+        }
+
+        val chunkSize = 256 * 1024
+        val totalSize = Files.size(filePath)
+        if (totalSize == 0L) {
+            emit(
+                ImageChunk(
+                    missing = false,
+                    imageId = downloadRequest.imageId,
+                    offset = 0,
+                    data = ByteArray(0),
+                    isLast = true
+                )
+            )
+            return@flow
+        }
+
+        Files.newInputStream(filePath).use { input ->
+            val buffer = ByteArray(chunkSize)
+            var offset = 0L
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) {
+                    break
+                }
+                offset += read
+                val isLast = offset >= totalSize
+                emit(
+                    ImageChunk(
+                        missing = false,
+                        imageId = downloadRequest.imageId,
+                        offset = offset - read,
+                        data = buffer.copyOf(read),
+                        isLast = isLast
+                    )
+                )
+                if (isLast) {
+                    break
+                }
+            }
+        }
+    }
+
+    override suspend fun dbMigration(): String = withContext(Dispatchers.IO) {
 
         val conn = try {
-            DriverManager
-                .getConnection("jdbc:h2:file:$VRIPPER_DIR/vripper;DB_CLOSE_DELAY=-1;IFEXISTS=TRUE")
+            DriverManager.getConnection("jdbc:h2:file:$VRIPPER_DIR/vripper;DB_CLOSE_DELAY=-1;IFEXISTS=TRUE")
         } catch (_: JdbcSQLNonTransientConnectionException) {
-            return "Old database not found, nothing to do"
+            return@withContext "Old database not found, nothing to do"
         }
 
         var postsCount = 0
@@ -362,7 +444,7 @@ internal class AppEndpointService(
                         val addedAt = resultSet.getTimestamp("ADDED_AT")
                         val folderName = resultSet.getString("FOLDER_NAME") ?: ""
 
-                        val exists = dataAccessService.existsPostId(postId)
+                        val exists = dataAccessService.existsPostIdAsync(postId)
                         if (exists) {
                             continue
                         }
@@ -416,7 +498,7 @@ internal class AppEndpointService(
                             }
                         }
 
-                        val savedPost = dataAccessService.saveAndNotify(post, images)
+                        val savedPost = dataAccessService.saveAndNotifyAsync(post, images)
 
                         //load meta
                         conn.prepareStatement("select * from metadata where post_id = ?").use { statement ->
@@ -425,10 +507,9 @@ internal class AppEndpointService(
                                 if (set.next()) {
                                     val data = Json.decodeFromString(set.getString("DATA")) as MetadataEntity.Data
                                     val metadata = MetadataEntity(
-                                        postIdRef = savedPost.id,
-                                        data = data
+                                        postIdRef = savedPost.id, data = data
                                     )
-                                    dataAccessService.saveMetadata(metadata)
+                                    dataAccessService.saveMetadataAsync(metadata)
                                 }
                             }
                         }
@@ -445,7 +526,7 @@ internal class AppEndpointService(
                         val threadId = set.getLong("THREAD_ID")
                         val title = set.getString("TITLE")
 
-                        if (dataAccessService.findThreadByThreadId(threadId).isPresent) {
+                        if (dataAccessService.findThreadByThreadIdAsync(threadId).isPresent) {
                             continue
                         }
 
@@ -456,14 +537,14 @@ internal class AppEndpointService(
                             total = total,
                         )
 
-                        dataAccessService.save(threadEntity)
+                        dataAccessService.saveThreadAsync(threadEntity)
                         threadCount++
                     }
                 }
             }
         }
 
-        return if (postsCount == 0 && threadCount == 0) {
+        if (postsCount == 0 && threadCount == 0) {
             "Nothing to do, everything was imported"
         } else {
             "Successfully imported $postsCount posts and $threadCount threads"

@@ -9,16 +9,11 @@ import javafx.scene.input.KeyCodeCombination
 import javafx.scene.input.KeyCombination
 import kotlinx.coroutines.*
 import me.vripper.gui.VripperGuiApplication
-import me.vripper.gui.components.fragments.AboutFragment
-import me.vripper.gui.components.fragments.AddLinksFragment
-import me.vripper.gui.components.fragments.SessionFragment
-import me.vripper.gui.components.fragments.SettingsFragment
-import me.vripper.gui.controller.ActionBarController
-import me.vripper.gui.controller.PostController
-import me.vripper.gui.controller.SettingsController
-import me.vripper.gui.controller.WidgetsController
+import me.vripper.gui.components.fragments.*
+import me.vripper.gui.controller.*
+import me.vripper.gui.utils.AppEndpointManager
+import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.gui.utils.openLink
-import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.ApplicationProperties
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
@@ -27,12 +22,11 @@ import tornadofx.*
 class MenuBarView : View() {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadActiveProperty = SimpleBooleanProperty(false)
-    private val postsTableView: PostsTableView by inject()
+    private val postsController: PostsTabController by inject()
     private val widgetsController: WidgetsController by inject()
     private val postController: PostController by inject()
     private val actionBarController: ActionBarController by inject()
     private val settingsController: SettingsController by inject()
-    private lateinit var appEndpointService: IAppEndpointService
     private val running = SimpleIntegerProperty(0)
 
     override val root = menubar {}
@@ -84,7 +78,7 @@ class MenuBarView : View() {
                             coroutineScope.launch {
                                 val clearPosts = async { postController.clearPosts() }.await()
                                 runLater {
-                                    postsTableView.tableView.items.removeIf { clearPosts.contains(it.vgPostId) }
+                                    postsController.removePostsByVgPostId(clearPosts)
                                 }
                             }
                         }
@@ -214,8 +208,9 @@ class MenuBarView : View() {
                             title = "Database Migration"
                         ) {
                             coroutineScope.launch {
-                                val message =
-                                    runCatching { appEndpointService.dbMigration() }.getOrDefault("Migration failed")
+                                val message = GuiErrorReporter.call("migration") {
+                                    AppEndpointManager.currentAppEndpointService().dbMigration()
+                                }.getOrElse { "Migration failed" }
                                 runLater {
                                     information(
                                         header = "",
@@ -256,6 +251,13 @@ class MenuBarView : View() {
                                 owner = primaryStage
                             )
                         }
+                    }
+                }
+                separator()
+                item("Diagnostics").apply {
+                    graphic = FontIcon.of(Feather.ACTIVITY)
+                    action {
+                        find<DiagnosticsFragment>().openModal()
                     }
                 }
                 separator()

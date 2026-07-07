@@ -12,6 +12,7 @@ import me.vripper.gui.components.fragments.AddLinksFragment
 import me.vripper.gui.components.fragments.SettingsFragment
 import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
+import me.vripper.gui.controller.PostsTabController
 import me.vripper.gui.controller.SettingsController
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
@@ -20,7 +21,7 @@ import tornadofx.*
 class ActionBarView : View() {
     private val downloadActiveProperty = SimpleBooleanProperty(true)
     private val postController: PostController by inject()
-    private val postsTableView: PostsTableView by inject()
+    private val postsController: PostsTabController by inject()
     private val actionBarController: ActionBarController by inject()
     private val settingsController: SettingsController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -81,7 +82,7 @@ class ActionBarView : View() {
                         coroutineScope.launch {
                             val clearPosts = async { postController.clearPosts() }.await()
                             runLater {
-                                postsTableView.tableView.items.removeIf { clearPosts.contains(it.vgPostId) }
+                                postsController.removePostsByVgPostId(clearPosts)
                             }
                         }
                     }

@@ -24,11 +24,15 @@ class StatusBarView : View("Status bar") {
     private val pending = SimpleIntegerProperty(0)
     private val error = SimpleIntegerProperty(0)
 
+    @Volatile
+    private var serverVersion = ""
+
     init {
         coroutineScope.launch {
             GuiEventBus.events.collect {
                 when (it) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
+                        serverVersion = ""
                         val result = runCatching { statusBarController.loggedInUser() }
                         if (result.isSuccess) {
                             runLater {
@@ -98,10 +102,21 @@ class StatusBarView : View("Status bar") {
         }
 
         coroutineScope.launch {
+            var lastConnectionState = ""
             while (isActive) {
-                val text = when (statusBarController.connectionState()) {
+                val connectionState = statusBarController.connectionState()
+                // The version only changes when the endpoint changes; fetching
+                // it on every status-bar tick meant one gRPC call per second.
+                if (connectionState == "READY" &&
+                    (connectionState != lastConnectionState || serverVersion.isEmpty())
+                ) {
+                    runCatching { statusBarController.getVersion() }
+                        .onSuccess { serverVersion = it }
+                }
+                lastConnectionState = connectionState
+                val text = when (connectionState) {
                     "CONNECTING" -> "Connecting to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}"
-                    "READY" -> "Connected to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port} ${statusBarController.getVersion()}"
+                    "READY" -> "Connected to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port} $serverVersion"
                     "TRANSIENT_FAILURE" -> "Failing to connect to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}"
                     "IDLE" -> "Idle connection to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}"
                     "SHUTDOWN" -> "Connection shutdown to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}"

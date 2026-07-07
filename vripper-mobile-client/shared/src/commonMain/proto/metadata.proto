@@ -1,0 +1,8 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+
+message Metadata {
+  int64 postId = 1;
+  string postedBy = 2;
+  repeated string resolvedNames = 3;
+}

@@ -5,6 +5,7 @@ import kotlinx.coroutines.*
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.model.Settings
 import me.vripper.services.IAppEndpointService
+import me.vripper.services.IPostCommandEndpoint
 import me.vripper.utilities.LoggerDelegate
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -43,10 +44,9 @@ object ClipboardManager : KoinComponent {
                     when (event) {
                         GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
                             logger.info("Clipboard manager initialized")
-                            val result = runCatching { AppEndpointManager.currentAppEndpointService().getSettings() }
-                            if (result.isSuccess) {
-                                update(result.getOrNull()!!)
-                            }
+                            GuiErrorReporter.call("clipboard.settings") {
+                                AppEndpointManager.currentAppEndpointService().getSettings()
+                            }.onSuccess { update(it) }
                         }
 
                         else -> {}
@@ -71,7 +71,10 @@ object ClipboardManager : KoinComponent {
                     }
                     if (!value.isNullOrBlank() && value != current) {
                         current = value
-                        runCatching { AppEndpointManager.currentAppEndpointService().scanLinks(value) }
+                        GuiErrorReporter.call("clipboard.scan") {
+                            AppEndpointManager.currentAppEndpointService()
+                                .scanLinks(value, IPostCommandEndpoint.ScanOrigin.CLIPBOARD)
+                        }
                     }
                     delay(settings.systemSettings.clipboardPollingRate.toLong())
                 }

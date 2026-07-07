@@ -1,0 +1,15 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+
+message Image {
+  int64 id = 1;
+  string url = 2;
+  string thumbUrl = 3;
+  int32 host = 4;
+  int32 index = 5;
+  int64 postIdRef = 6;
+  int64 size = 7;
+  int64 downloaded = 8;
+  string status = 9;
+  string filename = 10;
+}

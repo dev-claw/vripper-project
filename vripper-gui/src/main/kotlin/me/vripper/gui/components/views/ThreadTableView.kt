@@ -4,7 +4,11 @@ import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.scene.control.*
+import javafx.scene.layout.Priority
+import javafx.scene.layout.VBox
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +40,14 @@ class ThreadTableView : View() {
 
     init {
         with(root) {
+            hbox {
+                padding = Insets(8.0)
+                spacing = 8.0
+                alignment = Pos.CENTER_LEFT
+                button("Clear threads", FontIcon.of(Feather.TRASH_2)) {
+                    action { clearThreads() }
+                }
+            }
             tableView = tableview(items) {
                 isTableMenuButtonVisible = true
                 primaryStage.addEventFilter(KeyEvent.KEY_PRESSED) { event ->
@@ -83,23 +95,6 @@ class ThreadTableView : View() {
                         .bind(tableRow.emptyProperty().map { empty -> if (empty) null else contextMenu })
                     tableRow
                 }
-                contextMenu = ContextMenu()
-                contextMenu.items.add(MenuItem("Clear", FontIcon.of(Feather.TRASH_2)).apply {
-                    setOnAction {
-                        confirm(
-                            "",
-                            "Confirm removal of all threads",
-                            ButtonType.YES,
-                            ButtonType.NO,
-                            owner = primaryStage,
-                            title = "Clean threads"
-                        ) {
-                            coroutineScope.launch {
-                                threadController.clearAll()
-                            }
-                        }
-                    }
-                })
                 column("Title", ThreadModel::titleProperty) {
                     isVisible = widgetsController.currentSettings.threadsColumnsModel.titleProperty.get()
                     visibleProperty().onChange {
@@ -143,6 +138,8 @@ class ThreadTableView : View() {
                     }
                 }
             }
+            tableView.maxHeight = Double.MAX_VALUE
+            VBox.setVgrow(tableView, Priority.ALWAYS)
         }
 
         titleProperty.bind(items.sizeProperty.map {
@@ -152,7 +149,6 @@ class ThreadTableView : View() {
                 "Threads"
             }
         })
-        tableView.prefHeightProperty().bind(root.heightProperty())
         tableView.placeholder = Label("Loading")
 
         threadController.newThread.let { flow ->
@@ -192,6 +188,7 @@ class ThreadTableView : View() {
                 it.collect {
                     runLater {
                         tableView.items.clear()
+                        tableView.placeholder = Label("No threads")
                     }
                 }
             }
@@ -239,6 +236,21 @@ class ThreadTableView : View() {
         ) {
             coroutineScope.launch {
                 threadController.delete(threadIdList)
+            }
+        }
+    }
+
+    private fun clearThreads() {
+        confirm(
+            "",
+            "Are you sure you want to clear all threads",
+            ButtonType.YES,
+            ButtonType.NO,
+            owner = primaryStage,
+            title = "Clear threads"
+        ) {
+            coroutineScope.launch {
+                threadController.clearAll()
             }
         }
     }

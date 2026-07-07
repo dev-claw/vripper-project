@@ -1,6 +1,5 @@
 package me.vripper.data.repositories.impl
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.vripper.data.repositories.MetadataRepository
 import me.vripper.data.tables.MetadataTable
@@ -23,6 +22,10 @@ internal class MetadataRepositoryImpl : MetadataRepository {
         }
 
         return metadataEntity
+    }
+
+    override fun findAll(): List<MetadataEntity> {
+        return MetadataTable.selectAll().map(::transform)
     }
 
     override fun findByPostEntityId(postEntityId: Long): Optional<MetadataEntity> {

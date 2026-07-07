@@ -21,6 +21,7 @@ class AppView : View() {
     override val root = vbox { }
     private val mainController: MainController by inject()
     private val menuBarView: MenuBarView by inject()
+    private val remoteErrorBanner: RemoteErrorBanner by inject()
     private val mainView: MainView by inject()
     private val statusBarView: StatusBarView by inject()
     private val actionBarView: ActionBarView by inject()
@@ -29,11 +30,13 @@ class AppView : View() {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     init {
         title = "VRipper ${mainController.version}"
+        val banner = remoteErrorBanner
         with(root) {
             add(menuBarView)
             if (widgetsController.currentSettings.visibleToolbarPanel) {
                 add(actionBarView)
             }
+            add(banner)
             add(mainView)
             if (widgetsController.currentSettings.visibleStatusBarPanel) {
                 add(statusBarView)

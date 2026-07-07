@@ -7,7 +7,6 @@ import me.vripper.exception.VripperException
 import me.vripper.model.Settings
 import me.vripper.tasks.LeaveThanksTask
 import me.vripper.utilities.LoggerDelegate
-import me.vripper.utilities.taskRunner
 import org.apache.hc.client5.http.classic.methods.HttpPost
 import org.apache.hc.client5.http.cookie.BasicCookieStore
 import org.apache.hc.client5.http.cookie.Cookie
@@ -20,6 +19,8 @@ import org.apache.hc.core5.http.message.BasicNameValuePair
 internal class VGAuthService(
     private val cm: HTTPService,
     private val eventBus: EventBus,
+    private val taskService: TaskService,
+    private val settingsService: SettingsService,
 ) {
     private val log by LoggerDelegate()
     private val vgCookies: MutableList<Cookie> = mutableListOf()
@@ -124,9 +125,11 @@ internal class VGAuthService(
 
     fun leaveThanks(postEntity: PostEntity) {
         val context = createVgContext()
-        taskRunner.submit(
-            LeaveThanksTask(postEntity, authenticated, context)
-        )
+        if(settingsService.settings.viperSettings.login && authenticated && settingsService.settings.viperSettings.thanks) {
+            taskService.submit(
+                LeaveThanksTask(postEntity, authenticated, context)
+            )
+        }
     }
 
     fun createVgContext(): HttpClientContext {

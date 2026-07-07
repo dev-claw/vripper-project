@@ -23,21 +23,35 @@ import java.util.stream.Collectors
 
 internal class FetchMetadataTask(
     private val postEntity: PostEntity,
-) : KoinComponent, Runnable {
+) : KoinComponent, ITask {
     private val dictionary: List<String> = mutableListOf("download", "link", "rapidgator", "filefactory", "filefox")
     private val log by LoggerDelegate()
     private val settingsService: SettingsService by inject()
     private val vgAuthService: VGAuthService by inject()
     private val httpService: HTTPService by inject()
     private val dataAccessService: DataAccessService by inject()
+    private var status = TaskStatus.WAITING
+    private var result = ""
 
-    override fun run() {
+    override fun getName() = "Fetching metadata"
+
+    override fun getCategory() = TaskCategory.METADATA
+
+    override fun getDescription() = "Fetching metadata for post #${postEntity.vgPostId}"
+
+    override fun getResult() = result
+
+    override fun getStatus() = status
+
+    override suspend fun run() {
+        status = TaskStatus.RUNNING
+        if (!settingsService.settings.viperSettings.fetchMetadata) {
+            log.debug("Fetching metadata is disabled")
+            status = TaskStatus.WARNING
+            result = "Fetching metadata is disabled"
+            return
+        }
         try {
-            if (!settingsService.settings.viperSettings.fetchMetadata) {
-                log.debug("Fetching metadata is disabled")
-                return
-            }
-            Tasks.increment()
             val httpGet = HttpGet(URIBuilder(settingsService.settings.viperSettings.host + "/threads/").also {
                 it.setParameter(
                     "p", postEntity.vgPostId.toString()
@@ -72,8 +86,13 @@ internal class FetchMetadataTask(
             val titles = findTitleInContent(node)
             val metadataEntity = MetadataEntity(postEntity.id, MetadataEntity.Data(postedBy, titles))
             dataAccessService.saveMetadata(metadataEntity)
-        } finally {
-            Tasks.decrement()
+            status = TaskStatus.SUCCESS
+            result =
+                "Fetched metadata for post #${postEntity.vgPostId}: posted by \"$postedBy\", ${titles.size} title(s)"
+        } catch (e: Exception) {
+            status = TaskStatus.FAILURE
+            result = "Failed to fetch metadata for post #${postEntity.vgPostId}: ${e.message ?: e.toString()}"
+            log.error("Failed to fetch metadata for post #${postEntity.vgPostId}", e)
         }
     }
 

@@ -1,0 +1,7 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+import "image.proto";
+
+message Images {
+  repeated Image images = 1;
+}

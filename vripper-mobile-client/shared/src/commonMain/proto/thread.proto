@@ -1,0 +1,10 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+
+message Thread {
+  int64 id = 1;
+  string title = 2;
+  string link = 3;
+  int64 threadId = 4;
+  int32 total = 5;
+}

@@ -1,0 +1,49 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+
+message ViperSettings {
+  bool login = 1;
+  string username = 2;
+  string password = 3;
+  bool thanks = 4;
+  string host = 5;
+  int64 requestLimit = 6;
+  bool fetchMetadata = 7;
+}
+
+message DownloadSettings {
+  string downloadPath = 1;
+  bool autoStart = 2;
+  int32 autoQueueThreshold = 3;
+  bool forceOrder = 4;
+  bool forumSubDirectory = 5;
+  bool threadSubLocation = 6;
+  bool clearCompleted = 7;
+  bool appendPostId = 8;
+}
+
+message ConnectionSettings {
+  int32 maxConcurrentPerHost = 1;
+  int32 maxGlobalConcurrent = 2;
+  int32 timeout = 3;
+  int32 maxAttempts = 4;
+}
+
+message SystemSettings {
+  string tempPath = 1;
+  bool enableClipboardMonitoring = 2;
+  int32 clipboardPollingRate = 3;
+  int32 maxEventLog = 4;
+}
+
+message HostSettingsMap {
+  map<string, string> settings = 1;
+}
+
+message Settings {
+  ConnectionSettings connectionSettings = 1;
+  DownloadSettings downloadSettings = 2;
+  ViperSettings viperSettings = 3;
+  SystemSettings systemSettings = 4;
+  map<string, HostSettingsMap> hostSettings = 5;
+}

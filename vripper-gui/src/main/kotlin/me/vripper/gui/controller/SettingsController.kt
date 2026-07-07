@@ -2,13 +2,14 @@ package me.vripper.gui.controller
 
 import me.vripper.gui.model.settings.*
 import me.vripper.gui.utils.AppEndpointManager
+import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.model.*
 import tornadofx.Controller
 
 class SettingsController : Controller() {
 
     suspend fun findDownloadSettings(): DownloadSettings {
-        return runCatching {
+        return GuiErrorReporter.call("settings.download") {
             AppEndpointManager.currentAppEndpointService().getSettings().downloadSettings
         }.getOrDefault(
             DownloadSettings()
@@ -16,27 +17,27 @@ class SettingsController : Controller() {
     }
 
     suspend fun findConnectionSettings(): ConnectionSettings {
-        return runCatching {
+        return GuiErrorReporter.call("settings.connection") {
             AppEndpointManager.currentAppEndpointService().getSettings().connectionSettings
         }.getOrDefault(ConnectionSettings())
     }
 
     suspend fun findViperGirlsSettings(): ViperSettings {
-        return runCatching { AppEndpointManager.currentAppEndpointService().getSettings().viperSettings }.getOrDefault(
-            ViperSettings()
-        )
+        return GuiErrorReporter.call("settings.viper") {
+            AppEndpointManager.currentAppEndpointService().getSettings().viperSettings
+        }.getOrDefault(ViperSettings())
     }
 
     suspend fun findSystemSettings(): SystemSettings {
-        return runCatching { AppEndpointManager.currentAppEndpointService().getSettings().systemSettings }.getOrDefault(
-            SystemSettings()
-        )
+        return GuiErrorReporter.call("settings.system") {
+            AppEndpointManager.currentAppEndpointService().getSettings().systemSettings
+        }.getOrDefault(SystemSettings())
     }
 
     suspend fun findHostSettings(): Map<HostName, Map<HostSettingKey, String>> {
-        return runCatching { AppEndpointManager.currentAppEndpointService().getSettings().hostSettings }.getOrDefault(
-            emptyMap()
-        )
+        return GuiErrorReporter.call("settings.host") {
+            AppEndpointManager.currentAppEndpointService().getSettings().hostSettings
+        }.getOrDefault(emptyMap())
     }
 
     suspend fun saveNewSettings(
@@ -46,7 +47,7 @@ class SettingsController : Controller() {
         systemSettingsModel: SystemSettingsModel,
         hostSettingsModel: List<HostSettingsModel>,
     ) {
-        runCatching {
+        GuiErrorReporter.call("settings.save") {
             AppEndpointManager.currentAppEndpointService().saveSettings(
                 Settings(
                     downloadSettings = DownloadSettings(
@@ -97,6 +98,8 @@ class SettingsController : Controller() {
     }
 
     suspend fun getProxies(): List<String> {
-        return runCatching { AppEndpointManager.currentAppEndpointService().getProxies() }.getOrDefault(emptyList())
+        return GuiErrorReporter.call("settings.proxies") {
+            AppEndpointManager.currentAppEndpointService().getProxies()
+        }.getOrDefault(emptyList())
     }
 }

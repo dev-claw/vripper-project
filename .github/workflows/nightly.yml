@@ -1,0 +1,242 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Build even if there are no changes since the last nightly'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+      revision: ${{ steps.version.outputs.revision }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read project version
+        id: version
+        run: |
+          revision=$(sed -n 's:.*<revision>\(.*\)</revision>.*:\1:p' pom.xml | head -n 1)
+          echo "revision=${revision}" >> "$GITHUB_OUTPUT"
+          echo "version=${revision%%-*}" >> "$GITHUB_OUTPUT"
+
+      - name: Check for changes since the last nightly
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force || 'false' }}
+        run: |
+          if [ "$FORCE" = "true" ]; then
+            echo "Manual run forced, building nightly"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          last=$(gh release view nightly --repo "$GITHUB_REPOSITORY" --json body --jq .body 2>/dev/null | grep -oE '[0-9a-f]{40}' | head -n 1 || true)
+          if [ -n "$last" ] && [ "$last" = "$GITHUB_SHA" ]; then
+            echo "No changes since last nightly ($last), skipping"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changes detected since last nightly, building"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'zulu'
+          cache: maven
+
+      - name: Build GUI and web jars
+        run: |
+          mvn -N -q install --file pom.xml
+          mvn -B -q install --file vripper-core/pom.xml
+          mvn -B -q install --file vripper-gui/pom.xml
+          mvn -B -q install --file vripper-web-ui/pom.xml
+          mvn -B -q install --file vripper-web/pom.xml
+          mv "vripper-gui/target/vripper-gui-${{ needs.check.outputs.revision }}-jar-with-dependencies.jar" vripper-gui/target/vripper-noarch-gui-nightly.jar
+          mv "vripper-web/target/vripper-web-${{ needs.check.outputs.revision }}.jar" vripper-web/target/vripper-noarch-web-nightly.jar
+
+      - name: Upload GUI jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-gui-jar
+          path: vripper-gui/target/vripper-noarch-gui-nightly.jar
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload web jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-web-jar
+          path: vripper-web/target/vripper-noarch-web-nightly.jar
+          retention-days: 1
+          compression-level: 0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        run: |
+          mkdir -p docker_build
+          cp Dockerfile docker_build/Dockerfile
+          cp vripper-web/target/vripper-noarch-web-nightly.jar docker_build/vripper-web.jar
+          docker build -t ghcr.io/dev-claw/vripper-web:nightly docker_build
+          docker push ghcr.io/dev-claw/vripper-web:nightly
+
+  package:
+    needs: [check, build]
+    if: needs.check.outputs.build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            portable_path: VRipper
+            portable_name: vripper-nightly-linux-portable.zip
+          - os: windows-latest
+            target: windows
+            portable_path: VRipper
+            portable_name: vripper-nightly-windows-portable.zip
+          - os: macos-15-intel
+            target: macos-intel
+            portable_path: VRipper.app
+            portable_name: vripper-nightly-macos-portable.x86_64.zip
+          - os: macos-latest
+            target: macos-arm
+            portable_path: VRipper.app
+            portable_name: vripper-nightly-macos-portable.arm64.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'zulu'
+
+      - name: Download GUI jar
+        uses: actions/download-artifact@v4
+        with:
+          name: nightly-gui-jar
+          path: jar-download
+
+      - name: Prepare packaging
+        shell: bash
+        run: cp jar-download/vripper-noarch-gui-nightly.jar jpackage/jar/vripper-gui.jar
+
+      - if: matrix.target == 'linux'
+        name: Package for Linux
+        run: |
+          cd jpackage
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.png
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-linux.cfg" --resource-dir resources --type deb
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-linux.cfg" --resource-dir resources --type rpm
+          mv "dist/vripper-${{ needs.check.outputs.version }}-1.x86_64.rpm" dist/vripper-nightly-linux.x86_64.rpm
+          mv "dist/vripper_${{ needs.check.outputs.version }}-1_amd64.deb" dist/vripper-nightly-linux_amd64.deb
+
+      - if: matrix.target == 'windows'
+        name: Package for Windows
+        run: |
+          cd jpackage
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.ico
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-windows.cfg" --resource-dir resources --type msi
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-windows.cfg" --resource-dir resources --type exe
+          cd dist
+          ren "VRipper-${{ needs.check.outputs.version }}.msi" vripper-nightly-windows-installer.msi
+          ren "VRipper-${{ needs.check.outputs.version }}.exe" vripper-nightly-windows-installer.exe
+
+      - if: matrix.target == 'macos-arm'
+        name: Package for macOS (arm64)
+        run: |
+          cd jpackage
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.icns
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type pkg
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
+          mv "dist/VRipper-${{ needs.check.outputs.version }}.pkg" dist/vripper-nightly-macos.arm64.pkg
+          mv "dist/VRipper-${{ needs.check.outputs.version }}.dmg" dist/vripper-nightly-macos.arm64.dmg
+
+      - if: matrix.target == 'macos-intel'
+        name: Package for macOS (x86_64)
+        run: |
+          cd jpackage
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.icns
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type pkg
+          jpackage --app-version "${{ needs.check.outputs.version }}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
+          mv "dist/VRipper-${{ needs.check.outputs.version }}.pkg" dist/vripper-nightly-macos.x86_64.pkg
+          mv "dist/VRipper-${{ needs.check.outputs.version }}.dmg" dist/vripper-nightly-macos.x86_64.dmg
+
+      - name: Zip portable
+        uses: thedoctor0/zip-release@0.7.1
+        with:
+          type: 'zip'
+          directory: 'jpackage/dist'
+          path: ${{ matrix.portable_path }}
+          filename: ${{ matrix.portable_name }}
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-packages-${{ matrix.target }}
+          path: jpackage/dist/vripper-nightly-*
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    needs: [check, build, package]
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete nightly --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          notes=$(printf 'Automated nightly build.\n\nCommit: %s\nBuilt: %s' "$GITHUB_SHA" "$(date -u '+%Y-%m-%d %H:%M:%S UTC')")
+          gh release create nightly dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Nightly Build" \
+            --notes "$notes" \
+            --prerelease
