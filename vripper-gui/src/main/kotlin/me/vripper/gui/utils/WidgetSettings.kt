@@ -1,7 +1,6 @@
 package me.vripper.gui.utils
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.vripper.gui.model.WidgetsViewModel
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
@@ -127,6 +126,21 @@ object WidgetSettings {
     )
 
     @Serializable
+    data class ImageViewerSettings(
+        val decodedCacheMb: Int = 512,
+        val bytePreloadRadius: Int = 3,
+        val bytePreloadConcurrency: Int = 2,
+        val decodePreloadConcurrency: Int = 1,
+        val diskCacheMb: Int = 512,
+        val fadeAnimation: Boolean = true,
+        val windowWidth: Double = 800.0,
+        val windowHeight: Double = 600.0,
+        val windowX: Double = Double.NaN,
+        val windowY: Double = Double.NaN,
+        val windowMaximized: Boolean = false,
+    )
+
+    @Serializable
     data class WidgetsSettings(
         val localSession: Boolean = true,
         val visibleInfoPanel: Boolean = true,
@@ -149,6 +163,7 @@ object WidgetSettings {
         val threadsTableColumnsWidth: ThreadsTableColumnsWidth = ThreadsTableColumnsWidth(),
         val threadSelectionColumnsWidth: ThreadSelectionTableColumnsWidth = ThreadSelectionTableColumnsWidth(),
         val logsTableColumnsWidth: LogsTableColumnsWidth = LogsTableColumnsWidth(),
+        val imageViewerSettings: ImageViewerSettings = ImageViewerSettings(),
     )
 
     fun loadSettings(): WidgetsSettings {
@@ -257,6 +272,19 @@ object WidgetSettings {
                         currentSettings.logsColumnsWidthModel.loggerName,
                         currentSettings.logsColumnsWidthModel.levelString,
                         currentSettings.logsColumnsWidthModel.message,
+                    ),
+                    ImageViewerSettings(
+                        currentSettings.imageViewerSettingsModel.decodedCacheMb,
+                        currentSettings.imageViewerSettingsModel.bytePreloadRadius,
+                        currentSettings.imageViewerSettingsModel.bytePreloadConcurrency,
+                        currentSettings.imageViewerSettingsModel.decodePreloadConcurrency,
+                        currentSettings.imageViewerSettingsModel.diskCacheMb,
+                        currentSettings.imageViewerSettingsModel.fadeAnimation,
+                        currentSettings.imageViewerSettingsModel.windowWidth,
+                        currentSettings.imageViewerSettingsModel.windowHeight,
+                        currentSettings.imageViewerSettingsModel.windowX,
+                        currentSettings.imageViewerSettingsModel.windowY,
+                        currentSettings.imageViewerSettingsModel.windowMaximized,
                     ),
                 )
             )
