@@ -332,7 +332,7 @@ internal class AppEndpointService(
         val imageEntity = dataAccessService.findImageById(downloadRequest.imageId).orElseThrow()
         val postEntity = dataAccessService.findPostByEntityId(imageEntity.postEntityId)
         val filePath = Path(postEntity.downloadDirectory).resolve(postEntity.folderName).resolve(imageEntity.filename)
-        return if (filePath.exists()) {
+        return if (imageEntity.filename.isNotBlank() && filePath.exists()) {
             val chunkSize = 256 * 1024
             val bytes = Files.readAllBytes(filePath)
             flow {
