@@ -1,6 +1,5 @@
 package me.vripper.gui.components.fragments
 
-import atlantafx.base.theme.Styles
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.geometry.Pos
 import javafx.scene.control.Button
@@ -12,7 +11,10 @@ import javafx.scene.layout.HBox
 import kotlinx.coroutines.*
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import tornadofx.Fragment
+import tornadofx.paddingBottom
+import tornadofx.plus
+import tornadofx.runLater
 import java.io.ByteArrayInputStream
 import java.util.*
 import kotlin.math.min
@@ -44,7 +46,6 @@ class PhotoViewerFragment : Fragment("Image Viewer") {
 
         val prevButton = Button().apply {
             graphic = FontIcon.of(Feather.ARROW_LEFT)
-            addClass(Styles.ACCENT)
             setOnAction {
                 if (sources.isEmpty()) return@setOnAction
                 coroutineScope.launch {
@@ -55,7 +56,6 @@ class PhotoViewerFragment : Fragment("Image Viewer") {
 
         val nextButton = Button().apply {
             graphic = FontIcon.of(Feather.ARROW_RIGHT)
-            addClass(Styles.ACCENT)
             setOnAction {
                 if (sources.isEmpty()) return@setOnAction
                 coroutineScope.launch {
