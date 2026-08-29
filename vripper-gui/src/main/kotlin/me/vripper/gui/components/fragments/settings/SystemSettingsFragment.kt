@@ -1,4 +1,4 @@
-package me.vripper.gui.components.fragments
+package me.vripper.gui.components.fragments.settings
 
 import atlantafx.base.controls.ToggleSwitch
 import atlantafx.base.util.IntegerStringConverter
@@ -8,13 +8,13 @@ import me.vripper.gui.model.settings.SystemSettingsModel
 import me.vripper.model.SystemSettings
 import tornadofx.*
 
-class SystemSettingsFragment : Fragment("System Settings") {
+class SystemSettingsFragment : Fragment("System") {
 
     val systemSettings: SystemSettings by param()
     private val widgetsController: WidgetsController by inject()
     val systemSettingsModel = SystemSettingsModel()
 
-    override val root = vbox {}
+    override val root = scrollpane {}
 
     init {
         systemSettingsModel.tempPath = systemSettings.tempPath

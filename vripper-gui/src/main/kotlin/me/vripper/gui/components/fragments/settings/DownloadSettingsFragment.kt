@@ -1,4 +1,4 @@
-package me.vripper.gui.components.fragments
+package me.vripper.gui.components.fragments.settings
 
 import atlantafx.base.util.IntegerStringConverter
 import javafx.scene.control.Spinner
@@ -13,7 +13,7 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
     private val widgetsController: WidgetsController by inject()
     val downloadSettingsModel = DownloadSettingsModel()
 
-    override val root = vbox {}
+    override val root = scrollpane {}
 
     init {
         downloadSettingsModel.downloadPath = downloadSettings.downloadPath

@@ -1,7 +1,7 @@
 package me.vripper.entities
 
 enum class Status(val stringValue: String) {
-    COLLECTING("Collecting"),
+    ON_HOLD("On Hold"),
     PENDING("Pending"),
     DOWNLOADING("Downloading"),
     FINISHED("Finished"),

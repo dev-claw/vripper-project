@@ -12,7 +12,7 @@ import me.vripper.gui.VripperGuiApplication
 import me.vripper.gui.components.fragments.AboutFragment
 import me.vripper.gui.components.fragments.AddLinksFragment
 import me.vripper.gui.components.fragments.SessionFragment
-import me.vripper.gui.components.fragments.SettingsFragment
+import me.vripper.gui.components.fragments.settings.SettingsFragment
 import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.SettingsController
@@ -100,6 +100,7 @@ class MenuBarView : View() {
                             val viperGirlsSettings = settingsController.findViperGirlsSettings()
                             val systemSettings = settingsController.findSystemSettings()
                             val hostSettings = settingsController.findHostSettings()
+                            val automationSettings = settingsController.findAutomationSettings()
                             runLater {
                                 find<SettingsFragment>(
                                     mapOf(
@@ -108,6 +109,7 @@ class MenuBarView : View() {
                                         SettingsFragment::viperSettings to viperGirlsSettings,
                                         SettingsFragment::systemSettings to systemSettings,
                                         SettingsFragment::hostSettings to hostSettings,
+                                        SettingsFragment::automationSettings to automationSettings,
                                     )
                                 ).openModal()
                             }

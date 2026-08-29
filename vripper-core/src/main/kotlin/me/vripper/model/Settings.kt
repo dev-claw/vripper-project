@@ -25,7 +25,8 @@ data class Settings(
     val systemSettings: SystemSettings = SystemSettings(),
     val hostSettings: Map<HostName, Map<HostSettingKey, String>> = mapOf(
         HostName.IMX to mapOf(HostSettingKey.TRY_TO_FETCH_ORIGINAL_FILENAME to "false")
-    )
+    ),
+    val automationSettings: AutomationSettings = AutomationSettings()
 )
 
 @Serializable
@@ -67,3 +68,24 @@ data class SystemSettings(
     val maxEventLog: Int = 1_000,
 )
 
+@Serializable
+data class AutomationSettings(
+    val compress: Boolean = false,
+    val trigger: Boolean = false,
+    val collect: Boolean = false,
+    val triggerAction: TriggerAction = TriggerAction.Move,
+    val moveDestination: String = "",
+    val moveOverride: Boolean = false,
+    val webhookUrl: String = "",
+    val webhookMethod: String = "POST",
+    val webhookPayload: String = "",
+    val scriptPath: String = "",
+    val scriptArguments: String = "",
+)
+
+
+enum class TriggerAction {
+    Move,
+    Webhook,
+    Script
+}

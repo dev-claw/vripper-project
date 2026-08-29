@@ -39,12 +39,21 @@ class SettingsController : Controller() {
         )
     }
 
+    suspend fun findAutomationSettings(): AutomationSettings {
+        return runCatching {
+            AppEndpointManager.currentAppEndpointService().getSettings().automationSettings
+        }.getOrDefault(
+            AutomationSettings()
+        )
+    }
+
     suspend fun saveNewSettings(
         downloadSettingsModel: DownloadSettingsModel,
         connectionSettingsModel: ConnectionSettingsModel,
         viperSettingsModel: ViperSettingsModel,
         systemSettingsModel: SystemSettingsModel,
         hostSettingsModel: List<HostSettingsModel>,
+        automationSettingsModel: AutomationSettingsModel,
     ) {
         runCatching {
             AppEndpointManager.currentAppEndpointService().saveSettings(
@@ -90,7 +99,20 @@ class SettingsController : Controller() {
                                 model.valueProperty.value.toString()
                         }
                         hostSettingsMap
-                    }
+                    },
+                    automationSettings = AutomationSettings(
+                        automationSettingsModel.compress,
+                        automationSettingsModel.trigger,
+                        automationSettingsModel.collect,
+                        TriggerAction.valueOf(automationSettingsModel.triggerAction),
+                        automationSettingsModel.moveDestination,
+                        automationSettingsModel.moveOverride,
+                        automationSettingsModel.webhookUrl,
+                        automationSettingsModel.webhookMethod,
+                        automationSettingsModel.webhookPayload,
+                        automationSettingsModel.scriptPath,
+                        automationSettingsModel.scriptArguments,
+                    )
                 )
             )
         }

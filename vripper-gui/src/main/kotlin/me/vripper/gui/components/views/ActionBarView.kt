@@ -9,7 +9,7 @@ import javafx.scene.layout.Priority
 import kotlinx.coroutines.*
 import me.vripper.gui.components.Shared
 import me.vripper.gui.components.fragments.AddLinksFragment
-import me.vripper.gui.components.fragments.SettingsFragment
+import me.vripper.gui.components.fragments.settings.SettingsFragment
 import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.SettingsController
@@ -98,6 +98,7 @@ class ActionBarView : View() {
                         val viperGirlsSettings = settingsController.findViperGirlsSettings()
                         val systemSettings = settingsController.findSystemSettings()
                         val hostSettings = settingsController.findHostSettings()
+                        val automationSettings = settingsController.findAutomationSettings()
                         runLater {
                             find<SettingsFragment>(
                                 mapOf(
@@ -106,6 +107,7 @@ class ActionBarView : View() {
                                     SettingsFragment::viperSettings to viperGirlsSettings,
                                     SettingsFragment::systemSettings to systemSettings,
                                     SettingsFragment::hostSettings to hostSettings,
+                                    SettingsFragment::automationSettings to automationSettings,
                                 )
                             ).openModal()
                         }

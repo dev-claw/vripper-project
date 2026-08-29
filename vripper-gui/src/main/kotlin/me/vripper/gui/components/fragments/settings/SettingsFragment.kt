@@ -1,4 +1,4 @@
-package me.vripper.gui.components.fragments
+package me.vripper.gui.components.fragments.settings
 
 import atlantafx.base.theme.Styles
 import javafx.geometry.Pos
@@ -9,10 +9,7 @@ import javafx.scene.layout.VBox
 import kotlinx.coroutines.*
 import me.vripper.exception.ValidationException
 import me.vripper.gui.controller.SettingsController
-import me.vripper.model.ConnectionSettings
-import me.vripper.model.DownloadSettings
-import me.vripper.model.SystemSettings
-import me.vripper.model.ViperSettings
+import me.vripper.model.*
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -25,6 +22,7 @@ class SettingsFragment : Fragment("Settings") {
     val viperSettings: ViperSettings by param()
     val systemSettings: SystemSettings by param()
     val hostSettings: Map<String, Map<String, String>> by param()
+    val automationSettings: AutomationSettings by param()
     private val settingsController: SettingsController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadSettingsFragment: DownloadSettingsFragment =
@@ -37,6 +35,8 @@ class SettingsFragment : Fragment("Settings") {
         find(mapOf(SystemSettingsFragment::systemSettings to systemSettings))
     private val hostSettingsFragment: HostSettingsFragment =
         find(mapOf(HostSettingsFragment::hostSettings to hostSettings))
+    private val automationSettingsFragment: AutomationSettingsFragment =
+        find(mapOf(AutomationSettingsFragment::automationSettings to automationSettings))
 
 
     override val root = vbox(alignment = Pos.CENTER_RIGHT) {
@@ -56,17 +56,21 @@ class SettingsFragment : Fragment("Settings") {
                 add(connectionSettingsFragment)
                 graphic = FontIcon.of(Feather.ACTIVITY)
             }
+            tab(hostSettingsFragment.title) {
+                add(hostSettingsFragment)
+                graphic = FontIcon.of(Feather.IMAGE)
+            }
             tab(systemSettingsFragment.title) {
                 add(systemSettingsFragment)
                 graphic = FontIcon.of(Feather.CLIPBOARD)
             }
+            tab(automationSettingsFragment.title) {
+                add(automationSettingsFragment)
+                graphic = FontIcon.of(Feather.CPU)
+            }
             tab(viperSettingsFragment.title) {
                 add(viperSettingsFragment)
                 graphic = FontIcon.of(Feather.LINK_2)
-            }
-            tab(hostSettingsFragment.title) {
-                add(hostSettingsFragment)
-                graphic = FontIcon.of(Feather.IMAGE)
             }
         }
         borderpane {
@@ -84,7 +88,8 @@ class SettingsFragment : Fragment("Settings") {
                                     connectionSettingsFragment.connectionSettingsModel,
                                     viperSettingsFragment.viperSettingsModel,
                                     systemSettingsFragment.systemSettingsModel,
-                                    hostSettingsFragment.hostSettingsModels
+                                    hostSettingsFragment.hostSettingsModels,
+                                    automationSettingsFragment.automationSettingsModel
                                 )
                                 runLater {
                                     close()

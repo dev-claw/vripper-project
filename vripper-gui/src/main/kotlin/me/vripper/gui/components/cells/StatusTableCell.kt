@@ -24,7 +24,7 @@ class StatusTableCell<T> : TableCell<T, String>() {
         val status = Status.valueOf(item)
         tooltip = Tooltip(status.stringValue)
         graphic = when (status) {
-            Status.COLLECTING -> FontIcon.of(Feather.DATABASE)
+            Status.ON_HOLD -> FontIcon.of(Feather.INFO)
             Status.PENDING -> FontIcon.of(Feather.CLOCK)
             Status.DOWNLOADING -> FontIcon.of(Feather.DOWNLOAD).apply { styleClass.add(Styles.ACCENT) }
             Status.FINISHED -> FontIcon.of(Feather.CHECK).apply { styleClass.add(Styles.SUCCESS) }

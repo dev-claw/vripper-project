@@ -1,6 +1,7 @@
-package me.vripper.gui.components.fragments
+package me.vripper.gui.components.fragments.settings
 
 import atlantafx.base.controls.ToggleSwitch
+import atlantafx.base.util.IntegerStringConverter
 import javafx.collections.FXCollections
 import javafx.scene.control.Spinner
 import kotlinx.coroutines.runBlocking
@@ -9,14 +10,14 @@ import me.vripper.gui.model.settings.ViperSettingsModel
 import me.vripper.model.ViperSettings
 import tornadofx.*
 
-class ViperSettingsFragment : Fragment("Viper Settings") {
+class ViperSettingsFragment : Fragment("ViperGirls") {
 
     val viperSettings: ViperSettings by param()
     private val settingsController: SettingsController by inject()
     private val proxies = FXCollections.observableArrayList<String>()
     val viperSettingsModel = ViperSettingsModel()
 
-    override val root = vbox {}
+    override val root = scrollpane {}
 
     init {
         viperSettingsModel.username = viperSettings.username
@@ -38,7 +39,7 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
                                 viperSettingsModel.requestLimit = it!!.toLong()
                             }
                             isEditable = true
-                            atlantafx.base.util.IntegerStringConverter.createFor(this)
+                            IntegerStringConverter.createFor(this)
                         })
                     }
                     field("Fetch Metadata") {
