@@ -19,7 +19,7 @@ data class PostEntity(
     val downloadDirectory: String,
     @Contextual val addedOn: LocalDateTime = LocalDateTime.now(),
     var folderName: String,
-    var status: Status = Status.STOPPED,
+    var status: Status = Status.COLLECTING,
     var done: Int = 0,
     var size: Long = -1,
     var downloaded: Long = 0,

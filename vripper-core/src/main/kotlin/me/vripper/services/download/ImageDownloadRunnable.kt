@@ -87,16 +87,19 @@ internal class ImageDownloadRunnable(
 
         @Synchronized
         fun clear() {
-            runBlocking {
-                requests.forEach { it.abort() }
-                coroutineScope.cancel()
-                jobs.forEach { job -> job.cancelAndJoin() }
-                jobs.clear()
+            synchronized(this) {
+                runBlocking {
+                    requests.forEach { it.abort() }
+                    requests.clear()
+                    coroutineScope.cancel()
+                    jobs.forEach { job -> job.cancelAndJoin() }
+                    jobs.clear()
+                }
             }
         }
 
         fun launchCoroutine(block: suspend CoroutineScope.() -> Unit): Job {
-            return coroutineScope.launch(block = block).also { job -> jobs.add(job) }
+            return synchronized(this) { coroutineScope.launch(block = block).also { job -> jobs.add(job) } }
         }
     }
 

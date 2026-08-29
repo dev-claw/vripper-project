@@ -2,6 +2,7 @@ package me.vripper.model
 
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import me.vripper.entities.CustomField
 import me.vripper.entities.Status
 import java.time.LocalDateTime
 import kotlin.io.path.Path
@@ -28,7 +29,8 @@ data class Post(
     var downloaded: Long = 0,
     val previews: List<String>,
     val postedBy: String,
-    val resolvedNames: List<String>
+    val resolvedNames: List<String>,
+    val customFields: List<CustomField>,
 ) {
     fun getDownloadFolder() = Path(downloadDirectory, folderName).pathString
 }

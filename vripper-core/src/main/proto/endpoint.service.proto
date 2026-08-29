@@ -9,6 +9,7 @@ import "log.proto";
 import "thread.proto";
 import "threads.proto";
 import "settings.proto";
+import "custom-field.proto";
 
 message EmptyRequest {}
 message EmptyResponse {}
@@ -94,6 +95,11 @@ message MovePositionMessage {
   MovePositionEnum position = 2;
 }
 
+message CustomFieldsUpdateMessage {
+  int64 postEntityId = 1;
+  repeated CustomField customField = 2;
+}
+
 service EndpointService {
   rpc scanLinks (Links) returns (EmptyResponse) {}
   rpc onNewPosts (EmptyRequest) returns (stream Post) {}
@@ -137,4 +143,5 @@ service EndpointService {
   rpc dbMigration (EmptyRequest) returns (DBMigrationResponse) {}
   rpc initLogger (EmptyRequest) returns (EmptyResponse) {}
   rpc move (MovePositionMessage) returns (EmptyResponse) {}
+  rpc updateCustomFields (CustomFieldsUpdateMessage) returns (EmptyResponse) {}
 }

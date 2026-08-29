@@ -201,7 +201,6 @@ internal abstract class Host(
         }
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     private fun getImageMimeType(headers: Array<Header>): ImageMimeType? {
 
         // first check if content type header exists

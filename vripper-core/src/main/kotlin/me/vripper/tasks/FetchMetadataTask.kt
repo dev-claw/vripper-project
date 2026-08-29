@@ -35,6 +35,8 @@ internal class FetchMetadataTask(
         try {
             if (!settingsService.settings.viperSettings.fetchMetadata) {
                 log.debug("Fetching metadata is disabled")
+                val metadataEntity = MetadataEntity(postEntity.id, MetadataEntity.Data("", listOf(), listOf()))
+                dataAccessService.saveMetadata(metadataEntity)
                 return
             }
             Tasks.increment()
@@ -70,7 +72,7 @@ internal class FetchMetadataTask(
                 document, java.lang.String.format("//div[@id='post_message_%s']", postEntity.vgPostId)
             ) ?: throw VripperException("Unable to locate post content")
             val titles = findTitleInContent(node)
-            val metadataEntity = MetadataEntity(postEntity.id, MetadataEntity.Data(postedBy, titles))
+            val metadataEntity = MetadataEntity(postEntity.id, MetadataEntity.Data(postedBy, titles, listOf()))
             dataAccessService.saveMetadata(metadataEntity)
         } finally {
             Tasks.decrement()

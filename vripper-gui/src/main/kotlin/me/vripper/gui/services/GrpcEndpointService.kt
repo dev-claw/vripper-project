@@ -5,6 +5,7 @@ import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import me.vripper.entities.CustomField
 import me.vripper.entities.MetadataEntity
 import me.vripper.entities.Status
 import me.vripper.model.*
@@ -130,6 +131,16 @@ internal class GrpcEndpointService : IAppEndpointService {
         endpointServiceCoroutineStub!!.move(
             MovePositionMessage.newBuilder().setPostEntityId(postEntityId)
                 .setPosition(MovePositionEnum.valueOf(position.name)).build()
+        )
+    }
+
+    override suspend fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>) {
+        endpointServiceCoroutineStub!!.updateCustomFields(
+            CustomFieldsUpdateMessage.newBuilder().setPostEntityId(postEntityId).apply {
+                addAllCustomField(customFields.map {
+                    CustomFieldOuterClass.CustomField.newBuilder().setName(it.name).setValue(it.value).build()
+                })
+            }.build()
         )
     }
 
@@ -322,6 +333,7 @@ internal class GrpcEndpointService : IAppEndpointService {
             previews = postEntity.previewsList.toList(),
             postedBy = postEntity.postedBy,
             resolvedNames = postEntity.resolvedNamesList.toList(),
+            customFields = postEntity.customFieldsList.map { CustomField(it.name, it.value) }
         )
     }
 
@@ -342,7 +354,11 @@ internal class GrpcEndpointService : IAppEndpointService {
 
     private fun mapper(metadata: MetadataOuterClass.Metadata): Metadata {
         return Metadata(
-            metadata.postId, MetadataEntity.Data(metadata.postedBy, metadata.resolvedNamesList)
+            metadata.postId,
+            MetadataEntity.Data(
+                metadata.postedBy,
+                metadata.resolvedNamesList,
+                metadata.customFieldsList.map { CustomField(it.name, it.value) })
         )
     }
 

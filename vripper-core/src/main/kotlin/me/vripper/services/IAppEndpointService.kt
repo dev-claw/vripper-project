@@ -1,6 +1,7 @@
 package me.vripper.services
 
 import kotlinx.coroutines.flow.Flow
+import me.vripper.entities.CustomField
 import me.vripper.model.*
 import me.vripper.services.download.MovePosition
 
@@ -47,5 +48,6 @@ interface IAppEndpointService {
     suspend fun dbMigration(): String
     suspend fun initLogger()
     suspend fun move(postEntityId: Long, position: MovePosition)
+    suspend fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>)
     fun connectionState(): String
 }

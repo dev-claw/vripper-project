@@ -36,7 +36,7 @@ internal class ThreadLookupTask(
 
                 if (threadLookupResult.postItemList.size <= settings.downloadSettings.autoQueueThreshold) {
                     taskRunner.submit(
-                        AddPostTask(threadLookupResult.postItemList.map {
+                        CollectPostTask(threadLookupResult.postItemList.map {
                             PostIdentifier(
                                 siteProxy, it.threadId, it.postId
                             )

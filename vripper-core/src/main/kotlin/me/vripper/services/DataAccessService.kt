@@ -239,6 +239,16 @@ internal class DataAccessService(
         eventBus.publishEvent(MetadataUpdateEvent(metadataEntity))
     }
 
+    fun updateMetadata(metadataEntity: MetadataEntity) {
+        transaction { metadataRepository.update(metadataEntity) }
+        log.debug(
+            "[{}] Publishing event: MetadataUpdateEvent for post {}",
+            System.currentTimeMillis(),
+            metadataEntity.postIdRef
+        )
+        eventBus.publishEvent(MetadataUpdateEvent(metadataEntity))
+    }
+
     fun clearQueueLinks() {
         transaction { threadRepository.deleteAll() }
         log.debug("[{}] Publishing event: ThreadClearEvent", System.currentTimeMillis())
@@ -294,4 +304,6 @@ internal class DataAccessService(
     fun findMetadataByPostEntityId(postEntityId: Long): Optional<MetadataEntity> {
         return transaction { metadataRepository.findByPostEntityId(postEntityId) }
     }
+
+
 }

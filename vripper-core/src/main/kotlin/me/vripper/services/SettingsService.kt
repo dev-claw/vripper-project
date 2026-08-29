@@ -1,7 +1,6 @@
 package me.vripper.services
 
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import me.vripper.event.EventBus
@@ -156,7 +155,7 @@ class SettingsService(private val eventBus: EventBus) {
             )
         }
 
-        if (settings.downloadSettings.autoQueueThreshold < 0) {
+        if (settings.downloadSettings.autoQueueThreshold < 1) {
             throw ValidationException("Invalid auto queue settings, value must be a positive integer")
         }
 

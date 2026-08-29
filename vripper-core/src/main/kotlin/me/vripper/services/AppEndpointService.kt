@@ -12,7 +12,7 @@ import me.vripper.model.*
 import me.vripper.services.download.DownloadService
 import me.vripper.services.download.MovePosition
 import me.vripper.services.download.QueueManager
-import me.vripper.tasks.AddPostTask
+import me.vripper.tasks.CollectPostTask
 import me.vripper.tasks.ThreadLookupTask
 import me.vripper.utilities.*
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
@@ -70,7 +70,7 @@ internal class AppEndpointService(
                         )
                     } else {
                         taskRunner.submit(
-                            AddPostTask(
+                            CollectPostTask(
                                 listOf(PostIdentifier(matchingProxy, threadId, postId))
                             )
                         )
@@ -96,7 +96,7 @@ internal class AppEndpointService(
                 ?: throw PostParseException("Could not find thread with id ${it.threadId}")
             PostIdentifier(thread.link.extractBaseUrl(), it.threadId, it.postId)
         }.also {
-            taskRunner.submit(AddPostTask(it))
+            taskRunner.submit(CollectPostTask(it))
         }
     }
 
@@ -248,6 +248,7 @@ internal class AppEndpointService(
             images.take(4).map { it.thumbUrl },
             metadata?.data?.postedBy ?: "",
             metadata?.data?.resolvedNames ?: emptyList(),
+            metadata?.data?.customFields ?: emptyList(),
         )
     }
 
@@ -327,6 +328,20 @@ internal class AppEndpointService(
 
     override suspend fun move(postEntityId: Long, position: MovePosition) {
         downloadService.move(postEntityId, position)
+    }
+
+    override suspend fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>) {
+        val metadata = dataAccessService.findMetadataByPostEntityId(postEntityId).getOrNull()
+        if (metadata != null) {
+            dataAccessService.updateMetadata(metadata.copy(data = metadata.data.copy(customFields = customFields)))
+        } else {
+            dataAccessService.saveMetadata(
+                MetadataEntity(
+                    postIdRef = postEntityId,
+                    data = MetadataEntity.Data(postedBy = "", resolvedNames = emptyList(), customFields = customFields)
+                )
+            )
+        }
     }
 
     override suspend fun dbMigration(): String {

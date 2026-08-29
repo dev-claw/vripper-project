@@ -2,6 +2,7 @@ package me.vripper.web.grpc
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import me.vripper.entities.CustomField
 import me.vripper.entities.ImageEntity
 import me.vripper.model.*
 import me.vripper.proto.*
@@ -239,6 +240,16 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
     override suspend fun dbMigration(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.DBMigrationResponse =
         EndpointServiceOuterClass.DBMigrationResponse.newBuilder().setMessage(appEndpointService.dbMigration()).build()
 
+    override suspend fun updateCustomFields(request: EndpointServiceOuterClass.CustomFieldsUpdateMessage): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.updateCustomFields(request.postEntityId, request.customFieldList.map {
+            CustomField(
+                it.name,
+                it.value
+            )
+        })
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
 
     private fun mapper(queueState: QueueState): EndpointServiceOuterClass.QueueState {
         return with(
@@ -335,6 +346,10 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             addAllPreviews(post.previews)
             this.postedBy = post.postedBy
             addAllResolvedNames(post.resolvedNames)
+            addAllCustomFields(post.customFields.map { customField ->
+                CustomFieldOuterClass.CustomField.newBuilder().setName(customField.name).setValue(customField.value)
+                    .build()
+            })
 
             build()
         }
@@ -362,6 +377,10 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             postId = metadata.postIdRef
             postedBy = metadata.data.postedBy
             addAllResolvedNames(metadata.data.resolvedNames)
+            addAllCustomFields(metadata.data.customFields.map { customField ->
+                CustomFieldOuterClass.CustomField.newBuilder().setName(customField.name).setValue(customField.value)
+                    .build()
+            })
 
             build()
         }

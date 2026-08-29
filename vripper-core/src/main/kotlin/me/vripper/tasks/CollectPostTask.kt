@@ -12,7 +12,7 @@ import me.vripper.vgapi.PostLookupAPIParser
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-internal class AddPostTask(private val items: List<PostIdentifier>) : KoinComponent, Runnable {
+internal class CollectPostTask(private val items: List<PostIdentifier>) : KoinComponent, Runnable {
     private val log by LoggerDelegate()
     private val dataAccessService: DataAccessService by inject()
     private val settingsService: SettingsService by inject()

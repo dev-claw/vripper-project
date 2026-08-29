@@ -7,6 +7,13 @@ data class MetadataEntity(val postIdRef: Long, val data: Data) {
     @Serializable
     data class Data(
         val postedBy: String,
-        val resolvedNames: List<String>
+        val resolvedNames: List<String> = listOf(),
+        val customFields: List<CustomField> = listOf()
     )
 }
+
+@Serializable
+data class CustomField(
+    val name: String,
+    val value: String
+)

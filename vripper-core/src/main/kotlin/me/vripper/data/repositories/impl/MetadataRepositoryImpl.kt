@@ -1,15 +1,11 @@
 package me.vripper.data.repositories.impl
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.vripper.data.repositories.MetadataRepository
 import me.vripper.data.tables.MetadataTable
 import me.vripper.entities.MetadataEntity
-import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import java.sql.Connection
 import java.util.*
@@ -19,6 +15,14 @@ internal class MetadataRepositoryImpl : MetadataRepository {
     override fun save(metadataEntity: MetadataEntity): MetadataEntity {
         MetadataTable.insert {
             it[postIdRef] = metadataEntity.postIdRef
+            it[data] = Json.encodeToString(metadataEntity.data)
+        }
+
+        return metadataEntity
+    }
+
+    override fun update(metadataEntity: MetadataEntity): MetadataEntity {
+        MetadataTable.update({ MetadataTable.postIdRef eq metadataEntity.postIdRef }) {
             it[data] = Json.encodeToString(metadataEntity.data)
         }
 

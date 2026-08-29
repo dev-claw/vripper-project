@@ -1,6 +1,7 @@
 package me.vripper.gui.controller
 
 import kotlinx.coroutines.flow.map
+import me.vripper.entities.CustomField
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
@@ -122,7 +123,8 @@ class PostController : Controller() {
             post.previews,
             post.resolvedNames,
             post.postedBy,
-            post.threadId
+            post.threadId,
+            post.customFields
         )
     }
 
@@ -132,5 +134,9 @@ class PostController : Controller() {
 
     fun progress(total: Int, done: Int): Double {
         return if (done == 0 && total == 0) 0.0 else (done.toDouble() / total)
+    }
+
+    suspend fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>) {
+        runCatching { currentAppEndpointService().updateCustomFields(postEntityId, customFields) }
     }
 }
