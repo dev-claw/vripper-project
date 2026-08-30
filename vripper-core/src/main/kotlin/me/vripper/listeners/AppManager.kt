@@ -16,6 +16,7 @@ object AppManager : KoinComponent {
     private val settingsService: SettingsService by inject()
     private val vgAuthService: VGAuthService by inject()
     private val downloadSpeedService: DownloadSpeedService by inject()
+    private val automationService: AutomationService by inject()
     private val httpService: HTTPService by inject()
     private val retryPolicyService: RetryPolicyService by inject()
     private val threadCacheService: ThreadCacheService by inject()
@@ -43,6 +44,7 @@ object AppManager : KoinComponent {
         settingsService.init()
         metadataService.fetchExisting()
         downloadSpeedService.init()
+        automationService.init()
         downloadService.init()
     }
 
@@ -51,5 +53,6 @@ object AppManager : KoinComponent {
         downloadService.halt()
         downloadService.stop()
         downloadSpeedService.halt()
+        automationService.halt()
     }
 }

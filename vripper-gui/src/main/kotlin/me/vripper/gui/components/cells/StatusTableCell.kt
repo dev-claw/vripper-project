@@ -25,6 +25,7 @@ class StatusTableCell<T> : TableCell<T, String>() {
         tooltip = Tooltip(status.stringValue)
         graphic = when (status) {
             Status.ON_HOLD -> FontIcon.of(Feather.INFO).apply { styleClass.add(Styles.WARNING) }
+            Status.AUTOMATION -> FontIcon.of(Feather.CPU).apply { styleClass.add(Styles.ACCENT) }
             Status.PENDING -> FontIcon.of(Feather.CLOCK)
             Status.DOWNLOADING -> FontIcon.of(Feather.DOWNLOAD).apply { styleClass.add(Styles.ACCENT) }
             Status.FINISHED -> FontIcon.of(Feather.CHECK).apply { styleClass.add(Styles.SUCCESS) }

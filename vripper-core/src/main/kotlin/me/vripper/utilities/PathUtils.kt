@@ -4,11 +4,13 @@ import me.vripper.entities.ImageEntity
 import me.vripper.exception.RenameException
 import me.vripper.model.Settings
 import java.io.IOException
+import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import kotlin.io.path.Path
 import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.walk
 
 
 internal object PathUtils {
@@ -94,5 +96,57 @@ internal object PathUtils {
             0,
             fileName.lastIndexOf(".")
         ) else fileName
+    }
+
+    fun moveItem(source: Path, destinationDir: Path, overwrite: Boolean) {
+        if (!Files.exists(source)) {
+            throw IllegalArgumentException("Source path does not exist: $source")
+        }
+
+        val sourceName = source.fileName ?: throw IllegalArgumentException("Invalid source path")
+        val targetPath = destinationDir.resolve(sourceName)
+
+        // FAIL FAST: Root check
+        if (Files.exists(targetPath) && !overwrite) {
+            throw FileAlreadyExistsException("Target already exists and overwrite is set to false: $targetPath")
+        }
+
+        // Ensure the container directory exists
+        Files.createDirectories(destinationDir)
+
+        if (Files.isDirectory(source)) {
+            moveFolderRecursively(source, targetPath, overwrite)
+        } else {
+            // If overwrite is true and target file exists, explicitly delete it first
+            if (overwrite) {
+                Files.deleteIfExists(targetPath)
+            }
+            // Move single file without StandardCopyOption.REPLACE_EXISTING to let OS enforce safety if something went wrong
+            Files.move(source, targetPath)
+        }
+    }
+
+    private fun moveFolderRecursively(source: Path, actualTargetRoot: Path, overwrite: Boolean) {
+        source.walk().forEach { sourcePath ->
+            val relativePath = source.relativize(sourcePath)
+            val targetPath = actualTargetRoot.resolve(relativePath)
+
+            if (Files.isDirectory(sourcePath)) {
+                Files.createDirectories(targetPath)
+            } else {
+                Files.createDirectories(targetPath.parent)
+
+                // STRICT NESTED CHECK: Respect the overwrite flag for every sub-file
+                if (Files.exists(targetPath)) {
+                    if (!overwrite) {
+                        throw FileAlreadyExistsException("Nested file already exists and overwrite is false: $targetPath")
+                    }
+                    Files.delete(targetPath) // Explicit clean deletion before moving
+                }
+
+                Files.move(sourcePath, targetPath)
+            }
+        }
+        source.toFile().deleteRecursively()
     }
 }

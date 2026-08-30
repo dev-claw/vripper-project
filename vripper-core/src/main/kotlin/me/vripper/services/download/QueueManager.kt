@@ -5,6 +5,7 @@ import dev.failsafe.RetryPolicy
 import me.vripper.entities.Status
 import me.vripper.event.ErrorCountEvent
 import me.vripper.event.EventBus
+import me.vripper.event.PostCompletedEvent
 import me.vripper.event.QueueStateEvent
 import me.vripper.host.Host
 import me.vripper.model.ErrorCount
@@ -160,6 +161,9 @@ internal class QueueManager(
             clearRunningRunnable(imageDownloadRunnable.context.imageEntity.id)
             if (!isPending(image.postEntityId) && !isRunning(image.postEntityId) && !imageDownloadRunnable.context.stopped) {
                 dataAccessService.finishPost(image.postEntityId, true)
+
+                log.debug("[{}] Event published: PostCompletedEvent after job finish", System.currentTimeMillis())
+                eventBus.publishEvent(PostCompletedEvent(image.postEntityId))
             }
             reportQueueState()
             log.debug("[{}] Event published: ErrorCountEvent after job finish", System.currentTimeMillis())

@@ -63,6 +63,9 @@ val coreModule = module {
     single<DownloadSpeedService> {
         DownloadSpeedService(get())
     }
+    single<AutomationService> {
+        AutomationService(get(), get(), get())
+    }
 
     single<AppEndpointService> {
         AppEndpointService(get(), get(), get(), get(), get(), get(), get())

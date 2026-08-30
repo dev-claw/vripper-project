@@ -9,6 +9,7 @@ import me.vripper.model.Settings
 data class PostCreateEvent(val postEntities: List<PostEntity>)
 data class PostUpdateEvent(val postEntities: List<PostEntity>)
 data class PostDeleteEvent(val postEntityIds: List<Long>)
+data class PostCompletedEvent(val postEntityId: Long)
 data class ImageEvent(val imageEntities: List<ImageEntity>)
 data class ThreadCreateEvent(val threadEntity: ThreadEntity)
 data class ThreadUpdateEvent(val threadEntity: ThreadEntity)
