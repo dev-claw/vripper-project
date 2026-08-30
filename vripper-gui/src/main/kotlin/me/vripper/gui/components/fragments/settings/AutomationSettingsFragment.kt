@@ -34,7 +34,8 @@ class AutomationSettingsFragment : Fragment("Automation") {
                     }
                 }
                 fieldset("Automation Triggers") {
-                    field("Execute an action when task finishes successfully") {
+                    field("Enable") {
+                        tooltip("Execute an action when task finishes successfully")
                         add(ToggleSwitch().apply {
                             isSelected = automationSettings.trigger
                             automationSettingsModel.triggerProperty.bind(selectedProperty())

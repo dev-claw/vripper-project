@@ -93,7 +93,7 @@ internal class DownloadService(
                 if (images.isEmpty()) {
                     continue
                 }
-                if (queueManager.isPending(post.id)) {
+                if (post.status == Status.ON_HOLD || queueManager.isPending(post.id)) {
                     continue
                 }
                 toProcess[post] = images
@@ -167,5 +167,13 @@ internal class DownloadService(
 
     private fun getCandidates(): Map<Byte, List<ImageQueueElement>> {
         return queueManager.pending().groupBy { it.host }
+    }
+
+    fun release(posts: List<PostEntity>): List<PostEntity> {
+        return dataAccessService.release(posts)
+    }
+
+    fun hold(posts: List<PostEntity>): List<PostEntity> {
+        return dataAccessService.hold(posts)
     }
 }

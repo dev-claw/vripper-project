@@ -160,6 +160,9 @@ internal class DataAccessService(
 
     fun finishPost(id: Long, automatic: Boolean = false) {
         val post = findPostByEntityId(id)
+        if (post.status == Status.ON_HOLD) {
+            return
+        }
         val imagesInErrorStatus = findByIdAndIsError(id)
         if (imagesInErrorStatus.isNotEmpty()) {
             post.status = Status.ERROR
@@ -305,5 +308,19 @@ internal class DataAccessService(
         return transaction { metadataRepository.findByPostEntityId(postEntityId) }
     }
 
+    fun release(posts: List<PostEntity>): List<PostEntity> {
+        return posts.map {
+            it.copy(status = Status.PENDING)
+        }.also {
+            updatePosts(it)
+        }
+    }
 
+    fun hold(posts: List<PostEntity>): List<PostEntity> {
+        return posts.map {
+            it.copy(status = Status.ON_HOLD)
+        }.also {
+            updatePosts(it)
+        }
+    }
 }

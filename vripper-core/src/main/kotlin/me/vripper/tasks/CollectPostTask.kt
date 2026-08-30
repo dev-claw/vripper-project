@@ -74,8 +74,14 @@ internal class CollectPostTask(private val items: List<PostIdentifier>) : KoinCo
             posts.forEach {
                 metadataService.fetchMetadata(it)
             }
+            val updatedPosts =
+                if (settingsService.settings.automationSettings.trigger && settingsService.settings.automationSettings.collect) {
+                    downloadService.hold(posts)
+                } else {
+                    posts
+                }
             if (settingsService.settings.downloadSettings.autoStart) {
-                downloadService.restartAll(posts)
+                downloadService.restartAll(updatedPosts)
             }
         } catch (e: Exception) {
             val error = String.format("Error when adding galleries")
