@@ -1,10 +1,14 @@
 package me.vripper.gui.components.fragments.settings
 
 import atlantafx.base.controls.ToggleSwitch
+import atlantafx.base.layout.InputGroup
 import javafx.geometry.Insets
+import javafx.scene.control.ComboBox
+import javafx.scene.control.TextField
 import me.vripper.gui.model.settings.AutomationSettingsModel
 import me.vripper.model.AutomationSettings
 import me.vripper.model.TriggerAction
+import me.vripper.model.WebhookMethod
 import tornadofx.*
 
 class AutomationSettingsFragment : Fragment("Automation") {
@@ -22,7 +26,7 @@ class AutomationSettingsFragment : Fragment("Automation") {
         automationSettingsModel.moveDestination = automationSettings.moveDestination
         automationSettingsModel.moveOverride = automationSettings.moveOverride
         automationSettingsModel.webhookUrl = automationSettings.webhookUrl
-        automationSettingsModel.webhookMethod = automationSettings.webhookMethod
+        automationSettingsModel.webhookMethod = automationSettings.webhookMethod.name
         automationSettingsModel.webhookPayload = automationSettings.webhookPayload
         automationSettingsModel.scriptPath = automationSettings.scriptPath
         automationSettingsModel.scriptArguments = automationSettings.scriptArguments
@@ -74,18 +78,27 @@ class AutomationSettingsFragment : Fragment("Automation") {
                             fieldset("Webhook Action") {
                                 padding = Insets(5.0)
                                 visibleWhen(automationSettingsModel.triggerActionProperty.eq(TriggerAction.Webhook.name))
-                                field("URL") {
-                                    textfield(automationSettingsModel.webhookUrlProperty)
+                                field("Endpoint") {
+                                    val lef = ComboBox<String>().apply {
+                                        items.addAll(WebhookMethod.entries.map { it.name })
+                                        this.valueProperty().bind(automationSettingsModel.webhookMethodProperty)
+                                    }
+                                    val right = TextField().apply {
+                                        textProperty().bind(automationSettingsModel.webhookUrlProperty)
+                                    }
+                                    val inputGroup = InputGroup(lef, right)
+                                    add(inputGroup)
                                 }
-                                field("Method") {
-                                    combobox(
-                                        property = automationSettingsModel.webhookMethodProperty,
-                                        values = listOf("GET", "POST")
-                                    )
-                                }
+
+
                                 field("Payload") {
-                                    visibleProperty().bind(automationSettingsModel.webhookMethodProperty.eq("POST"))
-                                    textarea(automationSettingsModel.webhookPayloadProperty)
+                                    textarea(automationSettingsModel.webhookPayloadProperty) {
+                                        visibleProperty().bind(automationSettingsModel.webhookMethodProperty.eq("POST"))
+                                        maxWidth = Double.MAX_VALUE
+                                        maxHeight = Double.MAX_VALUE
+                                        isWrapText = true
+                                        prefColumnCount = 30
+                                    }
                                 }
                             }
 

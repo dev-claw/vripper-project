@@ -77,7 +77,7 @@ data class AutomationSettings(
     val moveDestination: String = "",
     val moveOverride: Boolean = false,
     val webhookUrl: String = "",
-    val webhookMethod: String = "POST",
+    val webhookMethod: WebhookMethod = WebhookMethod.POST,
     val webhookPayload: String = "",
     val scriptPath: String = "",
     val scriptArguments: String = "",
@@ -88,4 +88,9 @@ enum class TriggerAction {
     Move,
     Webhook,
     Script
+}
+
+enum class WebhookMethod {
+    GET,
+    POST,
 }

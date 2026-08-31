@@ -60,6 +60,14 @@
             <groupId>org.apache.httpcomponents.client5</groupId>
         </dependency>
         <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-core-jvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-cio-jvm</artifactId>
+        </dependency>
+        <dependency>
             <artifactId>jcl-over-slf4j</artifactId>
             <groupId>org.slf4j</groupId>
         </dependency>

@@ -108,7 +108,7 @@ class SettingsController : Controller() {
                         automationSettingsModel.moveDestination,
                         automationSettingsModel.moveOverride,
                         automationSettingsModel.webhookUrl,
-                        automationSettingsModel.webhookMethod,
+                        WebhookMethod.valueOf(automationSettingsModel.webhookMethod),
                         automationSettingsModel.webhookPayload,
                         automationSettingsModel.scriptPath,
                         automationSettingsModel.scriptArguments,

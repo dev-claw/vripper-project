@@ -46,7 +46,7 @@ class SettingsFragment : Fragment("Settings") {
             VBox.setVgrow(this, Priority.ALWAYS)
             minWidth = 100.0
             minHeight = 100.0
-            prefHeight = 400.0
+            prefHeight = 600.0
             prefWidth = 800.0
             tab(downloadSettingsFragment.title) {
                 add(downloadSettingsFragment)

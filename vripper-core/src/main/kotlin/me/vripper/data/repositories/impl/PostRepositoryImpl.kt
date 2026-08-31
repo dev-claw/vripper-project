@@ -135,7 +135,7 @@ internal class PostRepositoryImpl :
 
     override fun findAllNonCompletedPostEntityIds(): List<Long> {
         return PostTable.select(PostTable.id).where {
-            PostTable.status neq Status.FINISHED.name
+            PostTable.total greater PostTable.done
         }.map { it[PostTable.id].value }
     }
 
