@@ -17,6 +17,7 @@ import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils.moveItem
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.pathString
 
 internal class AutomationService(
     private val eventBus: EventBus,
@@ -105,9 +106,19 @@ internal class AutomationService(
             WebhookMethod.GET -> TODO()
             WebhookMethod.POST -> {
                 val response = try {
-                    HttpClient.webhookClient.post(settingsService.settings.automationSettings.webhookUrl) {
+                    HttpClient.webhookClient.post(
+                        replacePlaceholders(
+                            settingsService.settings.automationSettings.webhookUrl,
+                            postEntity
+                        )
+                    ) {
                         contentType(ContentType.Application.Json)
-                        setBody(settingsService.settings.automationSettings.webhookPayload)
+                        setBody(
+                            replacePlaceholders(
+                                settingsService.settings.automationSettings.webhookPayload,
+                                postEntity
+                            )
+                        )
                     }
                 } catch (e: Exception) {
                     log.error("Network failure", e)
@@ -130,8 +141,43 @@ internal class AutomationService(
         TODO("Not yet implemented")
     }
 
-    private fun replacePlaceholders(value: String, postEntity: PostEntity) {
+    private fun replacePlaceholders(value: String, postEntity: PostEntity): String {
+        val targetPath = if (settingsService.settings.automationSettings.compress) {
+            Path(postEntity.downloadDirectory, postEntity.folderName + ".zip")
+        } else {
+            Path(postEntity.downloadDirectory, postEntity.folderName)
+        }
+        val staticReplacement = mapOf("target_path" to targetPath.pathString)
+        val metadata = dataAccessService.findMetadataByPostEntityId(postEntity.id).orElse(null)
+        val dynamicReplacement = metadata?.data?.customFields?.associate { it.name to it.value } ?: emptyMap()
+        return replacePlaceholders(value, staticReplacement, dynamicReplacement)
+    }
 
+    fun replacePlaceholders(
+        input: String,
+        staticReplacements: Map<String, String>,
+        customFields: Map<String, String>
+    ): String {
+        // Regex matches anything inside curly braces, e.g., {target_path} or {cf:name}
+        val regex = Regex("\\$\\{([^}]+)}")
 
+        return regex.replace(input) { matchResult ->
+            val fullMatch = matchResult.value // Includes the braces, e.g., "{cf:fieldkey}"
+            val key = matchResult.groupValues[1] // Inside the braces, e.g., "cf:fieldkey"
+
+            when {
+                // Check if it's a dynamic custom field
+                key.startsWith("cf:") -> {
+                    val fieldKey = key.removePrefix("cf:")
+                    // Fetch from dynamic data, fallback to the original placeholder if not found
+                    customFields[fieldKey] ?: fullMatch
+                }
+                // Otherwise, check the static replacements
+                else -> {
+                    // Fetch from static data, fallback to the original placeholder if not found
+                    staticReplacements[key] ?: fullMatch
+                }
+            }
+        }
     }
 }

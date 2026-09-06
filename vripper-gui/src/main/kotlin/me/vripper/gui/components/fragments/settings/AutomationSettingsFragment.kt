@@ -81,10 +81,10 @@ class AutomationSettingsFragment : Fragment("Automation") {
                                 field("Endpoint") {
                                     val lef = ComboBox<String>().apply {
                                         items.addAll(WebhookMethod.entries.map { it.name })
-                                        this.valueProperty().bind(automationSettingsModel.webhookMethodProperty)
+                                        valueProperty().bindBidirectional(automationSettingsModel.webhookMethodProperty)
                                     }
                                     val right = TextField().apply {
-                                        textProperty().bind(automationSettingsModel.webhookUrlProperty)
+                                        textProperty().bindBidirectional(automationSettingsModel.webhookUrlProperty)
                                     }
                                     val inputGroup = InputGroup(lef, right)
                                     add(inputGroup)
