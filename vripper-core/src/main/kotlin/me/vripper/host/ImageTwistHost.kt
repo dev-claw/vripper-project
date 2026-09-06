@@ -8,7 +8,7 @@ import me.vripper.utilities.XpathUtils
 import org.w3c.dom.Node
 import java.util.*
 
-internal class ImageTwistHost : Host("imagetwist.com", 3) {
+internal class ImageTwistHost : Host("imagetwist", listOf("imagetwist.com"), 3) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

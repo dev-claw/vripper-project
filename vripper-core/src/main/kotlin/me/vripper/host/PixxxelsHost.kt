@@ -6,7 +6,7 @@ import me.vripper.services.download.ImageDownloadRunnable
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 
-internal class PixxxelsHost : Host("pixxxels.cc", 12) {
+internal class PixxxelsHost : Host("pixxxels", listOf("pixxxels.cc"), 12) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

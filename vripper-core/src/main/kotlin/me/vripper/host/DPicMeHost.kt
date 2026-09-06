@@ -8,7 +8,7 @@ import me.vripper.utilities.XpathUtils
 import org.w3c.dom.Node
 import java.util.*
 
-internal class DPicMeHost : Host("dpic.me", 1) {
+internal class DPicMeHost : Host("dpic", listOf("dpic.me"), 1) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

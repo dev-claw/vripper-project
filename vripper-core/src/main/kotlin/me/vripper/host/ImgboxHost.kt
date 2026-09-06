@@ -7,7 +7,7 @@ import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 import org.w3c.dom.Node
 
-internal class ImgboxHost : Host("imgbox.com", 6) {
+internal class ImgboxHost : Host("imgbox", listOf("imgbox.com"), 6) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

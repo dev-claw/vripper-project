@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.*
 
-internal class ImageBamHost : Host("imagebam.com", 2) {
+internal class ImageBamHost : Host("imagebam", listOf("imagebam.com"), 2) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

@@ -13,7 +13,7 @@ import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
 import org.apache.hc.core5.http.message.BasicNameValuePair
 
 
-internal class ImxHost : Host("imx.to", 8) {
+internal class ImxHost : Host("imx", listOf("imx.to"), 8) {
 
     private val log by LoggerDelegate()
 

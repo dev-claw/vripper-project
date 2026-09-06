@@ -6,7 +6,7 @@ import me.vripper.services.download.ImageDownloadRunnable
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 
-internal class ImageZillaHost : Host("imagezilla.net", 5) {
+internal class ImageZillaHost : Host("imagezilla", listOf("imagezilla.net"), 5) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

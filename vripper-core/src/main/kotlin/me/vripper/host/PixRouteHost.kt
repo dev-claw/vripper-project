@@ -7,7 +7,7 @@ import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 import org.w3c.dom.Node
 
-internal class PixRouteHost : Host("pixroute.com", 11) {
+internal class PixRouteHost : Host("pixroute", listOf("pixroute.com"), 11) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

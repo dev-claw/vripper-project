@@ -27,6 +27,7 @@ import java.nio.file.Path
 
 internal abstract class Host(
     val hostName: String,
+    val hostAddresses: List<String>,
     val hostId: Byte,
 ) : KoinComponent {
     private val log by LoggerDelegate()
@@ -37,15 +38,6 @@ internal abstract class Host(
 
     companion object {
         private const val READ_BUFFER_SIZE = 8192
-        private val hosts: MutableMap<String, Byte> = mutableMapOf()
-
-        fun getHosts(): Map<String, Byte> {
-            return hosts.toMap()
-        }
-    }
-
-    init {
-        hosts[hostName] = hostId
     }
 
     abstract fun resolve(
@@ -147,7 +139,7 @@ internal abstract class Host(
     }
 
     fun isSupported(url: String): Boolean {
-        return url.contains(hostName)
+        return hostAddresses.any { url.contains(it) }
     }
 
     fun head(context: Context): Array<Header> {
@@ -229,15 +221,15 @@ internal abstract class Host(
 
         other as Host
 
-        return hostName == other.hostName
+        return hostAddresses == other.hostAddresses
     }
 
     override fun hashCode(): Int {
-        return hostName.hashCode()
+        return hostAddresses.hashCode()
     }
 
     override fun toString(): String {
-        return hostName
+        return hostAddresses.toString()
     }
 }
 
