@@ -35,6 +35,7 @@ internal class ImageTwistHost : Host("imagetwist.com", 3) {
                     .map { obj: Node -> obj.textContent }
                     .map { obj: String -> obj.trim { it <= ' ' } }.orElse(null)
             val imgUrl = imgNode.attributes.getNamedItem("src").textContent.trim { it <= ' ' }
+            context.headers["Referer"] = "https://imagetwist.com/"
             Pair(imgTitle!!, imgUrl)
         } catch (e: Exception) {
             throw HostException("Unexpected error occurred", e)
