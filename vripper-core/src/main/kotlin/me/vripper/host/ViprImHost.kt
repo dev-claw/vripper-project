@@ -8,7 +8,7 @@ import me.vripper.utilities.XpathUtils
 import org.w3c.dom.Node
 import java.util.*
 
-internal class ViprImHost : Host("vipr.im", 15) {
+internal class ViprImHost : Host("vipr", listOf("vipr.im"), 15) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

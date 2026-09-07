@@ -7,7 +7,7 @@ import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 import org.w3c.dom.Node
 
-internal class TurboImageHost : Host("turboimagehost.com", 14) {
+internal class TurboImageHost : Host("turboimagehost", listOf("turboimagehost.com"), 14) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

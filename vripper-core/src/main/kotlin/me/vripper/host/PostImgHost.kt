@@ -5,7 +5,7 @@ import me.vripper.services.download.ImageDownloadRunnable
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 
-internal class PostImgHost : Host("postimg.cc", 13) {
+internal class PostImgHost : Host("postimg", listOf("postimg.cc"), 13) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

@@ -11,7 +11,7 @@ import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
 import org.apache.hc.core5.http.message.BasicNameValuePair
 import org.w3c.dom.Node
 
-internal class AcidimgHost : Host("acidimg.cc", 0) {
+internal class AcidimgHost : Host("acidimg", listOf("acidimg.cc"), 0) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)

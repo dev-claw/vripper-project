@@ -10,7 +10,7 @@ import org.w3c.dom.Node
 import java.net.URI
 import java.net.URISyntaxException
 
-internal class PimpandhostHost : Host("pimpandhost.com", 9) {
+internal class PimpandhostHost : Host("pimpandhost", listOf("pimpandhost.com"), 9) {
     private val log by LoggerDelegate()
 
     @Throws(HostException::class)
