@@ -44,8 +44,8 @@ internal class ThreadLookupAPIResponseHandler(private val siteProxy: String) : K
             }
 
             "image" -> {
-                val mainLink = attributes.getValue("main_url")?.trim() ?: ""
-                val thumbLink = attributes.getValue("thumb_url")?.trim() ?: ""
+                val mainLink = attributes.getValue("main_url")?.trim()?.replace("http://", "https://") ?: ""
+                val thumbLink = attributes.getValue("thumb_url")?.trim()?.replace("http://", "https://") ?: ""
                 val type = attributes.getValue("type")?.trim() ?: ""
                 if (type == "linked") {
                     supportedHosts.firstOrNull {
