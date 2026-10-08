@@ -24,6 +24,7 @@ import org.w3c.dom.Document
 import java.io.BufferedOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.time.Duration.Companion.milliseconds
 
 internal abstract class Host(
     val hostName: String,
@@ -120,7 +121,7 @@ internal abstract class Host(
             val reporterJob = context.launchCoroutine {
                 while (isActive) {
                     dataAccessService.updateImage(context.imageEntity, false)
-                    delay(100)
+                    delay(100.milliseconds)
                 }
             }
             while (response.entity.content.read(buffer)
@@ -193,7 +194,6 @@ internal abstract class Host(
         }
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     private fun getImageMimeType(headers: Array<Header>): ImageMimeType? {
 
         // first check if content type header exists
@@ -241,4 +241,5 @@ enum class ImageMimeType(val strValue: String) {
     IMAGE_JPEG("image/jpeg"),
     IMAGE_PNG("image/png"),
     IMAGE_WEBP("image/webp"),
+    IMAGE_SVG("image/svg+xml"),
 }
