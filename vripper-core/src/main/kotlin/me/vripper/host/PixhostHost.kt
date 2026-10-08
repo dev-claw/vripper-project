@@ -31,7 +31,7 @@ internal class PixhostHost : Host("pixhost", listOf("pixhost.to", "pixhost.cc"),
             log.debug(String.format("Resolving name and image url for %s", context.imageEntity.url))
             val imgTitle = imgNode.attributes.getNamedItem("alt").textContent.trim { it <= ' ' }
             val imgUrl = imgNode.attributes.getNamedItem("src").textContent.trim { it <= ' ' }
-            Pair(imgTitle.substring(imgTitle.indexOf('_') + 1), imgUrl)
+            Pair(imgTitle, imgUrl)
         } catch (e: Exception) {
             throw HostException("Unexpected error occurred", e)
         }
