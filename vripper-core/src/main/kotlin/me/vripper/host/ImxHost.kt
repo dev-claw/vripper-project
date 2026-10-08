@@ -62,59 +62,64 @@ internal class ImxHost : Host("imx", listOf("imx.to"), 8) {
 
             log.debug("Resolving name for $pageUrl")
             val imgTitle = imgNode?.attributes?.getNamedItem("alt")?.textContent?.trim() ?: ""
-            imgTitle
-
+            if (imgTitle.isBlank()) {
+                getDefaultImageName(context.imageEntity.thumbUrl)
+            } else {
+                imgTitle
+            }
         } else {
             getDefaultImageName(context.imageEntity.thumbUrl)
         }
     }
 
     private fun findPattern(image: ImageEntity): ImxLink {
-        val url = image.thumbUrl
+        val thumbUrl = image.thumbUrl
             .replace("http:", "https:")
-        return if (url.startsWith("https://image.imx.to/u/t/")) {
+        val url = image.url
+            .replace("http:", "https:")
+        val pageUrl = "https://imx.to/i/" + extractId(url)
+        return if (thumbUrl.startsWith("https://image.imx.to/u/t/")) {
             ImxLink(
-                "https://imx.to/i/" + extractIdFromUrl(url),
-                url,
-                "https://image.imx.to/u/i/" + url.replace("https://image.imx.to/u/t/", "")
+                pageUrl,
+                thumbUrl,
+                "https://image.imx.to/u/i/" + thumbUrl.replace("https://image.imx.to/u/t/", "")
             )
-        } else if (url.startsWith("https://imx.to/u/t")) {
+        } else if (thumbUrl.startsWith("https://imx.to/u/t")) {
             ImxLink(
-                "https://imx.to/i/" + extractIdFromUrl(url),
-                url,
-                "https://image.imx.to/u/i/" + url.replace("https://imx.to/u/t", "")
+                pageUrl,
+                thumbUrl,
+                "https://image.imx.to/u/i/" + thumbUrl.replace("https://imx.to/u/t/", "")
             )
-        } else if (url.startsWith("https://t.imx.to/t/")) {
+        } else if (thumbUrl.startsWith("https://t.imx.to/t/")) {
             ImxLink(
-                "https://imx.to/i/" + extractIdFromUrl(url),
-                url,
-                "https://image.imx.to/u/i/" + url.replace("https://t.imx.to/t/", "")
+                pageUrl,
+                thumbUrl,
+                "https://image.imx.to/u/i/" + thumbUrl.replace("https://t.imx.to/t/", "")
             )
-        } else if (url.startsWith("https://imx.to/upload/small/")) {
+        } else if (thumbUrl.startsWith("https://imx.to/upload/small/")) {
             ImxLink(
-                "https://imx.to/i/" + extractIdFromUrl(url),
-                url,
-                "https://image.imx.to/u/i/" + url.replace("https://imx.to/upload/small/", "")
+                pageUrl,
+                thumbUrl,
+                "https://image.imx.to/u/i/" + thumbUrl.replace("https://imx.to/upload/small/", "")
             )
-        } else if (url.startsWith("https://i.imx.to/t/")) {
+        } else if (thumbUrl.startsWith("https://i.imx.to/t/")) {
             ImxLink(
-                "https://imx.to/i/" + extractIdFromUrl(url),
-                url,
-                "https://image.imx.to/u/i/" + url.replace("https://i.imx.to/t/", "")
+                pageUrl,
+                thumbUrl,
+                "https://image.imx.to/u/i/" + thumbUrl.replace("https://i.imx.to/t/", "")
             )
-        } else if (url.startsWith("https://image.imx.to/u/i/")) {
-            ImxLink("https://imx.to/i/" + extractIdFromUrl(url), url.replace("/u/i", "/u/t"), url)
+        } else if (thumbUrl.startsWith("https://image.imx.to/u/i/")) {
+            ImxLink(pageUrl, thumbUrl.replace("/u/i", "/u/t"), thumbUrl)
         } else {
             throw HostException("Cannot find pattern for url ${image.thumbUrl}")
         }
     }
 
-    fun extractIdFromUrl(url: String): String? {
-        // Regex matches the string between the last slash '/' and the dot '.' before the extension
-        val regex = """/([^/\s]+)\.[a-zA-Z0-9]+$""".toRegex()
-        val matchResult = regex.find(url)
-
-        return matchResult?.groupValues?.get(1)
+    fun extractId(url: String): String {
+        // Get everything after the last slash
+        val base = url.substringAfterLast('/')
+        // Remove the extension if present (stops at the first dot of the filename)
+        return base.substringBefore('.').replace("img-", "")
     }
 
     companion object {

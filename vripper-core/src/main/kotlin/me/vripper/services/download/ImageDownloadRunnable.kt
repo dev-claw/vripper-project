@@ -161,6 +161,7 @@ internal class ImageDownloadRunnable(
             ImageMimeType.IMAGE_JPEG -> "JPG"
             ImageMimeType.IMAGE_PNG -> "PNG"
             ImageMimeType.IMAGE_WEBP -> "WEBP"
+            ImageMimeType.IMAGE_SVG -> "SVG"
         }
         val filename = if (existingExtension.isBlank()) "${sanitize(downloadedImage.name)}.$extension" else "${
             sanitize(
