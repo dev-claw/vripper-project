@@ -52,6 +52,6 @@ internal class PixxxelsHost : Host("pixxxels", listOf("pixxxels.cc"), 12) {
 
     companion object {
         private const val IMG_XPATH = "//*[@id='download']"
-        private const val TITLE_XPATH = "//*[contains(@class,'imagename')]"
+        private const val TITLE_XPATH = "/html/body/main/div/div[3]/div[1]/h6"
     }
 }
