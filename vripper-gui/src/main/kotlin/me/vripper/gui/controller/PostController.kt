@@ -107,6 +107,8 @@ class PostController : Controller() {
         runCatching { currentAppEndpointService().move(postEntityId, position) }
     }
 
+    fun toModel(post: Post): PostModel = mapper(post)
+
     private fun mapper(post: Post): PostModel {
         return PostModel(
             post.id,

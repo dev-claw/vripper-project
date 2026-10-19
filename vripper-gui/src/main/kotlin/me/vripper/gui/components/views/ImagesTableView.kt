@@ -6,7 +6,6 @@ import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.event.EventHandler
 import javafx.geometry.Pos
-import javafx.scene.Cursor
 import javafx.scene.control.*
 import javafx.scene.control.cell.TextFieldTableCell
 import javafx.scene.input.MouseButton
@@ -18,7 +17,7 @@ import me.vripper.entities.Status
 import me.vripper.gui.components.cells.PreviewTableCell
 import me.vripper.gui.components.cells.ProgressTableCell
 import me.vripper.gui.components.cells.StatusTableCell
-import me.vripper.gui.components.fragments.PhotoViewerFragment
+import me.vripper.gui.components.fragments.PostWorkspaceFragment
 import me.vripper.gui.controller.ImageController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.ImageModel
@@ -46,14 +45,23 @@ class ImagesTableView : View("Photos") {
                 addClass(Styles.DENSE, Tweaks.EDGE_TO_EDGE)
                 setRowFactory {
                     val tableRow = TableRow<ImageModel>()
+                    tableRow.onDoubleClick {
+                        tableRow.item?.let { openViewer(it) }
+                    }
                     val urlItem = MenuItem("Open link").apply {
                         setOnAction {
                             openLink(tableRow.item.url)
                         }
                         graphic = FontIcon.of(Feather.LINK)
                     }
+                    val viewerItem = MenuItem("Open in viewer").apply {
+                        setOnAction {
+                            tableRow.item?.let { openViewer(it) }
+                        }
+                        graphic = FontIcon.of(Feather.EYE)
+                    }
                     val contextMenu = ContextMenu()
-                    contextMenu.items.addAll(urlItem)
+                    contextMenu.items.addAll(urlItem, viewerItem)
                     tableRow.contextMenuProperty().bind(
                         tableRow.emptyProperty()
                             .map { empty -> if (empty) null else contextMenu })
@@ -75,7 +83,6 @@ class ImagesTableView : View("Photos") {
                     cellFactory = Callback {
                         val cell = PreviewTableCell<ImageModel, String>()
                         cell.onMouseExited = EventHandler {
-                            cursor = Cursor.DEFAULT
                             preview.cleanup()
                         }
                         cell.onMouseMoved = EventHandler {
@@ -85,34 +92,12 @@ class ImagesTableView : View("Photos") {
                             }
                         }
                         cell.onMouseEntered = EventHandler { mouseEvent ->
-                            cursor = Cursor.HAND
                             preview.cleanup()
                             if (cell.tableRow.item != null && cell.tableRow.item.thumbUrl.isNotEmpty()) {
                                 preview.display(cell.tableRow.item.postEntityId, listOf(cell.tableRow.item.thumbUrl))
                                 preview.previewPopup.apply {
                                     x = mouseEvent.screenX + 20
                                     y = mouseEvent.screenY + 10
-                                }
-                            }
-                        }
-                        cell.onLeftClick {
-                            preview.cleanup()
-                            coroutineScope.launch {
-                                val imageSources = imageController.getImageSources(cell.tableRow.item)
-                                if (imageSources.none { it.key.id == cell.tableRow.item.id }) {
-                                    return@launch
-                                }
-                                val postEntityId = cell.tableRow.item.postEntityId
-                                val initialIndex = cell.tableRow.item.index - 1
-                                runLater {
-                                    PhotoViewerFragment.openForPost(postEntityId, initialIndex) {
-                                        find<PhotoViewerFragment>(
-                                            mapOf(
-                                                PhotoViewerFragment::sources to imageSources.map { it.value },
-                                                PhotoViewerFragment::initialIndex to initialIndex,
-                                            )
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -258,6 +243,28 @@ class ImagesTableView : View("Photos") {
         tableView.prefWidthProperty().bind(root.widthProperty())
         tableView.prefHeightProperty().bind(root.heightProperty())
         modalStage?.width = 550.0
+    }
+
+    private fun openViewer(item: ImageModel) {
+        preview.cleanup()
+        coroutineScope.launch {
+            val imageSources = imageController.getImageSources(item)
+            if (imageSources.none { it.key.id == item.id }) {
+                return@launch
+            }
+            val postEntityId = item.postEntityId
+            val initialIndex = item.index - 1
+            runLater {
+                PostWorkspaceFragment.openForPost(postEntityId, initialIndex) {
+                    find<PostWorkspaceFragment>(
+                        mapOf(
+                            PostWorkspaceFragment::sources to imageSources.map { it.value },
+                            PostWorkspaceFragment::initialIndex to initialIndex,
+                        )
+                    )
+                }
+            }
+        }
     }
 
     fun setPostId(id: Long?) {

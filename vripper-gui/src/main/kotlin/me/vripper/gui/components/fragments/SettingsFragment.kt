@@ -42,6 +42,7 @@ class SettingsFragment : Fragment("Settings") {
     private val hostSettingsFragment: HostSettingsFragment =
         find(mapOf(HostSettingsFragment::hostSettings to hostSettings))
     private val imageViewerSettingsFragment: ImageViewerSettingsFragment = find()
+    private val workspaceSettingsFragment: WorkspaceSettingsFragment = find()
 
 
     override val root = vbox(alignment = Pos.CENTER_RIGHT) {
@@ -77,6 +78,10 @@ class SettingsFragment : Fragment("Settings") {
                 add(imageViewerSettingsFragment)
                 graphic = FontIcon.of(Feather.EYE)
             }
+            tab(workspaceSettingsFragment.title) {
+                add(workspaceSettingsFragment)
+                graphic = FontIcon.of(Feather.GRID)
+            }
         }
         borderpane {
             right {
@@ -97,6 +102,7 @@ class SettingsFragment : Fragment("Settings") {
                                 )
                                 runLater {
                                     commitImageViewerSettings()
+                                    commitWorkspaceSettings()
                                     close()
                                 }
                             } catch (e: ValidationException) {
@@ -126,6 +132,24 @@ class SettingsFragment : Fragment("Settings") {
         target.fadeAnimation = staged.fadeAnimation
         WidgetSettings.update(widgetsController.currentSettings)
         ImageCacheManager.resize(staged.diskCacheMb.toLong() * 1024 * 1024)
+    }
+
+    /**
+     * Commits the workspace settings edited in the dedicated tab. Applies to
+     * workspaces opened after the dialog is saved.
+     */
+    private fun commitWorkspaceSettings() {
+        val staged = workspaceSettingsFragment.workspaceSettingsModel
+        val target = widgetsController.currentSettings.workspaceSettingsModel
+        target.browseLayout = staged.browseLayout
+        target.detailsPanelVisible = staged.detailsPanelVisible
+        target.detailsPanelDividerPosition = staged.detailsPanelDividerPosition
+        target.windowWidth = staged.windowWidth
+        target.windowHeight = staged.windowHeight
+        target.windowX = staged.windowX
+        target.windowY = staged.windowY
+        target.windowMaximized = staged.windowMaximized
+        WidgetSettings.update(widgetsController.currentSettings)
     }
 
     override fun onUndock() {

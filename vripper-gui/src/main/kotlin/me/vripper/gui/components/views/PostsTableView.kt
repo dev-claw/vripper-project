@@ -6,7 +6,6 @@ import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.event.EventHandler
 import javafx.geometry.Pos
-import javafx.scene.Cursor
 import javafx.scene.control.*
 import javafx.scene.control.cell.TextFieldTableCell
 import javafx.scene.input.KeyCode
@@ -21,7 +20,7 @@ import me.vripper.gui.components.cells.PreviewTableCell
 import me.vripper.gui.components.cells.ProgressTableCell
 import me.vripper.gui.components.cells.StatusTableCell
 import me.vripper.gui.components.fragments.AddLinksFragment
-import me.vripper.gui.components.fragments.PhotoViewerFragment
+import me.vripper.gui.components.fragments.PostWorkspaceFragment
 import me.vripper.gui.components.fragments.RenameFragment
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.controller.WidgetsController
@@ -72,6 +71,9 @@ class PostsTableView : View() {
                 selectionModel.selectionMode = SelectionMode.MULTIPLE
                 setRowFactory {
                     val tableRow = TableRow<PostModel>()
+                    tableRow.onDoubleClick {
+                        tableRow.item?.let { openOverview(it) }
+                    }
 
                     val startItem = MenuItem("Start").apply {
                         setOnAction {
@@ -123,6 +125,13 @@ class PostsTableView : View() {
                         graphic = FontIcon.of(Feather.LINK)
                     }
 
+                    val overviewItem = MenuItem("Open overview").apply {
+                        setOnAction {
+                            tableRow.item?.let { openOverview(it) }
+                        }
+                        graphic = FontIcon.of(Feather.GRID)
+                    }
+
                     val moveToTop = MenuItem("Move to top").apply {
                         setOnAction {
                             coroutineScope.launch {
@@ -169,6 +178,7 @@ class PostsTableView : View() {
                         SeparatorMenuItem(),
                         locationItem,
                         urlItem,
+                        overviewItem,
                         SeparatorMenuItem(),
                         moveToTop,
                         moveUp,
@@ -255,7 +265,6 @@ class PostsTableView : View() {
                     cellFactory = Callback {
                         val cell = PreviewTableCell<PostModel, ObservableList<String>>()
                         cell.onMouseExited = EventHandler {
-                            cursor = Cursor.DEFAULT
                             preview.cleanup()
                         }
                         cell.onMouseMoved = EventHandler {
@@ -265,7 +274,6 @@ class PostsTableView : View() {
                             }
                         }
                         cell.onMouseEntered = EventHandler { mouseEvent ->
-                            cursor = Cursor.HAND
                             preview.cleanup()
                             if (cell.tableRow.item != null && cell.tableRow.item.previewList.isNotEmpty()) {
                                 preview.display(
@@ -274,26 +282,6 @@ class PostsTableView : View() {
                                 preview.previewPopup.apply {
                                     x = mouseEvent.screenX + 20
                                     y = mouseEvent.screenY + 10
-                                }
-                            }
-                        }
-                        cell.onLeftClick {
-                            preview.cleanup()
-                            coroutineScope.launch {
-                                val imageSources = postController.getImageSources(cell.tableRow.item)
-                                if (imageSources.isEmpty()) {
-                                    return@launch
-                                }
-                                val postEntityId = cell.tableRow.item.id
-                                runLater {
-                                    PhotoViewerFragment.openForPost(postEntityId, 0) {
-                                        find<PhotoViewerFragment>(
-                                            mapOf(
-                                                PhotoViewerFragment::sources to imageSources,
-                                                PhotoViewerFragment::initialIndex to 0,
-                                            )
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -570,6 +558,28 @@ class PostsTableView : View() {
     }
 
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "download-tab"
+
+    private fun openOverview(post: PostModel) {
+        preview.cleanup()
+        coroutineScope.launch {
+            val imageSources = postController.getImageSources(post)
+            if (imageSources.isEmpty()) {
+                return@launch
+            }
+            val postEntityId = post.id
+            runLater {
+                PostWorkspaceFragment.openForPost(postEntityId, 0, startInOverview = true) {
+                    find<PostWorkspaceFragment>(
+                        mapOf(
+                            PostWorkspaceFragment::sources to imageSources,
+                            PostWorkspaceFragment::initialIndex to 0,
+                            PostWorkspaceFragment::startInOverview to true,
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     private fun rename(post: PostModel) {
         find<RenameFragment>(

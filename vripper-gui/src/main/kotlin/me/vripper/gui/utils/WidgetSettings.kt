@@ -141,6 +141,20 @@ object WidgetSettings {
     )
 
     @Serializable
+    data class WorkspaceSettings(
+        val browseLayout: String = "GRID",
+        val detailsPanelVisible: Boolean = true,
+        val detailsPanelDividerPosition: Double = 0.7,
+        val imagesTableColumns: ImagesTableColumns = ImagesTableColumns(),
+        val imagesTableColumnsWidth: ImagesTableColumnsWidth = ImagesTableColumnsWidth(),
+        val windowWidth: Double = 900.0,
+        val windowHeight: Double = 650.0,
+        val windowX: Double = Double.NaN,
+        val windowY: Double = Double.NaN,
+        val windowMaximized: Boolean = false,
+    )
+
+    @Serializable
     data class WidgetsSettings(
         val localSession: Boolean = true,
         val visibleInfoPanel: Boolean = true,
@@ -164,6 +178,7 @@ object WidgetSettings {
         val threadSelectionColumnsWidth: ThreadSelectionTableColumnsWidth = ThreadSelectionTableColumnsWidth(),
         val logsTableColumnsWidth: LogsTableColumnsWidth = LogsTableColumnsWidth(),
         val imageViewerSettings: ImageViewerSettings = ImageViewerSettings(),
+        val workspaceSettings: WorkspaceSettings = WorkspaceSettings(),
     )
 
     fun loadSettings(): WidgetsSettings {
@@ -285,6 +300,36 @@ object WidgetSettings {
                         currentSettings.imageViewerSettingsModel.windowX,
                         currentSettings.imageViewerSettingsModel.windowY,
                         currentSettings.imageViewerSettingsModel.windowMaximized,
+                    ),
+                    WorkspaceSettings(
+                        currentSettings.workspaceSettingsModel.browseLayout,
+                        currentSettings.workspaceSettingsModel.detailsPanelVisible,
+                        currentSettings.workspaceSettingsModel.detailsPanelDividerPosition,
+                        ImagesTableColumns(
+                            currentSettings.workspaceImagesColumnsModel.preview,
+                            currentSettings.workspaceImagesColumnsModel.index,
+                            currentSettings.workspaceImagesColumnsModel.link,
+                            currentSettings.workspaceImagesColumnsModel.progress,
+                            currentSettings.workspaceImagesColumnsModel.filename,
+                            currentSettings.workspaceImagesColumnsModel.status,
+                            currentSettings.workspaceImagesColumnsModel.size,
+                            currentSettings.workspaceImagesColumnsModel.downloaded,
+                        ),
+                        ImagesTableColumnsWidth(
+                            currentSettings.workspaceImagesColumnsWidthModel.preview,
+                            currentSettings.workspaceImagesColumnsWidthModel.index,
+                            currentSettings.workspaceImagesColumnsWidthModel.link,
+                            currentSettings.workspaceImagesColumnsWidthModel.progress,
+                            currentSettings.workspaceImagesColumnsWidthModel.filename,
+                            currentSettings.workspaceImagesColumnsWidthModel.status,
+                            currentSettings.workspaceImagesColumnsWidthModel.size,
+                            currentSettings.workspaceImagesColumnsWidthModel.downloaded,
+                        ),
+                        currentSettings.workspaceSettingsModel.windowWidth,
+                        currentSettings.workspaceSettingsModel.windowHeight,
+                        currentSettings.workspaceSettingsModel.windowX,
+                        currentSettings.workspaceSettingsModel.windowY,
+                        currentSettings.workspaceSettingsModel.windowMaximized,
                     ),
                 )
             )
