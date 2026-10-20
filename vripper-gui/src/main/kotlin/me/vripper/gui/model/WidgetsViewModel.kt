@@ -3,6 +3,9 @@ package me.vripper.gui.model
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.beans.property.SimpleStringProperty
+import me.vripper.gui.model.settings.ImageViewerSettingsModel
+import me.vripper.gui.model.settings.WorkspaceSettingsModel
+import me.vripper.gui.utils.WidgetSettings.ImageViewerSettings
 import me.vripper.gui.utils.WidgetSettings.ImagesTableColumns
 import me.vripper.gui.utils.WidgetSettings.ImagesTableColumnsWidth
 import me.vripper.gui.utils.WidgetSettings.LogsTableColumns
@@ -14,6 +17,7 @@ import me.vripper.gui.utils.WidgetSettings.ThreadSelectionTableColumns
 import me.vripper.gui.utils.WidgetSettings.ThreadSelectionTableColumnsWidth
 import me.vripper.gui.utils.WidgetSettings.ThreadsTableColumns
 import me.vripper.gui.utils.WidgetSettings.ThreadsTableColumnsWidth
+import me.vripper.gui.utils.WidgetSettings.WorkspaceSettings
 import tornadofx.getValue
 import tornadofx.setValue
 
@@ -39,6 +43,8 @@ class WidgetsViewModel(
     threadsTableColumnsWidth: ThreadsTableColumnsWidth,
     threadSelectionColumnsWidth: ThreadSelectionTableColumnsWidth,
     logsTableColumnsWidth: LogsTableColumnsWidth,
+    imageViewerSettings: ImageViewerSettings,
+    workspaceSettings: WorkspaceSettings,
 ) {
 
     val localSessionProperty = SimpleBooleanProperty(localSession)
@@ -165,5 +171,52 @@ class WidgetsViewModel(
         remoteSession.host,
         remoteSession.port,
         remoteSession.passPhrase,
+    )
+
+    val imageViewerSettingsModel = ImageViewerSettingsModel().apply {
+        decodedCacheMb = imageViewerSettings.decodedCacheMb
+        bytePreloadRadius = imageViewerSettings.bytePreloadRadius
+        bytePreloadConcurrency = imageViewerSettings.bytePreloadConcurrency
+        decodePreloadConcurrency = imageViewerSettings.decodePreloadConcurrency
+        diskCacheMb = imageViewerSettings.diskCacheMb
+        fadeAnimation = imageViewerSettings.fadeAnimation
+        windowWidth = imageViewerSettings.windowWidth
+        windowHeight = imageViewerSettings.windowHeight
+        windowX = imageViewerSettings.windowX
+        windowY = imageViewerSettings.windowY
+        windowMaximized = imageViewerSettings.windowMaximized
+    }
+
+    val workspaceSettingsModel = WorkspaceSettingsModel().apply {
+        browseLayout = workspaceSettings.browseLayout
+        detailsPanelVisible = workspaceSettings.detailsPanelVisible
+        detailsPanelDividerPosition = workspaceSettings.detailsPanelDividerPosition
+        windowWidth = workspaceSettings.windowWidth
+        windowHeight = workspaceSettings.windowHeight
+        windowX = workspaceSettings.windowX
+        windowY = workspaceSettings.windowY
+        windowMaximized = workspaceSettings.windowMaximized
+    }
+
+    val workspaceImagesColumnsModel = ImagesColumnsModel(
+        workspaceSettings.imagesTableColumns.preview,
+        workspaceSettings.imagesTableColumns.index,
+        workspaceSettings.imagesTableColumns.link,
+        workspaceSettings.imagesTableColumns.progress,
+        workspaceSettings.imagesTableColumns.filename,
+        workspaceSettings.imagesTableColumns.status,
+        workspaceSettings.imagesTableColumns.size,
+        workspaceSettings.imagesTableColumns.downloaded,
+    )
+
+    val workspaceImagesColumnsWidthModel = ImagesColumnsWidthModel(
+        workspaceSettings.imagesTableColumnsWidth.preview,
+        workspaceSettings.imagesTableColumnsWidth.index,
+        workspaceSettings.imagesTableColumnsWidth.link,
+        workspaceSettings.imagesTableColumnsWidth.progress,
+        workspaceSettings.imagesTableColumnsWidth.filename,
+        workspaceSettings.imagesTableColumnsWidth.status,
+        workspaceSettings.imagesTableColumnsWidth.size,
+        workspaceSettings.imagesTableColumnsWidth.downloaded,
     )
 }
