@@ -152,6 +152,16 @@
             <artifactId>jimfs</artifactId>
             <version>1.3.1</version>
         </dependency>
+        <!--
+            libjpeg-turbo, used for fast JPEG decoding. The "-platform"
+            artifact bundles the native libraries for Windows, Linux and
+            macOS (x86_64 and arm64), so no system package is required.
+        -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>leptonica-platform</artifactId>
+            <version>1.87.0-1.5.14</version>
+        </dependency>
     </dependencies>
 
     <build>

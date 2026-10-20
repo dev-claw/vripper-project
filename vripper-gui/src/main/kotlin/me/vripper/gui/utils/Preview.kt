@@ -61,9 +61,9 @@ class Preview(val owner: Stage) {
         coroutineScope.cancel()
     }
 
-    private fun previewLoading(postEntityId: Long, url: String): ImageView? {
+    private suspend fun previewLoading(postEntityId: Long, url: String): ImageView? {
         return try {
-            ByteArrayInputStream(PreviewCacheManager.load(postEntityId, url)).use {
+            ByteArrayInputStream(ImageCacheManager.load(postEntityId, url)).use {
                 ImageView(Image(it)).apply {
                     isPreserveRatio = true
 

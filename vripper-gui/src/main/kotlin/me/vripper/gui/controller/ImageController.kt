@@ -1,7 +1,12 @@
 package me.vripper.gui.controller
 
+import me.vripper.entities.ImageEntity
+import me.vripper.entities.Status
+import me.vripper.gui.components.fragments.BytesImageSource
+import me.vripper.gui.components.fragments.ImageSource
 import me.vripper.gui.model.ImageModel
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
+import me.vripper.model.DownloadRequest
 import me.vripper.model.Image
 import tornadofx.Controller
 
@@ -42,4 +47,19 @@ class ImageController : Controller() {
         currentAppEndpointService().onUpdateImagesByPostEntityId(postId)
 
     fun onStopped() = currentAppEndpointService().onStopped()
+
+    suspend fun getImageSources(item: ImageModel): Map<ImageEntity, ImageSource> {
+        val imageEntities = currentAppEndpointService().findImagesByPostEntityId(item.postEntityId)
+        return imageEntities.associateWith { imageEntity ->
+            BytesImageSource(
+                imageEntity.id,
+                imageEntity.filename,
+                imageEntity.thumbUrl,
+                imageEntity.postEntityId,
+                imageEntity.status == Status.FINISHED
+            ) {
+                currentAppEndpointService().downloadImage(DownloadRequest(imageEntity.id))
+            }
+        }
+    }
 }
