@@ -30,7 +30,8 @@ class WidgetsController : Controller() {
             it.imagesTableColumnsWidth,
             it.threadsTableColumnsWidth,
             it.threadSelectionColumnsWidth,
-            it.logsTableColumnsWidth
+            it.logsTableColumnsWidth,
+            it.imageViewerSettings
         )
     }
 
