@@ -3,6 +3,8 @@ package me.vripper.gui.model
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.beans.property.SimpleStringProperty
+import me.vripper.gui.model.settings.ImageViewerSettingsModel
+import me.vripper.gui.utils.WidgetSettings.ImageViewerSettings
 import me.vripper.gui.utils.WidgetSettings.ImagesTableColumns
 import me.vripper.gui.utils.WidgetSettings.ImagesTableColumnsWidth
 import me.vripper.gui.utils.WidgetSettings.LogsTableColumns
@@ -39,6 +41,7 @@ class WidgetsViewModel(
     threadsTableColumnsWidth: ThreadsTableColumnsWidth,
     threadSelectionColumnsWidth: ThreadSelectionTableColumnsWidth,
     logsTableColumnsWidth: LogsTableColumnsWidth,
+    imageViewerSettings: ImageViewerSettings,
 ) {
 
     val localSessionProperty = SimpleBooleanProperty(localSession)
@@ -166,4 +169,18 @@ class WidgetsViewModel(
         remoteSession.port,
         remoteSession.passPhrase,
     )
+
+    val imageViewerSettingsModel = ImageViewerSettingsModel().apply {
+        decodedCacheMb = imageViewerSettings.decodedCacheMb
+        bytePreloadRadius = imageViewerSettings.bytePreloadRadius
+        bytePreloadConcurrency = imageViewerSettings.bytePreloadConcurrency
+        decodePreloadConcurrency = imageViewerSettings.decodePreloadConcurrency
+        diskCacheMb = imageViewerSettings.diskCacheMb
+        fadeAnimation = imageViewerSettings.fadeAnimation
+        windowWidth = imageViewerSettings.windowWidth
+        windowHeight = imageViewerSettings.windowHeight
+        windowX = imageViewerSettings.windowX
+        windowY = imageViewerSettings.windowY
+        windowMaximized = imageViewerSettings.windowMaximized
+    }
 }
