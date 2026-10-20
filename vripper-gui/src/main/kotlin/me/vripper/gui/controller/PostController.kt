@@ -1,11 +1,15 @@
 package me.vripper.gui.controller
 
 import kotlinx.coroutines.flow.map
+import me.vripper.entities.Status
+import me.vripper.gui.components.fragments.BytesImageSource
+import me.vripper.gui.components.fragments.ImageSource
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
 import me.vripper.gui.utils.ChannelFlowBuilder
+import me.vripper.model.DownloadRequest
 import me.vripper.model.Post
 import me.vripper.model.QueueState
 import me.vripper.services.download.MovePosition
@@ -132,5 +136,20 @@ class PostController : Controller() {
 
     fun progress(total: Int, done: Int): Double {
         return if (done == 0 && total == 0) 0.0 else (done.toDouble() / total)
+    }
+
+    suspend fun getImageSources(item: PostModel): List<ImageSource> {
+        val imageEntities = currentAppEndpointService().findImagesByPostEntityId(item.id)
+        return imageEntities.map { imageEntity ->
+            BytesImageSource(
+                imageEntity.id,
+                imageEntity.filename,
+                imageEntity.thumbUrl,
+                imageEntity.postEntityId,
+                imageEntity.status == Status.FINISHED
+            ) {
+                currentAppEndpointService().downloadImage(DownloadRequest(imageEntity.id))
+            }
+        }
     }
 }
