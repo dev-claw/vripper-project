@@ -47,5 +47,6 @@ interface IAppEndpointService {
     suspend fun dbMigration(): String
     suspend fun initLogger()
     suspend fun move(postEntityId: Long, position: MovePosition)
+    fun downloadImage(downloadRequest: DownloadRequest): Flow<ImageChunk>
     fun connectionState(): String
 }
