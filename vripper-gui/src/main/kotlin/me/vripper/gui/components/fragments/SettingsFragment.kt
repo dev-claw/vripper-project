@@ -9,6 +9,9 @@ import javafx.scene.layout.VBox
 import kotlinx.coroutines.*
 import me.vripper.exception.ValidationException
 import me.vripper.gui.controller.SettingsController
+import me.vripper.gui.controller.WidgetsController
+import me.vripper.gui.utils.ImageCacheManager
+import me.vripper.gui.utils.WidgetSettings
 import me.vripper.model.ConnectionSettings
 import me.vripper.model.DownloadSettings
 import me.vripper.model.SystemSettings
@@ -26,6 +29,7 @@ class SettingsFragment : Fragment("Settings") {
     val systemSettings: SystemSettings by param()
     val hostSettings: Map<String, Map<String, String>> by param()
     private val settingsController: SettingsController by inject()
+    private val widgetsController: WidgetsController by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadSettingsFragment: DownloadSettingsFragment =
         find(mapOf(DownloadSettingsFragment::downloadSettings to downloadSettings))
@@ -37,6 +41,7 @@ class SettingsFragment : Fragment("Settings") {
         find(mapOf(SystemSettingsFragment::systemSettings to systemSettings))
     private val hostSettingsFragment: HostSettingsFragment =
         find(mapOf(HostSettingsFragment::hostSettings to hostSettings))
+    private val imageViewerSettingsFragment: ImageViewerSettingsFragment = find()
 
 
     override val root = vbox(alignment = Pos.CENTER_RIGHT) {
@@ -68,6 +73,10 @@ class SettingsFragment : Fragment("Settings") {
                 add(hostSettingsFragment)
                 graphic = FontIcon.of(Feather.IMAGE)
             }
+            tab(imageViewerSettingsFragment.title) {
+                add(imageViewerSettingsFragment)
+                graphic = FontIcon.of(Feather.EYE)
+            }
         }
         borderpane {
             right {
@@ -87,6 +96,7 @@ class SettingsFragment : Fragment("Settings") {
                                     hostSettingsFragment.hostSettingsModels
                                 )
                                 runLater {
+                                    commitImageViewerSettings()
                                     close()
                                 }
                             } catch (e: ValidationException) {
@@ -97,6 +107,25 @@ class SettingsFragment : Fragment("Settings") {
                 }
             }
         }
+    }
+
+    /**
+     * Commits the image viewer settings edited in the dedicated tab. Unlike the
+     * other client-side widget settings (which persist on change), these follow
+     * the dialog's Save button, so they are applied here only after a successful
+     * save. Must run on the FX thread (it updates bound properties).
+     */
+    private fun commitImageViewerSettings() {
+        val staged = imageViewerSettingsFragment.imageViewerSettingsModel
+        val target = widgetsController.currentSettings.imageViewerSettingsModel
+        target.decodedCacheMb = staged.decodedCacheMb
+        target.bytePreloadRadius = staged.bytePreloadRadius
+        target.bytePreloadConcurrency = staged.bytePreloadConcurrency
+        target.decodePreloadConcurrency = staged.decodePreloadConcurrency
+        target.diskCacheMb = staged.diskCacheMb
+        target.fadeAnimation = staged.fadeAnimation
+        WidgetSettings.update(widgetsController.currentSettings)
+        ImageCacheManager.resize(staged.diskCacheMb.toLong() * 1024 * 1024)
     }
 
     override fun onUndock() {

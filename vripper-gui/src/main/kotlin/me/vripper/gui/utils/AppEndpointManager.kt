@@ -29,4 +29,8 @@ object AppEndpointManager : KoinComponent {
             else -> throw IllegalStateException("Unknown current state: $current")
         }
     }
+
+    fun currentAppState(): GUIEvent {
+        return this.current
+    }
 }
