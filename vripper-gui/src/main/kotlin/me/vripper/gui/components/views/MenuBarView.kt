@@ -233,10 +233,29 @@ class MenuBarView : View() {
                 item("Check for updates").apply {
                     graphic = FontIcon.of(Feather.REFRESH_CCW)
                     action {
+                        if (ApplicationProperties.IS_NIGHTLY) {
+                            information(
+                                header = "",
+                                content = "Update checks are disabled for nightly builds.\nCheck the releases page for the latest stable version.",
+                                title = "VRipper updates",
+                                owner = primaryStage,
+                            )
+                            return@action
+                        }
+
                         val latestVersion = ApplicationProperties.latestVersion()
                         val currentVersion = ApplicationProperties.VERSION
+                        if (latestVersion == null) {
+                            information(
+                                header = "",
+                                content = "No stable release of VRipper is available.",
+                                title = "VRipper updates",
+                                owner = primaryStage,
+                            )
+                            return@action
+                        }
 
-                        if (latestVersion > currentVersion) {
+                        if (ApplicationProperties.isNewerVersion(latestVersion, currentVersion)) {
                             information(
                                 header = "",
                                 content = "A newer version of VRipper is available \nLatest version is $latestVersion\nDo you want to go to the release page?",

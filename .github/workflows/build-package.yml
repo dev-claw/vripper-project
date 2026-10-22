@@ -1,0 +1,228 @@
+name: Build and Package
+
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: Git ref to check out. Defaults to the caller's ref.
+        required: false
+        type: string
+        default: ''
+      revision:
+        description: Maven revision and jpackage version.
+        required: true
+        type: string
+      app_version:
+        description: Application version passed to Maven.
+        required: true
+        type: string
+      artifact_prefix:
+        description: Prefix for artifact names.
+        required: true
+        type: string
+      asset_prefix:
+        description: Prefix for packaged asset filenames.
+        required: true
+        type: string
+      jar_suffix:
+        description: Suffix for GUI and web jar names.
+        required: false
+        type: string
+        default: ''
+      docker_tags:
+        description: Newline-separated Docker tags to push.
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'zulu'
+          cache: maven
+
+      - name: Build GUI and web jars
+        env:
+          REVISION: ${{ inputs.revision }}
+          APP_VERSION: ${{ inputs.app_version }}
+          JAR_SUFFIX: ${{ inputs.jar_suffix }}
+        run: |
+          set -euo pipefail
+          mvn -N -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file pom.xml
+          mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file vripper-core/pom.xml
+          mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file vripper-gui/pom.xml
+          mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file vripper-web-ui/pom.xml
+          mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file vripper-web/pom.xml
+          mv "vripper-gui/target/vripper-gui-${REVISION}-jar-with-dependencies.jar" "vripper-gui/target/vripper-noarch-gui${JAR_SUFFIX}.jar"
+          mv "vripper-web/target/vripper-web-${REVISION}.jar" "vripper-web/target/vripper-noarch-web${JAR_SUFFIX}.jar"
+
+      - name: Upload GUI jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-gui-jar
+          path: vripper-gui/target/vripper-noarch-gui${{ inputs.jar_suffix }}.jar
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload web jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-web-jar
+          path: vripper-web/target/vripper-noarch-web${{ inputs.jar_suffix }}.jar
+          retention-days: 1
+          compression-level: 0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push Docker image
+        env:
+          DOCKER_TAGS: ${{ inputs.docker_tags }}
+          JAR_SUFFIX: ${{ inputs.jar_suffix }}
+        run: |
+          set -euo pipefail
+          mkdir -p docker_build
+          cp Dockerfile docker_build/Dockerfile
+          cp "vripper-web/target/vripper-noarch-web${JAR_SUFFIX}.jar" docker_build/vripper-web.jar
+          docker build -t ghcr.io/dev-claw/vripper-web docker_build
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag ghcr.io/dev-claw/vripper-web "$tag"
+            docker push "$tag"
+          done <<< "${DOCKER_TAGS}"
+
+  package:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            platform: linux
+            arch_suffix: ''
+            portable_path: VRipper
+          - os: windows-latest
+            target: windows
+            platform: windows
+            arch_suffix: ''
+            portable_path: VRipper
+          - os: macos-15-intel
+            target: macos-intel
+            platform: macos
+            arch_suffix: .x86_64
+            portable_path: VRipper.app
+          - os: macos-latest
+            target: macos-arm
+            platform: macos
+            arch_suffix: .arm64
+            portable_path: VRipper.app
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'zulu'
+
+      - name: Download GUI jar
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-gui-jar
+          path: jar-download
+
+      - name: Prepare packaging
+        shell: bash
+        run: cp "jar-download/vripper-noarch-gui${{ inputs.jar_suffix }}.jar" jpackage/jar/vripper-gui.jar
+
+      - if: matrix.target == 'linux'
+        name: Package for Linux
+        env:
+          REVISION: ${{ inputs.revision }}
+          ASSET_PREFIX: ${{ inputs.asset_prefix }}
+        run: |
+          set -euo pipefail
+          cd jpackage
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.png
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-linux.cfg" --resource-dir resources --type deb
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-linux.cfg" --resource-dir resources --type rpm
+          mv "dist/vripper-${REVISION}-1.x86_64.rpm" "dist/${ASSET_PREFIX}-linux-x86_64.rpm"
+          mv "dist/vripper_${REVISION}-1_amd64.deb" "dist/${ASSET_PREFIX}-linux-amd64.deb"
+
+      - if: matrix.target == 'windows'
+        name: Package for Windows
+        run: |
+          cd jpackage
+          jpackage --app-version "${{ inputs.revision }}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.ico
+          jpackage --app-version "${{ inputs.revision }}" "@jpackage.cfg" "@jpackage-windows.cfg" --resource-dir resources --type msi
+          jpackage --app-version "${{ inputs.revision }}" "@jpackage.cfg" "@jpackage-windows.cfg" --resource-dir resources --type exe
+          cd dist
+          mv "VRipper-${{ inputs.revision }}.msi" "${{ inputs.asset_prefix }}-windows-installer.msi"
+          mv "VRipper-${{ inputs.revision }}.exe" "${{ inputs.asset_prefix }}-windows-installer.exe"
+
+      - if: matrix.target == 'macos-arm'
+        name: Package for macOS (arm64)
+        env:
+          REVISION: ${{ inputs.revision }}
+          ASSET_PREFIX: ${{ inputs.asset_prefix }}
+        run: |
+          set -euo pipefail
+          cd jpackage
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.icns
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type pkg
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
+          mv "dist/VRipper-${REVISION}.pkg" "dist/${ASSET_PREFIX}-macos-arm64.pkg"
+          mv "dist/VRipper-${REVISION}.dmg" "dist/${ASSET_PREFIX}-macos-arm64.dmg"
+
+      - if: matrix.target == 'macos-intel'
+        name: Package for macOS (x86_64)
+        env:
+          REVISION: ${{ inputs.revision }}
+          ASSET_PREFIX: ${{ inputs.asset_prefix }}
+        run: |
+          set -euo pipefail
+          cd jpackage
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.icns
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type pkg
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
+          mv "dist/VRipper-${REVISION}.pkg" "dist/${ASSET_PREFIX}-macos-x86_64.pkg"
+          mv "dist/VRipper-${REVISION}.dmg" "dist/${ASSET_PREFIX}-macos-x86_64.dmg"
+
+      - name: Zip portable
+        uses: thedoctor0/zip-release@0.7.1
+        with:
+          type: 'zip'
+          directory: 'jpackage/dist'
+          path: ${{ matrix.portable_path }}
+          filename: ${{ inputs.asset_prefix }}-${{ matrix.platform }}-portable${{ matrix.arch_suffix }}.zip
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-packages-${{ matrix.target }}
+          path: jpackage/dist/${{ inputs.asset_prefix }}-*
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0

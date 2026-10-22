@@ -1,0 +1,120 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Build even if there are no changes since the last nightly'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+      revision: ${{ steps.version.outputs.revision }}
+      version: ${{ steps.version.outputs.version }}
+      nightly-version: ${{ steps.version.outputs.nightly-version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve nightly version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          revision=$(sed -n 's:.*<revision>\(.*\)</revision>.*:\1:p' pom.xml | head -n 1)
+          version=${revision%%-*}
+
+          latest=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name 2>/dev/null || true)
+          latest=${latest#v}
+          if [ -n "$latest" ]; then
+            highest=$(printf '%s\n%s\n' "$version" "$latest" | sort -V | tail -n 1)
+            if [ "$highest" = "$latest" ]; then
+              major=${latest%%.*}
+              rest=${latest#*.}
+              minor=${rest%%.*}
+              version="${major}.$((minor + 1)).0"
+            fi
+          fi
+
+          {
+            echo "revision=${version}"
+            echo "version=${version}"
+            echo "nightly-version=${version}-nightly.$(date -u +%Y%m%d).${GITHUB_SHA::7}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check for changes since the last nightly
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force || 'false' }}
+        run: |
+          if [ "$FORCE" = "true" ]; then
+            echo "Manual run forced, building nightly"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          last=$(gh release view nightly --repo "$GITHUB_REPOSITORY" --json body --jq .body 2>/dev/null | grep -oE '[0-9a-f]{40}' | head -n 1 || true)
+          if [ -n "$last" ] && [ "$last" = "$GITHUB_SHA" ]; then
+            echo "No changes since last nightly ($last), skipping"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changes detected since last nightly, building"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-package.yml
+    with:
+      revision: ${{ needs.check.outputs.revision }}
+      app_version: ${{ needs.check.outputs.nightly-version }}
+      artifact_prefix: nightly
+      asset_prefix: vripper-nightly
+      jar_suffix: '-nightly'
+      docker_tags: ghcr.io/dev-claw/vripper-web:nightly
+
+  publish:
+    needs: [check, build]
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: nightly-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIGHTLY_VERSION: ${{ needs.check.outputs.nightly-version }}
+        run: |
+          gh release delete nightly --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          notes=$(printf 'Automated nightly build.\n\nVersion: %s\nCommit: %s\nBuilt: %s' "$NIGHTLY_VERSION" "$GITHUB_SHA" "$(date -u '+%Y-%m-%d %H:%M:%S UTC')")
+          gh release create nightly dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Nightly Build" \
+            --notes "$notes" \
+            --prerelease

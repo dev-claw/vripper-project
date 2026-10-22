@@ -19,6 +19,7 @@ object ApplicationProperties {
     val VERSION: String =
         ApplicationProperties.javaClass.getResourceAsStream("/version")
             ?.use { inputStream -> inputStream.reader().use { it.readText() } } ?: "undefined"
+    val IS_NIGHTLY: Boolean = VERSION.contains("-nightly", ignoreCase = true)
     private const val BASE_DIR_NAME: String = "vripper"
     private val portable = System.getProperty("vripper.portable", "true").toBoolean()
     private val BASE_DIR: String = getBaseDir()
@@ -33,7 +34,11 @@ object ApplicationProperties {
     val IMX_SUBDOMAINS: Set<String>
 
     @Serializable
-    internal data class ReleaseResponse(@SerialName("tag_name") val tagName: String)
+    internal data class ReleaseResponse(
+        @SerialName("tag_name") val tagName: String,
+        val prerelease: Boolean = false,
+        val draft: Boolean = false,
+    )
 
     init {
         Files.createDirectories(VRIPPER_DIR)
@@ -53,7 +58,7 @@ object ApplicationProperties {
         }.split(",").toSet()
     }
 
-    fun latestVersion(): String {
+    fun latestVersion(): String? {
         val request = HttpRequest.newBuilder()
             .uri(URI.create("https://api.github.com/repos/dev-claw/vripper-project/releases/latest")).build()
         return HttpClient.newHttpClient().use {
@@ -61,7 +66,22 @@ object ApplicationProperties {
             if (response.statusCode() / 100 != 2) {
                 throw DownloadException("Unexpected response code '${response.statusCode()}' for $request")
             }
-            json.decodeFromString<ReleaseResponse>(response.body()).tagName
+            val release = json.decodeFromString<ReleaseResponse>(response.body())
+            if (release.draft || release.prerelease || release.tagName.contains("nightly", ignoreCase = true)) {
+                null
+            } else {
+                release.tagName
+            }
+        }
+    }
+
+    fun isNewerVersion(candidate: String, current: String): Boolean {
+        val candidateVersion = SemanticVersion.parse(candidate)
+        val currentVersion = SemanticVersion.parse(current)
+        return if (candidateVersion != null && currentVersion != null) {
+            candidateVersion > currentVersion
+        } else {
+            candidate > current
         }
     }
 
