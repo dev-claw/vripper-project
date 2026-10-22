@@ -1,14 +1,15 @@
 package me.vripper.gui
 
-import atlantafx.base.theme.*
 import javafx.application.Application
 import javafx.scene.image.Image
 import javafx.stage.Stage
 import javafx.stage.WindowEvent
 import kotlinx.coroutines.*
+import me.vripper.gui.components.fragments.PostWorkspaceFragment
 import me.vripper.gui.components.views.LoadingView
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
+import me.vripper.gui.utils.AppThemeManager
 import me.vripper.gui.utils.Watcher
 import me.vripper.gui.utils.WidgetSettings
 import me.vripper.utilities.AppLock
@@ -41,16 +42,7 @@ class VripperGuiApplication : App(
             log.error("Thread $t threw an exception: ${e.message}", e)
         }
 
-        when (widgetsController.currentSettings.theme) {
-            "CupertinoLight" -> setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
-            "CupertinoDark" -> setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)
-            "NordLight" -> setUserAgentStylesheet(NordLight().userAgentStylesheet)
-            "NordDark" -> setUserAgentStylesheet(NordDark().userAgentStylesheet)
-            "PrimerLight" -> setUserAgentStylesheet(PrimerLight().userAgentStylesheet)
-            "PrimerDark" -> setUserAgentStylesheet(PrimerDark().userAgentStylesheet)
-            "Dracula" -> setUserAgentStylesheet(Dracula().userAgentStylesheet)
-            else -> setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
-        }
+        AppThemeManager.prepare(widgetsController.currentSettings)
         with(stage) {
             width = widgetsController.currentSettings.width
             height = widgetsController.currentSettings.height
@@ -68,6 +60,11 @@ class VripperGuiApplication : App(
                     Image("icons/1024x1024.png")
                 )
             )
+        }
+        // Workspace windows are unowned so they can be minimized separately;
+        // close them explicitly when the main window goes away.
+        stage.setOnCloseRequest {
+            PostWorkspaceFragment.closeAll()
         }
         coroutineScope.launch {
             while (isActive) {
@@ -103,6 +100,7 @@ class VripperGuiApplication : App(
     }
 
     override fun stop() {
+        PostWorkspaceFragment.closeAll()
         coroutineScope.cancel()
         super.stop()
         exitProcess(0)

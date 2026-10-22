@@ -1,13 +1,19 @@
 package me.vripper.gui.controller
 
 import kotlinx.coroutines.flow.map
+import me.vripper.entities.Status
+import me.vripper.gui.components.fragments.BytesImageSource
+import me.vripper.gui.components.fragments.ImageSource
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
 import me.vripper.gui.utils.ChannelFlowBuilder
+import me.vripper.gui.utils.GuiErrorReporter
+import me.vripper.model.DownloadRequest
 import me.vripper.model.Post
 import me.vripper.model.QueueState
+import me.vripper.services.IPostCommandEndpoint
 import me.vripper.services.download.MovePosition
 import me.vripper.utilities.formatSI
 import tornadofx.Controller
@@ -52,56 +58,71 @@ class PostController : Controller() {
     )
 
     suspend fun scan(postLinks: String) {
-        runCatching { currentAppEndpointService().scanLinks(postLinks) }
+        GuiErrorReporter.call("posts.scan") {
+            currentAppEndpointService().scanLinks(
+                postLinks,
+                IPostCommandEndpoint.ScanOrigin.PASTED
+            )
+        }
     }
 
     suspend fun start(postEntityIdList: List<Long>) {
-        runCatching { currentAppEndpointService().restartAll(postEntityIdList) }
+        GuiErrorReporter.call("posts.start") { currentAppEndpointService().restartAll(postEntityIdList) }
     }
 
     suspend fun startAll() {
-        runCatching { currentAppEndpointService().restartAll() }
+        GuiErrorReporter.call("posts.startAll") { currentAppEndpointService().restartAll() }
     }
 
     suspend fun delete(postEntityIdList: List<Long>) {
-        runCatching { currentAppEndpointService().remove(postEntityIdList) }
+        GuiErrorReporter.call("posts.delete") { currentAppEndpointService().remove(postEntityIdList) }
     }
 
     suspend fun stop(postEntityIdList: List<Long>) {
-        runCatching { currentAppEndpointService().stopAll(postEntityIdList) }
+        GuiErrorReporter.call("posts.stop") { currentAppEndpointService().stopAll(postEntityIdList) }
     }
 
     suspend fun clearPosts(): List<Long> {
-        return runCatching { return currentAppEndpointService().clearCompleted() }.getOrDefault(emptyList())
+        return GuiErrorReporter.call("posts.clearCompleted") {
+            currentAppEndpointService().clearCompleted()
+        }.getOrDefault(emptyList())
     }
 
     suspend fun stopAll() {
-        runCatching { currentAppEndpointService().stopAll() }
+        GuiErrorReporter.call("posts.stopAll") { currentAppEndpointService().stopAll() }
     }
 
     suspend fun find(postEntityId: Long): PostModel? {
-        return runCatching { mapper(currentAppEndpointService().findPost(postEntityId)) }.getOrNull()
+        return GuiErrorReporter.call("posts.find") {
+            mapper(currentAppEndpointService().findPost(postEntityId))
+        }.getOrNull()
     }
 
     suspend fun findAllPosts(): List<PostModel> {
-        return currentAppEndpointService().findAllPosts().map(::mapper)
+        return GuiErrorReporter.call("posts.findAll") {
+            currentAppEndpointService().findAllPosts().map(::mapper)
+        }.getOrDefault(emptyList())
     }
 
     suspend fun getQueueState(): QueueState {
-        return runCatching { currentAppEndpointService().getQueueState() }.getOrDefault(QueueState(0, 0))
+        return GuiErrorReporter.call("queue.state") {
+            currentAppEndpointService().getQueueState()
+        }.getOrDefault(QueueState(0, 0))
     }
 
     suspend fun rename(postEntityId: Long, value: String) {
-        runCatching { currentAppEndpointService().rename(postEntityId, value) }
+        GuiErrorReporter.call("posts.rename") { currentAppEndpointService().rename(postEntityId, value) }
     }
 
     suspend fun renameToFirst(postEntityIds: List<Long>) {
-        runCatching { currentAppEndpointService().renameToFirst(postEntityIds) }
+        GuiErrorReporter.call("posts.renameToFirst") { currentAppEndpointService().renameToFirst(postEntityIds) }
     }
 
     suspend fun moveTo(postEntityId: Long, position: MovePosition) {
-        runCatching { currentAppEndpointService().move(postEntityId, position) }
+        GuiErrorReporter.call("posts.move") { currentAppEndpointService().move(postEntityId, position) }
     }
+
+    fun toModel(post: Post): PostModel = mapper(post)
 
     private fun mapper(post: Post): PostModel {
         return PostModel(
@@ -132,5 +153,22 @@ class PostController : Controller() {
 
     fun progress(total: Int, done: Int): Double {
         return if (done == 0 && total == 0) 0.0 else (done.toDouble() / total)
+    }
+
+    suspend fun getImageSources(item: PostModel): List<ImageSource> {
+        val imageEntities = GuiErrorReporter.call("images.findAll") {
+            currentAppEndpointService().findImagesByPostEntityId(item.id)
+        }.getOrDefault(emptyList())
+        return imageEntities.map { imageEntity ->
+            BytesImageSource(
+                imageEntity.id,
+                imageEntity.filename,
+                imageEntity.thumbUrl,
+                imageEntity.postEntityId,
+                imageEntity.status == Status.FINISHED
+            ) {
+                currentAppEndpointService().downloadImage(DownloadRequest(imageEntity.id))
+            }
+        }
     }
 }

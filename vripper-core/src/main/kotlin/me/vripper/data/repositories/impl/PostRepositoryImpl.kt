@@ -52,6 +52,10 @@ internal class PostRepositoryImpl :
         return PostTable.selectAll().map { transform(it) }
     }
 
+    override fun findAllIds(): List<Long> {
+        return PostTable.select(PostTable.id).map { it[PostTable.id].value }
+    }
+
     override fun existByPostEntityId(postEntityId: Long): Boolean {
         return PostTable.select(PostTable.id).where { PostTable.id eq postEntityId }.count() > 0
     }

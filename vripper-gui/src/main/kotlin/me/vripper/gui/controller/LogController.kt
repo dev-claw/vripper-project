@@ -6,6 +6,7 @@ import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
 import me.vripper.gui.utils.ChannelFlowBuilder
+import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.model.LogEntry
 import tornadofx.Controller
 
@@ -35,10 +36,12 @@ class LogController : Controller() {
     }
 
     suspend fun initLogger() {
-        currentAppEndpointService().initLogger()
+        GuiErrorReporter.call("logs.init") { currentAppEndpointService().initLogger() }
     }
 
     suspend fun getMaxEventLog(): Int {
-        return currentAppEndpointService().getSettings().systemSettings.maxEventLog
+        return GuiErrorReporter.call("logs.maxEventLog") {
+            currentAppEndpointService().getSettings().systemSettings.maxEventLog
+        }.getOrDefault(0)
     }
 }

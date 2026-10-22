@@ -1,13 +1,7 @@
 package me.vripper
 
-import me.vripper.data.repositories.ImageRepository
-import me.vripper.data.repositories.MetadataRepository
-import me.vripper.data.repositories.PostRepository
-import me.vripper.data.repositories.ThreadRepository
-import me.vripper.data.repositories.impl.ImageRepositoryImpl
-import me.vripper.data.repositories.impl.MetadataRepositoryImpl
-import me.vripper.data.repositories.impl.PostRepositoryImpl
-import me.vripper.data.repositories.impl.ThreadRepositoryImpl
+import me.vripper.data.repositories.*
+import me.vripper.data.repositories.impl.*
 import me.vripper.event.EventBus
 import me.vripper.host.*
 import me.vripper.services.*
@@ -39,6 +33,12 @@ val coreModule = module {
     single<ThreadRepository> {
         ThreadRepositoryImpl()
     }
+    single<TaskRepository> {
+        TaskRepositoryImpl()
+    }
+    single<TaskService> {
+        TaskService(get(), get())
+    }
     single<DataAccessService> {
         DataAccessService(get(), get(), get(), get(), get(), get())
     }
@@ -49,7 +49,7 @@ val coreModule = module {
         HTTPService()
     }
     single<VGAuthService> {
-        VGAuthService(get(), get())
+        VGAuthService(get(), get(), get(), get())
     }
     single<ThreadCacheService> {
         ThreadCacheService(get())
@@ -65,15 +65,15 @@ val coreModule = module {
     }
 
     single<AppEndpointService> {
-        AppEndpointService(get(), get(), get(), get(), get(), get(), get())
+        AppEndpointService(get(), get(), get(), get(), get(), get(), get(), get())
     }
 
     single((named("localAppEndpointService"))) {
-        AppEndpointService(get(), get(), get(), get(), get(), get(), get())
+        AppEndpointService(get(), get(), get(), get(), get(), get(), get(), get())
     } bind IAppEndpointService::class
 
     single<MetadataService> {
-        MetadataService(get(), get())
+        MetadataService(get(), get(), get())
     }
     single {
         AcidimgHost()

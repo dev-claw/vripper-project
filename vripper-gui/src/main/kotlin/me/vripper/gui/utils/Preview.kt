@@ -1,12 +1,14 @@
 package me.vripper.gui.utils
 
 import javafx.geometry.Pos
+import javafx.scene.Node
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.layout.HBox
 import javafx.stage.Popup
 import javafx.stage.Stage
 import kotlinx.coroutines.*
+import me.vripper.gui.model.PostModel
 import tornadofx.clear
 import tornadofx.runLater
 import tornadofx.sortWith
@@ -61,9 +63,9 @@ class Preview(val owner: Stage) {
         coroutineScope.cancel()
     }
 
-    private fun previewLoading(postEntityId: Long, url: String): ImageView? {
+    private suspend fun previewLoading(postEntityId: Long, url: String): ImageView? {
         return try {
-            ByteArrayInputStream(PreviewCacheManager.load(postEntityId, url)).use {
+            ByteArrayInputStream(ImageCacheManager.load(postEntityId, url)).use {
                 ImageView(Image(it)).apply {
                     isPreserveRatio = true
 
@@ -78,5 +80,49 @@ class Preview(val owner: Stage) {
             e.printStackTrace()
             null
         }
+    }
+}
+
+/**
+ * Shows a hover preview when the pointer is over [this] node only. The caller
+ * decides which part of a row or tile counts as the preview area.
+ */
+fun Node.showPreviewOnHover(
+    preview: Preview,
+    enabledProvider: () -> Boolean = { true },
+    sourceProvider: () -> Pair<Long, List<String>>?,
+) {
+    setOnMouseEntered { event ->
+        preview.cleanup()
+        if (!enabledProvider()) return@setOnMouseEntered
+        val (postEntityId, images) = sourceProvider() ?: return@setOnMouseEntered
+        val previews = images.filter { it.isNotBlank() }.take(4)
+        if (previews.isEmpty()) return@setOnMouseEntered
+        preview.previewPopup.apply {
+            x = event.screenX + 20
+            y = event.screenY + 10
+        }
+        preview.display(postEntityId, previews)
+    }
+    setOnMouseMoved { event ->
+        if (!enabledProvider()) return@setOnMouseMoved
+        preview.previewPopup.apply {
+            x = event.screenX + 20
+            y = event.screenY + 10
+        }
+    }
+    setOnMouseExited { preview.cleanup() }
+}
+
+/**
+ * Convenience overload for post tiles and rows.
+ */
+fun Node.showPostPreviewOnHover(
+    preview: Preview,
+    enabledProvider: () -> Boolean = { true },
+    postProvider: () -> PostModel?,
+) {
+    showPreviewOnHover(preview, enabledProvider) {
+        postProvider()?.let { post -> post.id to post.previewList }
     }
 }

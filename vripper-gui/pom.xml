@@ -16,7 +16,8 @@
     <description>vripper-gui</description>
 
     <properties>
-        <javafx.version>25</javafx.version>
+        <javafx.version>27.0.1</javafx.version>
+        <atlantafx.version>3.0.0</atlantafx.version>
     </properties>
 
     <dependencies>
@@ -114,11 +115,16 @@
         <dependency>
             <groupId>io.github.mkpaz</groupId>
             <artifactId>atlantafx-base</artifactId>
-            <version>2.1.0</version>
+            <version>${atlantafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kordamp.ikonli</groupId>
             <artifactId>ikonli-feather-pack</artifactId>
+            <version>12.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-material2-pack</artifactId>
             <version>12.3.1</version>
         </dependency>
         <dependency>
@@ -151,6 +157,16 @@
             <groupId>com.google.jimfs</groupId>
             <artifactId>jimfs</artifactId>
             <version>1.3.1</version>
+        </dependency>
+        <!--
+            libjpeg-turbo, used for fast JPEG decoding. The "-platform"
+            artifact bundles the native libraries for Windows, Linux and
+            macOS (x86_64 and arm64), so no system package is required.
+        -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>leptonica-platform</artifactId>
+            <version>1.87.0-1.5.14</version>
         </dependency>
     </dependencies>
 

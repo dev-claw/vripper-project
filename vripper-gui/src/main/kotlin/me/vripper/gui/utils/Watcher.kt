@@ -59,13 +59,16 @@ object Watcher : KoinComponent {
             key.pollEvents().forEach {
                 runBlocking {
                     log.info("Handling thread ${it.context()}")
-                    if (WidgetSettings.loadSettings().localSession) {
-                        val link = localAppEndpointService.getSettings().viperSettings.host + "/threads/${it.context()}"
-                        runCatching { localAppEndpointService.scanLinks(link) }
-                    } else {
-                        val link =
-                            remoteAppEndpointService.getSettings().viperSettings.host + "/threads/${it.context()}"
-                        runCatching { remoteAppEndpointService.scanLinks(link) }
+                    val service =
+                        if (WidgetSettings.loadSettings().localSession) localAppEndpointService
+                        else remoteAppEndpointService
+                    val host = GuiErrorReporter.call("watcher.settings") {
+                        service.getSettings().viperSettings.host
+                    }.getOrNull()
+                    if (host != null) {
+                        GuiErrorReporter.call("watcher.scan") {
+                            service.scanLinks("$host/threads/${it.context()}")
+                        }
                     }
                     path.resolve(it.context().toString()).deleteIfExists()
                 }

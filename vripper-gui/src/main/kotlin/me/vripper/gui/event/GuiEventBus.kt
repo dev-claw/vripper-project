@@ -13,6 +13,10 @@ object GuiEventBus {
         _events.emit(event)
     }
 
+    fun tryPublishEvent(event: GUIEvent): Boolean {
+        return _events.tryEmit(event)
+    }
+
     data class ApplicationInitialized(val args: List<String>) : GUIEvent
     object ChangingSession : GUIEvent
     object LocalSession : GUIEvent

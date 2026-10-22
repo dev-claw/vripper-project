@@ -1,0 +1,28 @@
+package me.vripper.model
+
+data class ServerInfo(
+    val version: String,
+    val applicationFolder: String,
+    val databasePath: String,
+    val databaseExists: Boolean,
+    val databaseSize: Long,
+    val logPath: String,
+    val logExists: Boolean,
+    val logSize: Long,
+    val settingsPath: String,
+    val settingsExists: Boolean,
+    val settingsSize: Long,
+    val downloadPath: String,
+    val tempPath: String,
+    val operatingSystem: String,
+    val javaVersion: String,
+    val javaVendor: String,
+    val uptimeMillis: Long,
+    val threadCount: Int,
+    val heapUsed: Long,
+    val heapCommitted: Long,
+    val heapMax: Long,
+    val processors: Int,
+    val gcCount: Long,
+    val gcTimeMillis: Long,
+)

@@ -1,8 +1,10 @@
 package me.vripper.web.grpc
 
+import com.google.protobuf.ByteString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.vripper.entities.ImageEntity
+import me.vripper.entities.TaskEntity
 import me.vripper.model.*
 import me.vripper.proto.*
 import me.vripper.proto.EndpointServiceOuterClass.DownloadSpeed
@@ -12,6 +14,7 @@ import me.vripper.proto.ImagesOuterClass.Images
 import me.vripper.proto.LogOuterClass.Log
 import me.vripper.proto.ThreadsOuterClass.Threads
 import me.vripper.services.IAppEndpointService
+import me.vripper.services.IPostCommandEndpoint.ScanOrigin
 import me.vripper.services.download.MovePosition
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -25,7 +28,7 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
     private val appEndpointService: IAppEndpointService by inject(named("localAppEndpointService"))
 
     override suspend fun scanLinks(request: EndpointServiceOuterClass.Links): EndpointServiceOuterClass.EmptyResponse {
-        appEndpointService.scanLinks(request.links)
+        appEndpointService.scanLinks(request.links, ScanOrigin.valueOf(request.origin))
         return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
@@ -89,6 +92,24 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
         appEndpointService.onTasksRunning()
             .map { EndpointServiceOuterClass.TasksRunning.newBuilder().setRunning(it).build() }
 
+    override suspend fun findAllTasks(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.Tasks =
+        EndpointServiceOuterClass.Tasks.newBuilder()
+            .addAllTasks(appEndpointService.findAllTasks().map(::mapper))
+            .build()
+
+    override fun onNewTask(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Task> =
+        appEndpointService.onNewTask().map(::mapper)
+
+    override fun onUpdateTask(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Task> =
+        appEndpointService.onUpdateTask().map(::mapper)
+
+    override suspend fun clearTasks(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.clearTasks()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override fun onClearTasks(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.EmptyResponse> =
+        appEndpointService.onClearTasks().map { EndpointServiceOuterClass.EmptyResponse.getDefaultInstance() }
 
     override fun onUpdateMetadata(request: EndpointServiceOuterClass.EmptyRequest): Flow<MetadataOuterClass.Metadata> {
         return appEndpointService.onUpdateMetadata().map { mapper(it) }
@@ -213,15 +234,13 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     enableClipboardMonitoring = request.systemSettings.enableClipboardMonitoring,
                     clipboardPollingRate = request.systemSettings.clipboardPollingRate,
                     maxEventLog = request.systemSettings.maxEventLog,
-                ),
-                hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
+                ), hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
                     HostName.valueOf(hostSettings.key) to hostSettings.value.settingsMap.entries.associate {
                         HostSettingKey.valueOf(
                             it.key
                         ) to it.value
                     }
-                }
-            )
+                })
         )
         return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
@@ -236,9 +255,54 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
     override suspend fun getVersion(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.Version =
         EndpointServiceOuterClass.Version.newBuilder().setVersion(appEndpointService.getVersion()).build()
 
+    override suspend fun getServerInfo(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.ServerInfoResponse =
+        mapper(appEndpointService.getServerInfo())
+
     override suspend fun dbMigration(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.DBMigrationResponse =
         EndpointServiceOuterClass.DBMigrationResponse.newBuilder().setMessage(appEndpointService.dbMigration()).build()
 
+    override fun downloadImage(request: EndpointServiceOuterClass.DownloadRequest): Flow<EndpointServiceOuterClass.ImageChunk> {
+        return appEndpointService.downloadImage(DownloadRequest(request.imageId)).map {
+            with(EndpointServiceOuterClass.ImageChunk.newBuilder()) {
+                imageId = it.imageId
+                offset = it.offset
+                data = ByteString.copyFrom(it.data)
+                isLast = it.isLast
+                build()
+            }
+        }
+    }
+
+
+    private fun mapper(info: ServerInfo): EndpointServiceOuterClass.ServerInfoResponse {
+        return with(EndpointServiceOuterClass.ServerInfoResponse.newBuilder()) {
+            version = info.version
+            applicationFolder = info.applicationFolder
+            databasePath = info.databasePath
+            databaseExists = info.databaseExists
+            databaseSize = info.databaseSize
+            logPath = info.logPath
+            logExists = info.logExists
+            logSize = info.logSize
+            settingsPath = info.settingsPath
+            settingsExists = info.settingsExists
+            settingsSize = info.settingsSize
+            downloadPath = info.downloadPath
+            tempPath = info.tempPath
+            operatingSystem = info.operatingSystem
+            javaVersion = info.javaVersion
+            javaVendor = info.javaVendor
+            uptimeMillis = info.uptimeMillis
+            threadCount = info.threadCount
+            heapUsed = info.heapUsed
+            heapCommitted = info.heapCommitted
+            heapMax = info.heapMax
+            processors = info.processors
+            gcCount = info.gcCount
+            gcTimeMillis = info.gcTimeMillis
+            build()
+        }
+    }
 
     private fun mapper(queueState: QueueState): EndpointServiceOuterClass.QueueState {
         return with(
@@ -375,6 +439,20 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             levelString = log.levelString
             formattedMessage = log.formattedMessage
             throwable = log.throwable
+            build()
+        }
+    }
+
+    private fun mapper(task: TaskEntity): EndpointServiceOuterClass.Task {
+        return with(EndpointServiceOuterClass.Task.newBuilder()) {
+            id = task.id
+            name = task.name
+            category = task.taskCategory.name
+            description = task.description
+            status = task.status.name
+            result = task.result
+            createdAt = task.createdAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            updatedAt = task.updatedAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             build()
         }
     }

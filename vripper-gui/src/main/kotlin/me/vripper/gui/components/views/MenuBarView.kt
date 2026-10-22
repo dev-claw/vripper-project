@@ -3,22 +3,16 @@ package me.vripper.gui.components.views
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.scene.control.ButtonType
-import javafx.scene.control.ToggleGroup
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyCodeCombination
 import javafx.scene.input.KeyCombination
 import kotlinx.coroutines.*
 import me.vripper.gui.VripperGuiApplication
-import me.vripper.gui.components.fragments.AboutFragment
-import me.vripper.gui.components.fragments.AddLinksFragment
-import me.vripper.gui.components.fragments.SessionFragment
-import me.vripper.gui.components.fragments.SettingsFragment
-import me.vripper.gui.controller.ActionBarController
-import me.vripper.gui.controller.PostController
-import me.vripper.gui.controller.SettingsController
-import me.vripper.gui.controller.WidgetsController
+import me.vripper.gui.components.fragments.*
+import me.vripper.gui.controller.*
+import me.vripper.gui.utils.AppEndpointManager
+import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.gui.utils.openLink
-import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.ApplicationProperties
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
@@ -27,12 +21,11 @@ import tornadofx.*
 class MenuBarView : View() {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadActiveProperty = SimpleBooleanProperty(false)
-    private val postsTableView: PostsTableView by inject()
+    private val postsController: PostsTabController by inject()
     private val widgetsController: WidgetsController by inject()
     private val postController: PostController by inject()
     private val actionBarController: ActionBarController by inject()
     private val settingsController: SettingsController by inject()
-    private lateinit var appEndpointService: IAppEndpointService
     private val running = SimpleIntegerProperty(0)
 
     override val root = menubar {}
@@ -84,7 +77,7 @@ class MenuBarView : View() {
                             coroutineScope.launch {
                                 val clearPosts = async { postController.clearPosts() }.await()
                                 runLater {
-                                    postsTableView.tableView.items.removeIf { clearPosts.contains(it.vgPostId) }
+                                    postsController.removePostsByVgPostId(clearPosts)
                                 }
                             }
                         }
@@ -142,64 +135,6 @@ class MenuBarView : View() {
                 checkmenuitem(
                     "Status Bar", KeyCodeCombination(KeyCode.F8)
                 ).bind(widgetsController.currentSettings.visibleStatusBarPanelProperty)
-                menu("Theme") {
-                    val toggleGroup = ToggleGroup()
-
-                    val cupertinoLight = radiomenuitem("Cupertino Light", toggleGroup).apply {
-                        this.selectedProperty().onChange {
-                            widgetsController.currentSettings.theme = "CupertinoLight"
-                            widgetsController.currentSettings.darkMode = false
-
-                        }
-                    }
-                    val cupertinoDark = radiomenuitem("Cupertino Dark", toggleGroup).apply {
-                        this.selectedProperty().onChange {
-                            widgetsController.currentSettings.theme = "CupertinoDark"
-                            widgetsController.currentSettings.darkMode = true
-                        }
-                    }
-                    val nordLight = radiomenuitem("Nord Light", toggleGroup).apply {
-                        this.selectedProperty().onChange {
-                            widgetsController.currentSettings.theme = "NordLight"
-                            widgetsController.currentSettings.darkMode = false
-                        }
-                    }
-                    val nordDark = radiomenuitem("Nord Dark", toggleGroup).apply {
-                        this.selectedProperty().onChange {
-                            widgetsController.currentSettings.theme = "NordDark"
-                            widgetsController.currentSettings.darkMode = true
-                        }
-                    }
-                    val primerLight = radiomenuitem("Primer Light", toggleGroup).apply {
-                        this.selectedProperty().onChange {
-                            widgetsController.currentSettings.theme = "PrimerLight"
-                            widgetsController.currentSettings.darkMode = false
-                        }
-                    }
-                    val primerDark = radiomenuitem("Primer Dark", toggleGroup).apply {
-                        this.selectedProperty().onChange {
-                            widgetsController.currentSettings.theme = "PrimerDark"
-                            widgetsController.currentSettings.darkMode = true
-                        }
-                    }
-                    val dracula = radiomenuitem("Dracula", toggleGroup).apply {
-                        this.selectedProperty().onChange {
-                            widgetsController.currentSettings.theme = "Dracula"
-                            widgetsController.currentSettings.darkMode = true
-                        }
-                    }
-
-                    when (widgetsController.currentSettings.theme) {
-                        "CupertinoLight" -> cupertinoLight.isSelected = true
-                        "CupertinoDark" -> cupertinoDark.isSelected = true
-                        "NordLight" -> nordLight.isSelected = true
-                        "NordDark" -> nordDark.isSelected = true
-                        "PrimerLight" -> primerLight.isSelected = true
-                        "PrimerDark" -> primerDark.isSelected = true
-                        "Dracula" -> dracula.isSelected = true
-                        else -> cupertinoLight.isSelected = true
-                    }
-                }
             }
             menu("Help") {
                 item("Database migration").apply {
@@ -214,8 +149,9 @@ class MenuBarView : View() {
                             title = "Database Migration"
                         ) {
                             coroutineScope.launch {
-                                val message =
-                                    runCatching { appEndpointService.dbMigration() }.getOrDefault("Migration failed")
+                                val message = GuiErrorReporter.call("migration") {
+                                    AppEndpointManager.currentAppEndpointService().dbMigration()
+                                }.getOrElse { "Migration failed" }
                                 runLater {
                                     information(
                                         header = "",
@@ -275,6 +211,13 @@ class MenuBarView : View() {
                                 owner = primaryStage
                             )
                         }
+                    }
+                }
+                separator()
+                item("Diagnostics").apply {
+                    graphic = FontIcon.of(Feather.ACTIVITY)
+                    action {
+                        find<DiagnosticsFragment>().openModal()
                     }
                 }
                 separator()

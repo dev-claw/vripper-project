@@ -8,7 +8,9 @@ internal interface ImageRepository {
     fun save(imageEntityList: List<ImageEntity>)
     fun deleteAllByPostEntityId(postEntityId: Long)
     fun findByPostEntityId(postEntityId: Long): List<ImageEntity>
+    fun findAll(): List<ImageEntity>
     fun countError(): Int
+    fun countByPostEntityIdAndIsError(postEntityId: Long): Int
     fun findByPostEntityIdAndIsNotCompleted(postEntityId: Long): List<ImageEntity>
     fun stopByPostEntityIdAndIsNotCompleted(postEntityId: Long): Int
     fun stopByPostEntityIdAndIsNotCompleted(): Int

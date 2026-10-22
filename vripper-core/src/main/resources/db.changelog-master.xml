@@ -153,4 +153,40 @@
             ALTER TABLE IMAGE DROP COLUMN POST_ID
         </sql>
     </changeSet>
+    <changeSet author="vripper" id="0011">
+        <createTable tableName="TASK">
+            <column autoIncrement="true" name="ID" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="TASK_PK"/>
+            </column>
+            <column name="NAME" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="CATEGORY" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DESCRIPTION" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="STATUS" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="RESULT" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="CREATED_AT" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="UPDATED_AT" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="vripper" id="0012">
+        <createIndex indexName="TASK_STATUS_IDX" tableName="TASK">
+            <column name="STATUS"/>
+        </createIndex>
+        <createIndex indexName="TASK_CREATED_AT_IDX" tableName="TASK">
+            <column name="CREATED_AT"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

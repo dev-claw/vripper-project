@@ -50,10 +50,23 @@ internal class ImageRepositoryImpl : ImageRepository {
         }.map(this::transform)
     }
 
+    override fun findAll(): List<ImageEntity> {
+        return ImageTable.selectAll().map(this::transform)
+    }
+
     override fun countError(): Int {
         return ImageTable
             .select(ImageTable.id)
             .where { ImageTable.status eq Status.ERROR.name }
+            .count().toInt()
+    }
+
+    override fun countByPostEntityIdAndIsError(postEntityId: Long): Int {
+        return ImageTable
+            .select(ImageTable.id)
+            .where {
+                (ImageTable.postIdRef eq postEntityId) and (ImageTable.status eq Status.ERROR.name)
+            }
             .count().toInt()
     }
 

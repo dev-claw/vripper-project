@@ -7,6 +7,7 @@ internal interface PostRepository {
     fun findById(id: Long): PostEntity?
     fun findCompleted(): List<Long>
     fun findAll(): List<PostEntity>
+    fun findAllIds(): List<Long>
     fun existByPostEntityId(postEntityId: Long): Boolean
     fun existByPostId(postId: Long): Boolean
     fun setDownloadingToStopped(): Int
