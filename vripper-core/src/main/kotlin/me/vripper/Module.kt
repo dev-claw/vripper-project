@@ -73,7 +73,7 @@ val coreModule = module {
     } bind IAppEndpointService::class
 
     single<MetadataService> {
-        MetadataService(get(), get(), get())
+        MetadataService(get(), get())
     }
     single {
         AcidimgHost()
