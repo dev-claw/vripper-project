@@ -1,29 +1,20 @@
 package me.vripper.gui.components.views
 
 import atlantafx.base.theme.Styles
+import javafx.beans.InvalidationListener
 import javafx.beans.binding.Bindings
 import javafx.collections.ListChangeListener
-import javafx.geometry.Insets
 import javafx.geometry.Pos
-import javafx.scene.control.Label
-import javafx.scene.control.OverrunStyle
-import javafx.scene.control.ProgressBar
-import javafx.scene.control.ScrollPane
-import javafx.scene.control.SelectionMode
-import javafx.scene.control.Tooltip
+import javafx.scene.control.*
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.layout.StackPane
 import javafx.scene.layout.VBox
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import me.vripper.gui.components.PostsPlaceholder
+import me.vripper.gui.components.SmoothProgressBar
 import me.vripper.gui.components.fragments.VirtualGridView
 import me.vripper.gui.controller.PostsTabController
 import me.vripper.gui.controller.WidgetsController
@@ -36,8 +27,8 @@ import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.View
 import tornadofx.runLater
-import kotlin.math.max
 import java.io.ByteArrayInputStream
+import kotlin.math.max
 
 class PostsGridView : View("Posts") {
 
@@ -215,7 +206,7 @@ class PostsGridView : View("Posts") {
             textOverrun = OverrunStyle.ELLIPSIS
             style = "-fx-font-size: 0.714em; -fx-opacity: 0.72;"
         }
-        private val progressBar = ProgressBar().apply {
+        private val progressBar = SmoothProgressBar().apply {
             prefHeight = 4.0
             minHeight = 4.0
             maxHeight = 4.0
@@ -226,6 +217,9 @@ class PostsGridView : View("Posts") {
 
         private var post: PostModel? = null
         private var previewJob: Job? = null
+        private val progressListener = InvalidationListener {
+            post?.let { progressBar.animateProgress(it.progress) }
+        }
 
         init {
             alignment = Pos.TOP_CENTER
@@ -272,7 +266,9 @@ class PostsGridView : View("Posts") {
                     newPost.progressCountProperty,
                 )
             )
-            progressBar.progressProperty().bind(newPost.progressProperty)
+            progressBar.stopAnimation()
+            progressBar.progress = newPost.progress
+            newPost.progressProperty.addListener(progressListener)
             tooltip.textProperty().bind(titleLabel.textProperty())
             loadPreview(newPost)
         }
@@ -308,7 +304,8 @@ class PostsGridView : View("Posts") {
             titleLabel.textProperty().unbind()
             detailsLabel.textProperty().unbind()
             tooltip.textProperty().unbind()
-            progressBar.progressProperty().unbind()
+            post?.progressProperty?.removeListener(progressListener)
+            progressBar.stopAnimation()
             titleLabel.text = ""
             detailsLabel.text = ""
             tooltip.text = ""

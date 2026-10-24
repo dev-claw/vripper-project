@@ -28,6 +28,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import me.vripper.entities.Status
 import me.vripper.gui.components.PostsPlaceholder
+import me.vripper.gui.components.SmoothProgressBar
 import me.vripper.gui.controller.PostsTabController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.PostModel
@@ -251,7 +252,7 @@ class PostsListView : View("Posts") {
             alignment = Pos.TOP_RIGHT
             minWidth = 150.0
         }
-        private val progressBar = ProgressBar().apply {
+        private val progressBar = SmoothProgressBar().apply {
             prefHeight = 4.0
             minHeight = 4.0
             maxHeight = 4.0
@@ -276,6 +277,9 @@ class PostsListView : View("Posts") {
 
         private val statusListener = InvalidationListener {
             boundItem?.let(::updateStatus)
+        }
+        private val progressListener = InvalidationListener {
+            boundItem?.let { progressBar.animateProgress(it.progress) }
         }
 
         init {
@@ -342,7 +346,9 @@ class PostsListView : View("Posts") {
                 Bindings.createBooleanBinding({ item.postedBy.isNotBlank() }, item.postedByProperty)
             )
             authorBox.managedProperty().bind(authorBox.visibleProperty())
-            progressBar.progressProperty().bind(item.progressProperty)
+            progressBar.stopAnimation()
+            progressBar.progress = item.progress
+            item.progressProperty.addListener(progressListener)
             titleTooltip.textProperty().bind(titleLabel.textProperty())
             pathTooltip.textProperty().bind(item.pathProperty)
             item.statusProperty.addListener(statusListener)
@@ -356,6 +362,7 @@ class PostsListView : View("Posts") {
             thumbnailJob = null
             preview.cleanup()
             boundItem?.statusProperty?.removeListener(statusListener)
+            boundItem?.progressProperty?.removeListener(progressListener)
             titleLabel.textProperty().unbind()
             progressCountLabel.textProperty().unbind()
             hostsLabel.textProperty().unbind()
@@ -366,7 +373,7 @@ class PostsListView : View("Posts") {
             authorLabel.textProperty().unbind()
             authorBox.visibleProperty().unbind()
             authorBox.managedProperty().unbind()
-            progressBar.progressProperty().unbind()
+            progressBar.stopAnimation()
             titleTooltip.textProperty().unbind()
             pathTooltip.textProperty().unbind()
             thumbnail.image = null
