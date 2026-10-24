@@ -1,10 +1,19 @@
 package me.vripper.gui.components.views
 
+import atlantafx.base.theme.Styles
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
+import javafx.beans.property.StringProperty
 import javafx.geometry.Orientation
+import javafx.geometry.Pos
 import javafx.scene.control.ButtonType
 import javafx.scene.control.ContentDisplay
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
+import javafx.scene.control.Tooltip
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import kotlinx.coroutines.*
 import me.vripper.gui.components.Shared
@@ -12,6 +21,7 @@ import me.vripper.gui.components.fragments.AddLinksFragment
 import me.vripper.gui.components.fragments.SettingsFragment
 import me.vripper.gui.controller.ActionBarController
 import me.vripper.gui.controller.PostController
+import me.vripper.gui.controller.PostsTabController
 import me.vripper.gui.controller.SettingsController
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
@@ -20,18 +30,37 @@ import tornadofx.*
 class ActionBarView : View() {
     private val downloadActiveProperty = SimpleBooleanProperty(true)
     private val postController: PostController by inject()
-    private val postsTableView: PostsTableView by inject()
+    private val postsController: PostsTabController by inject()
     private val actionBarController: ActionBarController by inject()
     private val settingsController: SettingsController by inject()
+    private val mainView: MainView by inject()
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val running = SimpleIntegerProperty(0)
+
+    private lateinit var searchField: TextField
+    private var activeSearchProperty: StringProperty? = null
 
     override val root = toolbar {}
 
     init {
         with(root) {
             this.id = "action_toolbar"
-            padding = insets(all = 5)
+            padding = insets(top = 5, right = 0, bottom = 5, left = 5)
+
+            add(buildBrand())
+            separator(Orientation.VERTICAL)
+
+            searchField = TextField().apply {
+                promptText = "Search posts"
+                minWidth = 220.0
+                prefWidth = 320.0
+                maxWidth = Double.MAX_VALUE
+                HBox.setHgrow(this, Priority.ALWAYS)
+                tooltip("Filter posts by title, ID, host, status or path")
+            }
+            add(searchField)
+            separator(Orientation.VERTICAL)
+
             button("Add links", FontIcon.of(Feather.PLUS)) {
                 contentDisplay = ContentDisplay.GRAPHIC_ONLY
                 tooltip("Add links [Ctrl+L]")
@@ -81,7 +110,7 @@ class ActionBarView : View() {
                         coroutineScope.launch {
                             val clearPosts = async { postController.clearPosts() }.await()
                             runLater {
-                                postsTableView.tableView.items.removeIf { clearPosts.contains(it.vgPostId) }
+                                postsController.removePostsByVgPostId(clearPosts)
                             }
                         }
                     }
@@ -113,12 +142,12 @@ class ActionBarView : View() {
 
                 }
             }
-            separator(Orientation.VERTICAL)
-            textfield(Shared.searchInput) {
-                promptText = "Search"
-                hgrow = Priority.ALWAYS
-            }
+
         }
+
+        mainView.root.selectionModel.selectedItemProperty().onChange { updateContext() }
+        updateContext()
+
         downloadActiveProperty.bind(running.greaterThan(0))
 
         coroutineScope.launch {
@@ -129,4 +158,58 @@ class ActionBarView : View() {
             }
         }
     }
+
+    private fun buildBrand(): HBox = HBox(6.0).apply {
+        alignment = Pos.CENTER_LEFT
+        children.add(ImageView(Image("icons/32x32.png")).apply {
+            fitWidth = 22.0
+            fitHeight = 22.0
+            isPreserveRatio = true
+        })
+        children.add(Label("VRipper").apply {
+            addClass(Styles.TEXT_BOLD)
+            style = "-fx-font-size: 1.05em;"
+        })
+    }
+
+    private fun updateContext() {
+        val tabId = mainView.root.selectionModel.selectedItem?.id ?: "download-tab"
+        val target = when (tabId) {
+            "thread-tab" -> SearchTarget(
+                Shared.threadsSearchInput,
+                "Search threads",
+                "Filter threads by title, URL or ID",
+            )
+            "task-tab" -> SearchTarget(
+                Shared.tasksSearchInput,
+                "Search tasks",
+                "Filter tasks by name, description, category or status",
+            )
+            "log-tab" -> SearchTarget(
+                Shared.logsSearchInput,
+                "Search logs",
+                "Filter logs by message, logger, thread or level",
+            )
+            else -> SearchTarget(
+                Shared.postsSearchInput,
+                "Search posts",
+                "Filter posts by title, ID, host, status or path",
+            )
+        }
+
+        if (activeSearchProperty !== target.property) {
+            activeSearchProperty?.let { searchField.textProperty().unbindBidirectional(it) }
+            searchField.text = target.property.get()
+            searchField.textProperty().bindBidirectional(target.property)
+            activeSearchProperty = target.property
+        }
+        searchField.promptText = target.prompt
+        searchField.tooltip = Tooltip(target.tooltip)
+    }
+
+    private data class SearchTarget(
+        val property: StringProperty,
+        val prompt: String,
+        val tooltip: String,
+    )
 }

@@ -8,6 +8,7 @@ import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.localAppEndpointService
 import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
 import me.vripper.gui.utils.ChannelFlowBuilder
+import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.model.ThreadPostId
 import org.koin.core.component.KoinComponent
 import tornadofx.Controller
@@ -39,7 +40,9 @@ class ThreadController : KoinComponent, Controller() {
     )
 
     suspend fun findAll(): List<ThreadModel> {
-        return currentAppEndpointService().findAllThreads().map(::threadModelMapper)
+        return GuiErrorReporter.call("threads.findAll") {
+            currentAppEndpointService().findAllThreads().map(::threadModelMapper)
+        }.getOrDefault(emptyList())
     }
 
     private fun threadModelMapper(it: ThreadEntity): ThreadModel {
@@ -52,32 +55,36 @@ class ThreadController : KoinComponent, Controller() {
     }
 
     suspend fun delete(threadIdList: List<Long>) {
-        currentAppEndpointService().threadRemove(threadIdList)
+        GuiErrorReporter.call("threads.delete") { currentAppEndpointService().threadRemove(threadIdList) }
     }
 
     suspend fun clearAll() {
-        currentAppEndpointService().threadClear()
+        GuiErrorReporter.call("threads.clear") { currentAppEndpointService().threadClear() }
     }
 
     suspend fun grab(threadId: Long): List<ThreadSelectionModel> =
-        currentAppEndpointService().grab(threadId).map { postItem ->
-            ThreadSelectionModel(
-                postItem.number,
-                postItem.title,
-                postItem.url,
-                postItem.hosts,
-                postItem.postId,
-                postItem.threadId,
-                postItem.previews.take(4)
-            )
-        }
+        GuiErrorReporter.call("threads.grab") {
+            currentAppEndpointService().grab(threadId).map { postItem ->
+                ThreadSelectionModel(
+                    postItem.number,
+                    postItem.title,
+                    postItem.url,
+                    postItem.hosts,
+                    postItem.postId,
+                    postItem.threadId,
+                    postItem.previews.take(4)
+                )
+            }
+        }.getOrDefault(emptyList())
 
     suspend fun download(selectedItems: List<ThreadSelectionModel>) {
-        currentAppEndpointService().download(selectedItems.map {
-            ThreadPostId(
-                it.threadId,
-                it.postId
-            )
-        })
+        GuiErrorReporter.call("threads.download") {
+            currentAppEndpointService().download(selectedItems.map {
+                ThreadPostId(
+                    it.threadId,
+                    it.postId
+                )
+            })
+        }
     }
 }

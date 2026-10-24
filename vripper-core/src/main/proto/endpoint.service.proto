@@ -14,6 +14,7 @@ message EmptyRequest {}
 message EmptyResponse {}
 message Links {
   string links = 1;
+  string origin = 2;
 }
 message IdList {
   repeated int64 ids = 1;
@@ -41,6 +42,19 @@ message ErrorCount {
 }
 message TasksRunning {
   bool running = 1;
+}
+message Task {
+  int64 id = 1;
+  string name = 2;
+  string category = 3;
+  string description = 4;
+  string status = 5;
+  string result = 6;
+  string createdAt = 7;
+  string updatedAt = 8;
+}
+message Tasks {
+  repeated Task tasks = 1;
 }
 message Rename {
   int64 postId = 1;
@@ -83,6 +97,32 @@ message Version {
 message DBMigrationResponse {
   string message = 1;
 }
+message ServerInfoResponse {
+  string version = 1;
+  string applicationFolder = 2;
+  string databasePath = 3;
+  bool databaseExists = 4;
+  int64 databaseSize = 5;
+  string logPath = 6;
+  bool logExists = 7;
+  int64 logSize = 8;
+  string settingsPath = 9;
+  bool settingsExists = 10;
+  int64 settingsSize = 11;
+  string downloadPath = 12;
+  string tempPath = 13;
+  string operatingSystem = 14;
+  string javaVersion = 15;
+  string javaVendor = 16;
+  int64 uptimeMillis = 17;
+  int32 threadCount = 18;
+  int64 heapUsed = 19;
+  int64 heapCommitted = 20;
+  int64 heapMax = 21;
+  int32 processors = 22;
+  int64 gcCount = 23;
+  int64 gcTimeMillis = 24;
+}
 enum MovePositionEnum {
   UP = 0;
   DOWN = 1;
@@ -92,6 +132,18 @@ enum MovePositionEnum {
 message MovePositionMessage {
   int64 postEntityId = 1;
   MovePositionEnum position = 2;
+}
+
+message DownloadRequest {
+  int64 imageId = 1;
+}
+
+message ImageChunk {
+  bool missing = 1;
+  int64 imageId = 2;
+  int64 offset = 3;
+  bytes data = 4;
+  bool isLast = 5;
 }
 
 service EndpointService {
@@ -112,6 +164,11 @@ service EndpointService {
   rpc getQueueState (EmptyRequest) returns (QueueState) {}
   rpc onErrorCountUpdate (EmptyRequest) returns (stream ErrorCount) {}
   rpc onTasksRunning (EmptyRequest) returns (stream TasksRunning) {}
+  rpc findAllTasks (EmptyRequest) returns (Tasks) {}
+  rpc onNewTask (EmptyRequest) returns (stream Task) {}
+  rpc onUpdateTask (EmptyRequest) returns (stream Task) {}
+  rpc clearTasks (EmptyRequest) returns (EmptyResponse) {}
+  rpc onClearTasks (EmptyRequest) returns (stream EmptyResponse) {}
   rpc onUpdateMetadata (EmptyRequest) returns (stream Metadata) {}
   rpc remove (IdList) returns (EmptyResponse) {}
   rpc clearCompleted (EmptyRequest) returns (IdList) {}
@@ -134,7 +191,9 @@ service EndpointService {
   rpc onUpdateSettings (EmptyRequest) returns (stream Settings) {}
   rpc loggedInUser (EmptyRequest) returns (LoggedInUser) {}
   rpc getVersion (EmptyRequest) returns (Version) {}
+  rpc getServerInfo (EmptyRequest) returns (ServerInfoResponse) {}
   rpc dbMigration (EmptyRequest) returns (DBMigrationResponse) {}
   rpc initLogger (EmptyRequest) returns (EmptyResponse) {}
-  rpc move (MovePositionMessage) returns (EmptyResponse) {}
+  rpc move(MovePositionMessage) returns (EmptyResponse) {}
+  rpc downloadImage(DownloadRequest) returns (stream ImageChunk);
 }

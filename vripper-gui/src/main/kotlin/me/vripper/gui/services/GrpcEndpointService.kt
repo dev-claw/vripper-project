@@ -7,9 +7,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.vripper.entities.MetadataEntity
 import me.vripper.entities.Status
+import me.vripper.entities.TaskEntity
 import me.vripper.model.*
+import me.vripper.model.DownloadRequest
 import me.vripper.model.DownloadSpeed
 import me.vripper.model.ErrorCount
+import me.vripper.model.ImageChunk
 import me.vripper.model.PostSelection
 import me.vripper.model.QueueState
 import me.vripper.model.Rank
@@ -17,128 +20,142 @@ import me.vripper.model.ThreadPostId
 import me.vripper.proto.*
 import me.vripper.proto.EndpointServiceOuterClass.*
 import me.vripper.proto.LogOuterClass.Log
-import me.vripper.services.IAppEndpointService
+import me.vripper.services.IPostCommandEndpoint
 import me.vripper.services.download.MovePosition
+import me.vripper.tasks.TaskCategory
+import me.vripper.tasks.TaskStatus
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-internal class GrpcEndpointService : IAppEndpointService {
+internal class GrpcEndpointService : IGrpcEndpointService {
 
+    @Volatile
     private var channel: ManagedChannel? = null
+
+    @Volatile
     private var endpointServiceCoroutineStub: EndpointServiceGrpcKt.EndpointServiceCoroutineStub? = null
 
-    override suspend fun scanLinks(postLinks: String) {
-        endpointServiceCoroutineStub!!.scanLinks(Links.newBuilder().setLinks(postLinks).build())
+    private val stub: EndpointServiceGrpcKt.EndpointServiceCoroutineStub
+        get() = endpointServiceCoroutineStub
+            ?: throw IllegalStateException("gRPC endpoint is not connected")
+
+    private companion object {
+        const val MAX_INBOUND_MESSAGE_SIZE = 64 * 1024 * 1024
+        const val MIN_SUPPORTED_VERSION = "6.6.0"
+    }
+
+    override suspend fun scanLinks(postLinks: String, origin: IPostCommandEndpoint.ScanOrigin) {
+        stub.scanLinks(Links.newBuilder().setLinks(postLinks).setOrigin(origin.name).build())
     }
 
     override suspend fun restartAll(postEntityIds: List<Long>) {
-        endpointServiceCoroutineStub!!.restartAll(IdList.newBuilder().addAllIds(postEntityIds).build())
+        stub.restartAll(IdList.newBuilder().addAllIds(postEntityIds).build())
     }
 
     override suspend fun remove(postEntityIds: List<Long>) {
-        endpointServiceCoroutineStub!!.remove(IdList.newBuilder().addAllIds(postEntityIds).build())
+        stub.remove(IdList.newBuilder().addAllIds(postEntityIds).build())
     }
 
     override suspend fun stopAll(postEntityIds: List<Long>) {
-        endpointServiceCoroutineStub!!.stopAll(IdList.newBuilder().addAllIds(postEntityIds).build())
+        stub.stopAll(IdList.newBuilder().addAllIds(postEntityIds).build())
     }
 
     override suspend fun clearCompleted(): List<Long> {
-        return endpointServiceCoroutineStub!!.clearCompleted(EmptyRequest.getDefaultInstance()).idsList
+        return stub.clearCompleted(EmptyRequest.getDefaultInstance()).idsList
     }
 
     override suspend fun findPost(postEntityId: Long): Post =
-        mapper(endpointServiceCoroutineStub!!.findPost(Id.newBuilder().setId(postEntityId).build()))
+        mapper(stub.findPost(Id.newBuilder().setId(postEntityId).build()))
 
     override suspend fun findAllPosts(): List<Post> =
-        endpointServiceCoroutineStub!!.findAllPosts(EmptyRequest.getDefaultInstance()).postsList.map(::mapper)
+        stub.findAllPosts(EmptyRequest.getDefaultInstance()).postsList.map(::mapper)
 
     override suspend fun rename(postEntityId: Long, newName: String) {
-        endpointServiceCoroutineStub!!.rename(
+        stub.rename(
             Rename.newBuilder().setPostId(postEntityId).setName(newName).build()
         )
     }
 
     override suspend fun renameToFirst(postEntityIds: List<Long>) {
-        endpointServiceCoroutineStub!!.renameToFirst(RenameToFirst.newBuilder().addAllPostIds(postEntityIds).build())
+        stub.renameToFirst(RenameToFirst.newBuilder().addAllPostIds(postEntityIds).build())
     }
 
     override fun onNewPosts(): Flow<Post> =
-        endpointServiceCoroutineStub!!.onNewPosts(EmptyRequest.getDefaultInstance()).map { mapper(it) }
+        stub.onNewPosts(EmptyRequest.getDefaultInstance()).map { mapper(it) }
 
 
     override fun onUpdatePosts(): Flow<Post> =
-        endpointServiceCoroutineStub!!.onUpdatePosts(EmptyRequest.getDefaultInstance()).map {
+        stub.onUpdatePosts(EmptyRequest.getDefaultInstance()).map {
             mapper(it)
         }
 
 
-    override fun onDeletePosts() = endpointServiceCoroutineStub!!.onDeletePosts(EmptyRequest.getDefaultInstance()).map {
+    override fun onDeletePosts() = stub.onDeletePosts(EmptyRequest.getDefaultInstance()).map {
         it.id
     }
 
 
     override fun onUpdateMetadata(): Flow<Metadata> =
-        endpointServiceCoroutineStub!!.onUpdateMetadata(EmptyRequest.getDefaultInstance()).map { mapper(it) }
+        stub.onUpdateMetadata(EmptyRequest.getDefaultInstance()).map { mapper(it) }
 
 
     override suspend fun findImagesByPostEntityId(postEntityId: Long): List<Image> =
-        endpointServiceCoroutineStub!!.findImagesByPostId(
+        stub.findImagesByPostId(
             Id.newBuilder().setId(postEntityId).build()
         ).imagesList.map(::mapper)
 
 
     override fun onUpdateImagesByPostEntityId(postEntityId: Long): Flow<Image> =
-        endpointServiceCoroutineStub!!.onUpdateImagesByPostId(Id.newBuilder().setId(postEntityId).build()).map(::mapper)
+        stub.onUpdateImagesByPostId(Id.newBuilder().setId(postEntityId).build()).map(::mapper)
 
     override fun onUpdateImages(): Flow<Image> =
-        endpointServiceCoroutineStub!!.onUpdateImages(EmptyRequest.getDefaultInstance()).map(::mapper)
+        stub.onUpdateImages(EmptyRequest.getDefaultInstance()).map(::mapper)
 
 
     override fun onStopped(): Flow<Long> =
-        endpointServiceCoroutineStub!!.onStopped(EmptyRequest.getDefaultInstance()).map { it.id }
+        stub.onStopped(EmptyRequest.getDefaultInstance()).map { it.id }
 
 
     override fun onNewLog(): Flow<LogEntry> =
-        endpointServiceCoroutineStub!!.onNewLog(EmptyRequest.getDefaultInstance()).map { mapper(it) }
+        stub.onNewLog(EmptyRequest.getDefaultInstance()).map { mapper(it) }
 
     override suspend fun initLogger() {
-        endpointServiceCoroutineStub!!.initLogger(EmptyRequest.getDefaultInstance())
+        stub.initLogger(EmptyRequest.getDefaultInstance())
     }
 
     override fun onNewThread() =
-        endpointServiceCoroutineStub!!.onNewThread(EmptyRequest.getDefaultInstance()).map { mapper(it) }
+        stub.onNewThread(EmptyRequest.getDefaultInstance()).map { mapper(it) }
 
     override fun onUpdateThread() =
-        endpointServiceCoroutineStub!!.onUpdateThread(EmptyRequest.getDefaultInstance()).map { mapper(it) }
+        stub.onUpdateThread(EmptyRequest.getDefaultInstance()).map { mapper(it) }
 
     override fun onDeleteThread() =
-        endpointServiceCoroutineStub!!.onDeleteThread(EmptyRequest.getDefaultInstance()).map { it.id }
+        stub.onDeleteThread(EmptyRequest.getDefaultInstance()).map { it.id }
 
     override fun onClearThreads() =
-        endpointServiceCoroutineStub!!.onClearThreads(EmptyRequest.getDefaultInstance()).map { }
+        stub.onClearThreads(EmptyRequest.getDefaultInstance()).map { }
 
     override suspend fun findAllThreads(): List<Thread> =
-        endpointServiceCoroutineStub!!.findAllThreads(EmptyRequest.getDefaultInstance()).threadsList.map(::mapper)
+        stub.findAllThreads(EmptyRequest.getDefaultInstance()).threadsList.map(::mapper)
 
 
     override suspend fun threadRemove(threadIdList: List<Long>) {
-        endpointServiceCoroutineStub!!.threadRemove(IdList.newBuilder().addAllIds(threadIdList).build())
+        stub.threadRemove(IdList.newBuilder().addAllIds(threadIdList).build())
     }
 
     override suspend fun move(postEntityId: Long, position: MovePosition) {
-        endpointServiceCoroutineStub!!.move(
+        stub.move(
             MovePositionMessage.newBuilder().setPostEntityId(postEntityId)
                 .setPosition(MovePositionEnum.valueOf(position.name)).build()
         )
     }
 
     override suspend fun threadClear() {
-        endpointServiceCoroutineStub!!.threadClear(EmptyRequest.getDefaultInstance())
+        stub.threadClear(EmptyRequest.getDefaultInstance())
     }
 
     override suspend fun grab(threadId: Long): List<PostSelection> =
-        endpointServiceCoroutineStub!!.grab(Id.newBuilder().setId(threadId).build()).postSelectionListList.map {
+        stub.grab(Id.newBuilder().setId(threadId).build()).postSelectionListList.map {
             mapper(
                 it
             )
@@ -146,7 +163,7 @@ internal class GrpcEndpointService : IAppEndpointService {
 
 
     override suspend fun download(posts: List<ThreadPostId>) {
-        endpointServiceCoroutineStub!!.download(
+        stub.download(
             ThreadPostIdList.newBuilder().addAllThreadPostIdList(posts.map {
                 EndpointServiceOuterClass.ThreadPostId.newBuilder().setThreadId(it.threadId).setPostId(it.postId)
                     .build()
@@ -155,102 +172,102 @@ internal class GrpcEndpointService : IAppEndpointService {
     }
 
     override fun onDownloadSpeed(): Flow<DownloadSpeed> =
-        endpointServiceCoroutineStub!!.onDownloadSpeed(EmptyRequest.getDefaultInstance())
+        stub.onDownloadSpeed(EmptyRequest.getDefaultInstance())
             .map { DownloadSpeed(it.speed) }
 
     override fun onVGUserUpdate(): Flow<String> =
-        endpointServiceCoroutineStub!!.onVGUserUpdate(EmptyRequest.getDefaultInstance()).map { it.user }
+        stub.onVGUserUpdate(EmptyRequest.getDefaultInstance()).map { it.user }
 
     override fun onQueueStateUpdate(): Flow<QueueState> =
-        endpointServiceCoroutineStub!!.onQueueStateUpdate(EmptyRequest.getDefaultInstance()).map(::mapper)
+        stub.onQueueStateUpdate(EmptyRequest.getDefaultInstance()).map(::mapper)
 
     override suspend fun getQueueState(): QueueState =
-        mapper(endpointServiceCoroutineStub!!.getQueueState(EmptyRequest.getDefaultInstance()))
+        mapper(stub.getQueueState(EmptyRequest.getDefaultInstance()))
 
 
     override fun onErrorCountUpdate(): Flow<ErrorCount> =
-        endpointServiceCoroutineStub!!.onErrorCountUpdate(EmptyRequest.getDefaultInstance())
+        stub.onErrorCountUpdate(EmptyRequest.getDefaultInstance())
             .map { ErrorCount(it.count) }
 
     override fun onTasksRunning(): Flow<Boolean> =
-        endpointServiceCoroutineStub!!.onTasksRunning(EmptyRequest.getDefaultInstance()).map { it.running }
+        stub.onTasksRunning(EmptyRequest.getDefaultInstance()).map { it.running }
+
+    override suspend fun findAllTasks(): List<TaskEntity> =
+        stub.findAllTasks(EmptyRequest.getDefaultInstance()).tasksList.map(::mapper)
+
+    override fun onNewTask(): Flow<TaskEntity> =
+        stub.onNewTask(EmptyRequest.getDefaultInstance()).map(::mapper)
+
+    override fun onUpdateTask(): Flow<TaskEntity> =
+        stub.onUpdateTask(EmptyRequest.getDefaultInstance()).map(::mapper)
+
+    override suspend fun clearTasks() {
+        stub.clearTasks(EmptyRequest.getDefaultInstance())
+    }
+
+    override fun onClearTasks(): Flow<Unit> =
+        stub.onClearTasks(EmptyRequest.getDefaultInstance()).map { }
 
     override suspend fun getSettings(): Settings =
-        mapper(endpointServiceCoroutineStub!!.getSettings(EmptyRequest.getDefaultInstance()))
+        mapper(stub.getSettings(EmptyRequest.getDefaultInstance()))
 
     override suspend fun saveSettings(settings: Settings) {
-        val viperSettings = with(SettingsOuterClass.ViperSettings.newBuilder()) {
-            login = settings.viperSettings.login
-            username = settings.viperSettings.username
-            password = settings.viperSettings.password
-            thanks = settings.viperSettings.thanks
-            host = settings.viperSettings.host
-            requestLimit = settings.viperSettings.requestLimit
-            fetchMetadata = settings.viperSettings.fetchMetadata
-            build()
-        }
-
-        val downloadSettings = with(SettingsOuterClass.DownloadSettings.newBuilder()) {
-            downloadPath = settings.downloadSettings.downloadPath
-            autoStart = settings.downloadSettings.autoStart
-            autoQueueThreshold = settings.downloadSettings.autoQueueThreshold
-            forceOrder = settings.downloadSettings.forceOrder
-            forumSubDirectory = settings.downloadSettings.forumSubDirectory
-            threadSubLocation = settings.downloadSettings.threadSubLocation
-            clearCompleted = settings.downloadSettings.clearCompleted
-            appendPostId = settings.downloadSettings.appendPostId
-            build()
-        }
-
-        val connectionSettings = with(SettingsOuterClass.ConnectionSettings.newBuilder()) {
-            maxConcurrentPerHost = settings.connectionSettings.maxConcurrentPerHost
-            maxGlobalConcurrent = settings.connectionSettings.maxGlobalConcurrent
-            timeout = settings.connectionSettings.timeout
-            maxAttempts = settings.connectionSettings.maxAttempts
-            build()
-        }
-
-        val systemSettings = with(SettingsOuterClass.SystemSettings.newBuilder()) {
-            tempPath = settings.systemSettings.tempPath
-            enableClipboardMonitoring = settings.systemSettings.enableClipboardMonitoring
-            clipboardPollingRate = settings.systemSettings.clipboardPollingRate
-            maxEventLog = settings.systemSettings.maxEventLog
-            build()
-        }
-
-        val settingsRequest = with(SettingsOuterClass.Settings.newBuilder()) {
-            this.connectionSettings = connectionSettings
-            this.downloadSettings = downloadSettings
-            this.viperSettings = viperSettings
-            this.systemSettings = systemSettings
-            settings.hostSettings.forEach { (hostKey, hostSettings) ->
-                val hostSetting = with(SettingsOuterClass.HostSettingsMap.newBuilder()) {
-                    hostSettings.forEach { (settingKey, settingValue) ->
-                        this.putSettings(settingKey.name, settingValue)
-                    }
-                    build()
-                }
-                this.putHostSettings(hostKey.name, hostSetting)
-            }
-            build()
-        }
-        endpointServiceCoroutineStub!!.saveSettings(settingsRequest)
+        stub.saveSettings(settings.toProto())
     }
 
     override suspend fun getProxies(): List<String> =
-        endpointServiceCoroutineStub!!.getProxies(EmptyRequest.getDefaultInstance()).proxiesList
+        stub.getProxies(EmptyRequest.getDefaultInstance()).proxiesList
 
     override fun onUpdateSettings(): Flow<Settings> =
-        endpointServiceCoroutineStub!!.onUpdateSettings(EmptyRequest.getDefaultInstance()).map(::mapper)
+        stub.onUpdateSettings(EmptyRequest.getDefaultInstance()).map(::mapper)
 
     override suspend fun loggedInUser(): String =
-        endpointServiceCoroutineStub!!.loggedInUser(EmptyRequest.getDefaultInstance()).user
+        stub.loggedInUser(EmptyRequest.getDefaultInstance()).user
 
     override suspend fun getVersion(): String =
-        endpointServiceCoroutineStub!!.getVersion(EmptyRequest.getDefaultInstance()).version
+        stub.getVersion(EmptyRequest.getDefaultInstance()).version
+
+    override suspend fun getServerInfo(): ServerInfo =
+        mapper(endpointServiceCoroutineStub!!.getServerInfo(EmptyRequest.getDefaultInstance()))
 
     override suspend fun dbMigration(): String =
-        endpointServiceCoroutineStub!!.dbMigration(EmptyRequest.getDefaultInstance()).message
+        stub.dbMigration(EmptyRequest.getDefaultInstance()).message
+
+    override fun downloadImage(downloadRequest: DownloadRequest): Flow<ImageChunk> =
+        stub.downloadImage(
+            EndpointServiceOuterClass
+                .DownloadRequest
+                .newBuilder()
+                .setImageId(downloadRequest.imageId).build()
+        ).map { ImageChunk(it.missing, it.imageId, it.offset, it.data.toByteArray(), it.isLast) }
+
+    private fun mapper(info: ServerInfoResponse): ServerInfo =
+        ServerInfo(
+            version = info.version,
+            applicationFolder = info.applicationFolder,
+            databasePath = info.databasePath,
+            databaseExists = info.databaseExists,
+            databaseSize = info.databaseSize,
+            logPath = info.logPath,
+            logExists = info.logExists,
+            logSize = info.logSize,
+            settingsPath = info.settingsPath,
+            settingsExists = info.settingsExists,
+            settingsSize = info.settingsSize,
+            downloadPath = info.downloadPath,
+            tempPath = info.tempPath,
+            operatingSystem = info.operatingSystem,
+            javaVersion = info.javaVersion,
+            javaVendor = info.javaVendor,
+            uptimeMillis = info.uptimeMillis,
+            threadCount = info.threadCount,
+            heapUsed = info.heapUsed,
+            heapCommitted = info.heapCommitted,
+            heapMax = info.heapMax,
+            processors = info.processors,
+            gcCount = info.gcCount,
+            gcTimeMillis = info.gcTimeMillis,
+        )
 
     private fun mapper(queueState: EndpointServiceOuterClass.QueueState) =
         QueueState(queueState.running, queueState.remaining, queueState.rankList.map {
@@ -299,6 +316,64 @@ internal class GrpcEndpointService : IAppEndpointService {
         }
     )
 
+
+    private fun Settings.toProto(): SettingsOuterClass.Settings {
+        val viperSettings = with(SettingsOuterClass.ViperSettings.newBuilder()) {
+            login = this@toProto.viperSettings.login
+            username = this@toProto.viperSettings.username
+            password = this@toProto.viperSettings.password
+            thanks = this@toProto.viperSettings.thanks
+            host = this@toProto.viperSettings.host
+            requestLimit = this@toProto.viperSettings.requestLimit
+            fetchMetadata = this@toProto.viperSettings.fetchMetadata
+            build()
+        }
+
+        val downloadSettings = with(SettingsOuterClass.DownloadSettings.newBuilder()) {
+            downloadPath = this@toProto.downloadSettings.downloadPath
+            autoStart = this@toProto.downloadSettings.autoStart
+            autoQueueThreshold = this@toProto.downloadSettings.autoQueueThreshold
+            forceOrder = this@toProto.downloadSettings.forceOrder
+            forumSubDirectory = this@toProto.downloadSettings.forumSubDirectory
+            threadSubLocation = this@toProto.downloadSettings.threadSubLocation
+            clearCompleted = this@toProto.downloadSettings.clearCompleted
+            appendPostId = this@toProto.downloadSettings.appendPostId
+            build()
+        }
+
+        val connectionSettings = with(SettingsOuterClass.ConnectionSettings.newBuilder()) {
+            maxConcurrentPerHost = this@toProto.connectionSettings.maxConcurrentPerHost
+            maxGlobalConcurrent = this@toProto.connectionSettings.maxGlobalConcurrent
+            timeout = this@toProto.connectionSettings.timeout
+            maxAttempts = this@toProto.connectionSettings.maxAttempts
+            build()
+        }
+
+        val systemSettings = with(SettingsOuterClass.SystemSettings.newBuilder()) {
+            tempPath = this@toProto.systemSettings.tempPath
+            enableClipboardMonitoring = this@toProto.systemSettings.enableClipboardMonitoring
+            clipboardPollingRate = this@toProto.systemSettings.clipboardPollingRate
+            maxEventLog = this@toProto.systemSettings.maxEventLog
+            build()
+        }
+
+        return with(SettingsOuterClass.Settings.newBuilder()) {
+            this.connectionSettings = connectionSettings
+            this.downloadSettings = downloadSettings
+            this.viperSettings = viperSettings
+            this.systemSettings = systemSettings
+            this@toProto.hostSettings.forEach { (hostKey, hostSettings) ->
+                val hostSetting = with(SettingsOuterClass.HostSettingsMap.newBuilder()) {
+                    hostSettings.forEach { (settingKey, settingValue) ->
+                        putSettings(settingKey.name, settingValue)
+                    }
+                    build()
+                }
+                putHostSettings(hostKey.name, hostSetting)
+            }
+            build()
+        }
+    }
 
     private fun mapper(postEntity: PostOuterClass.Post): Post {
         return Post(
@@ -358,6 +433,19 @@ internal class GrpcEndpointService : IAppEndpointService {
         )
     }
 
+    private fun mapper(task: Task): TaskEntity {
+        return TaskEntity(
+            id = task.id,
+            name = task.name,
+            taskCategory = TaskCategory.valueOf(task.category),
+            description = task.description,
+            status = TaskStatus.valueOf(task.status),
+            result = task.result,
+            createdAt = LocalDateTime.parse(task.createdAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+            updatedAt = LocalDateTime.parse(task.updatedAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+        )
+    }
+
     private fun mapper(thread: ThreadOuterClass.Thread): Thread {
         return Thread(
             thread.id,
@@ -383,54 +471,61 @@ internal class GrpcEndpointService : IAppEndpointService {
         )
     }
 
-    fun connect(host: String, port: Int, passPhrase: String) {
+    @Synchronized
+    override fun connect(host: String, port: Int, passPhrase: String) {
         disconnect()
-        channel = ManagedChannelBuilder.forAddress(host, port).maxInboundMessageSize(Integer.MAX_VALUE).usePlaintext()
-            .intercept(ClientE2eEncryptingInterceptor(passPhrase)).build()
-        endpointServiceCoroutineStub = EndpointServiceGrpcKt.EndpointServiceCoroutineStub(channel!!)
+        val newChannel = ManagedChannelBuilder.forAddress(host, port)
+            .maxInboundMessageSize(MAX_INBOUND_MESSAGE_SIZE)
+            .usePlaintext()
+            .intercept(ClientE2eEncryptingInterceptor(passPhrase))
+            .build()
+        channel = newChannel
+        endpointServiceCoroutineStub = EndpointServiceGrpcKt.EndpointServiceCoroutineStub(newChannel)
     }
 
-    fun disconnect() {
+    @Synchronized
+    override fun disconnect() {
+        val currentChannel = channel
+        channel = null
+        endpointServiceCoroutineStub = null
         try {
-            channel?.shutdownNow()
+            currentChannel?.shutdownNow()
         } catch (_: Exception) {
 
         }
     }
 
-    suspend fun versionCheck(): Boolean? {
-
+    override suspend fun versionCheck(): Boolean? {
         val result = runCatching {
-            val version = getVersion()
-            isAtLeastWithAlphaBeta(version, "6.6.0")
+            isAtLeastWithAlphaBeta(getVersion(), MIN_SUPPORTED_VERSION)
         }
-
-        return if (result.isSuccess) {
-            result.getOrNull()
-        } else {
-            null
-        }
+        return result.getOrNull()
     }
 
     fun isAtLeastWithAlphaBeta(actual: String, min: String): Boolean {
-        fun core(s: String) = s.substringBefore('-')
-        fun suffix(s: String): String? {
-            val i = s.indexOf('-')
-            return if (i >= 0 && i + 1 < s.length) s.substring(i + 1) else null
-        }
+        val (actualCore, actualSuffix) = parseVersion(actual) ?: return false
+        val (minCore, minSuffix) = parseVersion(min) ?: return false
 
-        val aCore = core(actual).split('.').map { it.toInt() }
-        val mCore = core(min).split('.').map { it.toInt() }
-
-        val maxLen = maxOf(aCore.size, mCore.size)
+        val maxLen = maxOf(actualCore.size, minCore.size)
         for (i in 0 until maxLen) {
-            val ai = aCore.getOrElse(i) { 0 }
-            val mi = mCore.getOrElse(i) { 0 }
-            if (ai != mi) return ai > mi
+            val a = actualCore.getOrElse(i) { 0 }
+            val m = minCore.getOrElse(i) { 0 }
+            if (a != m) return a > m
         }
 
-        // numeric parts equal => alpha/beta is NOT >= final
-        return suffix(actual) == null
+        return when {
+            actualSuffix == null -> true
+            minSuffix == null -> false
+            else -> actualSuffix.compareTo(minSuffix) >= 0
+        }
+    }
+
+    private fun parseVersion(version: String): Pair<List<Int>, String?>? {
+        val core = version.substringBefore('-').trim()
+        if (core.isEmpty()) return null
+        val parts = core.split('.').map { it.toIntOrNull() ?: return null }
+        val suffix = version.substringAfter('-', "").trim().ifEmpty { null }
+        return parts to suffix
     }
 
     override fun connectionState(): String = channel?.getState(false)?.name ?: ConnectivityState.SHUTDOWN.name

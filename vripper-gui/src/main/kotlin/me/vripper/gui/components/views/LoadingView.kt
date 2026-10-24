@@ -6,15 +6,19 @@ import javafx.scene.effect.DropShadow
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyCodeCombination
 import javafx.scene.input.KeyCombination
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.launch
 import me.vripper.gui.VripperGuiApplication
 import me.vripper.gui.components.fragments.SessionFragment
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
-import me.vripper.gui.services.GrpcEndpointService
+import me.vripper.gui.services.IGrpcEndpointService
 import me.vripper.gui.utils.AppEndpointManager
 import me.vripper.gui.utils.ClipboardManager
+import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.gui.utils.Watcher
 import me.vripper.listeners.AppManager
 import me.vripper.utilities.DatabaseManager
@@ -25,7 +29,7 @@ import tornadofx.*
 class LoadingView : View("VRipper") {
 
     private val widgetsController: WidgetsController by inject()
-    private val grpcEndpointService: GrpcEndpointService by di("remoteAppEndpointService")
+    private val grpcEndpointService: IGrpcEndpointService by di("remoteAppEndpointService")
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val message = SimpleStringProperty("")
 
@@ -35,37 +39,85 @@ class LoadingView : View("VRipper") {
         DatabaseManager.connect()
         coroutineScope.launch {
             GuiEventBus.events.filterIsInstance(GuiEventBus.ApplicationInitialized::class).collect {
+                AppEndpointManager.set(GuiEventBus.ChangingSession)
                 runLater {
-                    ClipboardManager.init()
+                    runCatching { ClipboardManager.init() }
+                        .onFailure { GuiErrorReporter.report("clipboard.startup", it) }
+                    message.set("")
                 }
-                message.set("")
-                AppManager.stop()
-                grpcEndpointService.disconnect()
-                if (!widgetsController.currentSettings.localSession) {
-                    grpcEndpointService.connect(
-                        widgetsController.currentSettings.remoteSessionModel.host,
-                        widgetsController.currentSettings.remoteSessionModel.port,
-                        widgetsController.currentSettings.remoteSessionModel.passcode,
-                    )
-                    val check = grpcEndpointService.versionCheck()
+
+                val localSession = widgetsController.currentSettings.localSession
+
+                val stopped = GuiErrorReporter.call("startup.stop") { AppManager.stop() }
+                if (stopped.isFailure) {
+                    val detail = stopped.exceptionOrNull()
+                        ?.let { "Unable to stop the previous session: ${GuiErrorReporter.message(it)}" }
+                        ?: "Unable to stop the previous session"
+                    runLater { message.set(detail) }
+                    return@collect
+                }
+                GuiErrorReporter.call("startup.disconnect") { grpcEndpointService.disconnect() }
+
+                if (localSession) {
+                    val started = GuiErrorReporter.call("startup.start") { AppManager.start() }
+                    if (started.isFailure) {
+                        val detail = started.exceptionOrNull()
+                            ?.let { "Unable to start the local session: ${GuiErrorReporter.message(it)}" }
+                            ?: "Unable to start the local session"
+                        runLater { message.set(detail) }
+                        return@collect
+                    }
+                } else {
+                    val remoteSettings = widgetsController.currentSettings.remoteSessionModel
+                    val connection = GuiErrorReporter.call("startup.connect") {
+                        grpcEndpointService.connect(
+                            remoteSettings.host,
+                            remoteSettings.port,
+                            remoteSettings.passcode,
+                        )
+                    }
+                    if (connection.isFailure) {
+                        val detail = connection.exceptionOrNull()
+                            ?.let { ": ${GuiErrorReporter.message(it)}" }
+                            .orEmpty()
+                        runLater {
+                            message.set(
+                                "Unable to connect to ${remoteSettings.host}:${remoteSettings.port}$detail"
+                            )
+                        }
+                        return@collect
+                    }
+
+                    val version = GuiErrorReporter.call("startup.version") {
+                        grpcEndpointService.versionCheck()
+                    }
+                    val check = version.getOrNull()
                     if (check == null) {
-                        message.set("Unable to connect to ${widgetsController.currentSettings.remoteSessionModel.host}:${widgetsController.currentSettings.remoteSessionModel.port}")
+                        val detail = version.exceptionOrNull()
+                            ?.let { ": ${GuiErrorReporter.message(it)}" }
+                            .orEmpty()
+                        GuiErrorReporter.call("startup.disconnect") { grpcEndpointService.disconnect() }
+                        runLater {
+                            message.set(
+                                "Unable to connect to ${remoteSettings.host}:${remoteSettings.port}$detail"
+                            )
+                        }
                         return@collect
                     } else if (!check) {
-                        message.set("Version Mismatch, client must be >= 6.6.0")
+                        GuiErrorReporter.call("startup.disconnect") { grpcEndpointService.disconnect() }
+                        runLater {
+                            message.set("Version Mismatch, client must be >= 6.6.0")
+                        }
                         return@collect
                     }
                 }
+
+                val sessionType = if (localSession) GuiEventBus.LocalSession else GuiEventBus.RemoteSession
+                AppEndpointManager.set(sessionType)
+
                 runLater {
-                    val sessionType = if (widgetsController.currentSettings.localSession) {
-                        AppManager.start()
-                        GuiEventBus.LocalSession
-                    } else {
-                        GuiEventBus.RemoteSession
-                    }
-                    AppEndpointManager.set(sessionType)
                     replaceWith(find<AppView>())
-                    runBlocking {
+                    AppEndpointManager.coroutineScope.launch {
                         GuiEventBus.publishEvent(sessionType)
                     }
                 }

@@ -17,20 +17,36 @@ internal class LeaveThanksTask(
     private val postEntity: PostEntity,
     private val authenticated: Boolean,
     private val context: HttpClientContext
-) : KoinComponent, Runnable {
+) : KoinComponent, ITask {
     private val log by LoggerDelegate()
     private val cm: HTTPService by inject()
     private val settingsService: SettingsService by inject()
+    private var status = TaskStatus.WAITING
+    private var result = ""
 
-    override fun run() {
+    override fun getName() = "Leaving thanks"
+
+    override fun getCategory() = TaskCategory.THANKS
+
+    override fun getDescription() = "Leaving thanks for post #${postEntity.vgPostId}"
+
+    override fun getResult() = result
+
+    override fun getStatus() = status
+
+    override suspend fun run() {
+        status = TaskStatus.RUNNING
+        if (!settingsService.settings.viperSettings.login || !authenticated) {
+            status = TaskStatus.WARNING
+            result = "Skipped: not authenticated with ViperGirls"
+            return
+        }
+        if (!settingsService.settings.viperSettings.thanks) {
+            status = TaskStatus.WARNING
+            result = "Skipped: leaving thanks is disabled"
+            return
+        }
         try {
-            Tasks.increment()
-            if (!settingsService.settings.viperSettings.login || !authenticated) {
-                return
-            }
-            if (!settingsService.settings.viperSettings.thanks) {
-                return
-            }
             val postThanks = HttpPost("${settingsService.settings.viperSettings.host}/post_thanks.php").also {
                 it.entity = UrlEncodedFormEntity(
                     listOf(
@@ -49,10 +65,12 @@ internal class LeaveThanksTask(
                     throw VripperException("Unexpected response code '${response.code}' for $postThanks")
                 }
             }
+            status = TaskStatus.SUCCESS
+            result = "Left thanks for post #${postEntity.vgPostId}"
         } catch (e: Exception) {
+            status = TaskStatus.FAILURE
+            result = "Failed to leave thanks for post #${postEntity.vgPostId}: ${e.message ?: e.toString()}"
             log.error("Failed to leave a thanks for $postEntity", e)
-        } finally {
-            Tasks.decrement()
         }
     }
 }

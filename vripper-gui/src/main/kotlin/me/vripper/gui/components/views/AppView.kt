@@ -1,7 +1,5 @@
 package me.vripper.gui.components.views
 
-import atlantafx.base.theme.*
-import javafx.application.Application.setUserAgentStylesheet
 import javafx.event.EventHandler
 import javafx.scene.input.TransferMode
 import kotlinx.coroutines.CoroutineScope
@@ -11,6 +9,7 @@ import kotlinx.coroutines.launch
 import me.vripper.gui.controller.AppController
 import me.vripper.gui.controller.MainController
 import me.vripper.gui.controller.WidgetsController
+import me.vripper.gui.utils.AppThemeManager
 import tornadofx.View
 import tornadofx.onChange
 import tornadofx.vbox
@@ -21,6 +20,7 @@ class AppView : View() {
     override val root = vbox { }
     private val mainController: MainController by inject()
     private val menuBarView: MenuBarView by inject()
+    private val remoteErrorBanner: RemoteErrorBanner by inject()
     private val mainView: MainView by inject()
     private val statusBarView: StatusBarView by inject()
     private val actionBarView: ActionBarView by inject()
@@ -29,11 +29,13 @@ class AppView : View() {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     init {
         title = "VRipper ${mainController.version}"
+        val banner = remoteErrorBanner
         with(root) {
             add(menuBarView)
             if (widgetsController.currentSettings.visibleToolbarPanel) {
                 add(actionBarView)
             }
+            add(banner)
             add(mainView)
             if (widgetsController.currentSettings.visibleStatusBarPanel) {
                 add(statusBarView)
@@ -76,17 +78,26 @@ class AppView : View() {
             }
         }
 
-        widgetsController.currentSettings.themeProperty.onChange {
-            when (it) {
-                "CupertinoLight" -> setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
-                "CupertinoDark" -> setUserAgentStylesheet(CupertinoDark().userAgentStylesheet)
-                "NordLight" -> setUserAgentStylesheet(NordLight().userAgentStylesheet)
-                "NordDark" -> setUserAgentStylesheet(NordDark().userAgentStylesheet)
-                "PrimerLight" -> setUserAgentStylesheet(PrimerLight().userAgentStylesheet)
-                "PrimerDark" -> setUserAgentStylesheet(PrimerDark().userAgentStylesheet)
-                "Dracula" -> setUserAgentStylesheet(Dracula().userAgentStylesheet)
-                else -> setUserAgentStylesheet(CupertinoLight().userAgentStylesheet)
+        root.sceneProperty().onChange { scene ->
+            if (scene != null) {
+                AppThemeManager.attach(scene, widgetsController.currentSettings)
             }
+        }
+
+        widgetsController.currentSettings.themeProperty.onChange {
+            AppThemeManager.apply(widgetsController.currentSettings)
+        }
+        widgetsController.currentSettings.darkModeProperty.onChange {
+            AppThemeManager.apply(widgetsController.currentSettings)
+        }
+        widgetsController.currentSettings.accentColorProperty.onChange {
+            AppThemeManager.apply(widgetsController.currentSettings)
+        }
+        widgetsController.currentSettings.fontFamilyProperty.onChange {
+            AppThemeManager.apply(widgetsController.currentSettings)
+        }
+        widgetsController.currentSettings.fontSizeProperty.onChange {
+            AppThemeManager.apply(widgetsController.currentSettings)
         }
     }
 }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.model.PostModel
+import me.vripper.gui.utils.displayStatusLabel
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -48,9 +49,7 @@ class PostInfoView : View() {
                                 label(postModel.altTitlesProperty.map { it.joinToString(", ") })
                             }
                             field("Status:") {
-                                label(postModel.statusProperty.map { it ->
-                                    it.lowercase().replaceFirstChar { it.uppercase() }
-                                })
+                                label(postModel.statusProperty.map { it.displayStatusLabel() })
                             }
 
                             field("Path:") {

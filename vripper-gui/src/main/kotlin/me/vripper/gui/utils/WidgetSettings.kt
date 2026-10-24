@@ -1,7 +1,6 @@
 package me.vripper.gui.utils
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.vripper.gui.model.WidgetsViewModel
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
@@ -127,6 +126,36 @@ object WidgetSettings {
     )
 
     @Serializable
+    data class ImageViewerSettings(
+        val decodedCacheMb: Int = 512,
+        val bytePreloadRadius: Int = 3,
+        val bytePreloadConcurrency: Int = 2,
+        val decodePreloadConcurrency: Int = 1,
+        val diskCacheMb: Int = 512,
+        val fadeAnimation: Boolean = true,
+        val windowWidth: Double = 800.0,
+        val windowHeight: Double = 600.0,
+        val windowX: Double = Double.NaN,
+        val windowY: Double = Double.NaN,
+        val windowMaximized: Boolean = false,
+    )
+
+    @Serializable
+    data class WorkspaceSettings(
+        val browseLayout: String = "GRID",
+        val detailsPanelVisible: Boolean = true,
+        val detailsPanelDividerPosition: Double = 0.7,
+        val overviewGridTileSize: Double = 200.0,
+        val imagesTableColumns: ImagesTableColumns = ImagesTableColumns(),
+        val imagesTableColumnsWidth: ImagesTableColumnsWidth = ImagesTableColumnsWidth(),
+        val windowWidth: Double = 900.0,
+        val windowHeight: Double = 650.0,
+        val windowX: Double = Double.NaN,
+        val windowY: Double = Double.NaN,
+        val windowMaximized: Boolean = false,
+    )
+
+    @Serializable
     data class WidgetsSettings(
         val localSession: Boolean = true,
         val visibleInfoPanel: Boolean = true,
@@ -134,6 +163,9 @@ object WidgetSettings {
         val visibleStatusBarPanel: Boolean = true,
         val darkMode: Boolean = false,
         val theme: String = "CupertinoLight",
+        val accentColor: String = "",
+        val fontFamily: String = "",
+        val fontSize: Int = 14,
         val infoPanelDividerPosition: Double = 0.7,
         val width: Double = 1366.0,
         val height: Double = 768.0,
@@ -149,6 +181,11 @@ object WidgetSettings {
         val threadsTableColumnsWidth: ThreadsTableColumnsWidth = ThreadsTableColumnsWidth(),
         val threadSelectionColumnsWidth: ThreadSelectionTableColumnsWidth = ThreadSelectionTableColumnsWidth(),
         val logsTableColumnsWidth: LogsTableColumnsWidth = LogsTableColumnsWidth(),
+        val imageViewerSettings: ImageViewerSettings = ImageViewerSettings(),
+        val workspaceSettings: WorkspaceSettings = WorkspaceSettings(),
+        val postsViewMode: String = "TABLE",
+        val postsGridTileSize: Double = 200.0,
+        val postsPreviewPopup: Boolean = true,
     )
 
     fun loadSettings(): WidgetsSettings {
@@ -169,6 +206,9 @@ object WidgetSettings {
                     currentSettings.visibleStatusBarPanel,
                     currentSettings.darkMode,
                     currentSettings.theme,
+                    currentSettings.accentColor,
+                    currentSettings.fontFamily,
+                    currentSettings.fontSize,
                     currentSettings.infoPanelDividerPosition,
                     currentSettings.width,
                     currentSettings.height,
@@ -258,6 +298,53 @@ object WidgetSettings {
                         currentSettings.logsColumnsWidthModel.levelString,
                         currentSettings.logsColumnsWidthModel.message,
                     ),
+                    ImageViewerSettings(
+                        currentSettings.imageViewerSettingsModel.decodedCacheMb,
+                        currentSettings.imageViewerSettingsModel.bytePreloadRadius,
+                        currentSettings.imageViewerSettingsModel.bytePreloadConcurrency,
+                        currentSettings.imageViewerSettingsModel.decodePreloadConcurrency,
+                        currentSettings.imageViewerSettingsModel.diskCacheMb,
+                        currentSettings.imageViewerSettingsModel.fadeAnimation,
+                        currentSettings.imageViewerSettingsModel.windowWidth,
+                        currentSettings.imageViewerSettingsModel.windowHeight,
+                        currentSettings.imageViewerSettingsModel.windowX,
+                        currentSettings.imageViewerSettingsModel.windowY,
+                        currentSettings.imageViewerSettingsModel.windowMaximized,
+                    ),
+                    WorkspaceSettings(
+                        currentSettings.workspaceSettingsModel.browseLayout,
+                        currentSettings.workspaceSettingsModel.detailsPanelVisible,
+                        currentSettings.workspaceSettingsModel.detailsPanelDividerPosition,
+                        currentSettings.workspaceSettingsModel.overviewGridTileSize,
+                        ImagesTableColumns(
+                            currentSettings.workspaceImagesColumnsModel.preview,
+                            currentSettings.workspaceImagesColumnsModel.index,
+                            currentSettings.workspaceImagesColumnsModel.link,
+                            currentSettings.workspaceImagesColumnsModel.progress,
+                            currentSettings.workspaceImagesColumnsModel.filename,
+                            currentSettings.workspaceImagesColumnsModel.status,
+                            currentSettings.workspaceImagesColumnsModel.size,
+                            currentSettings.workspaceImagesColumnsModel.downloaded,
+                        ),
+                        ImagesTableColumnsWidth(
+                            currentSettings.workspaceImagesColumnsWidthModel.preview,
+                            currentSettings.workspaceImagesColumnsWidthModel.index,
+                            currentSettings.workspaceImagesColumnsWidthModel.link,
+                            currentSettings.workspaceImagesColumnsWidthModel.progress,
+                            currentSettings.workspaceImagesColumnsWidthModel.filename,
+                            currentSettings.workspaceImagesColumnsWidthModel.status,
+                            currentSettings.workspaceImagesColumnsWidthModel.size,
+                            currentSettings.workspaceImagesColumnsWidthModel.downloaded,
+                        ),
+                        currentSettings.workspaceSettingsModel.windowWidth,
+                        currentSettings.workspaceSettingsModel.windowHeight,
+                        currentSettings.workspaceSettingsModel.windowX,
+                        currentSettings.workspaceSettingsModel.windowY,
+                        currentSettings.workspaceSettingsModel.windowMaximized,
+                    ),
+                    currentSettings.postsViewMode,
+                    currentSettings.postsGridTileSize,
+                    currentSettings.postsPreviewPopup,
                 )
             )
         )

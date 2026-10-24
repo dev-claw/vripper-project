@@ -13,18 +13,23 @@ class MainView : View("Center view") {
 
     private val threadTableView: ThreadTableView by inject()
     private val logTableView: LogTableView by inject()
-    private val postsTabView: PostsTabView by inject()
+    private val taskTableView: TaskTableView by inject()
+    private val postsView: PostsView by inject()
 
     override val root = tabpane {
         tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
         vgrow = Priority.ALWAYS
-        tab(postsTabView) {
+        tab(postsView) {
             graphic = FontIcon(Feather.DOWNLOAD)
             id = "download-tab"
         }
         tab(threadTableView) {
             graphic = FontIcon(Feather.FILE_TEXT)
             id = "thread-tab"
+        }
+        tab(taskTableView) {
+            graphic = FontIcon(Feather.ACTIVITY)
+            id = "task-tab"
         }
         tab(logTableView) {
             graphic = FontIcon(Feather.DATABASE)

@@ -7,7 +7,6 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.openLink
 import me.vripper.utilities.ApplicationProperties
 import tornadofx.*
-import kotlin.io.path.pathString
 
 class AboutFragment : Fragment("About") {
 
@@ -74,18 +73,6 @@ class AboutFragment : Fragment("About") {
                                         isEditable = false
                                     }
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-            tab("System") {
-                form {
-                    fieldset {
-                        field("Application data folder") {
-                            textfield {
-                                text = ApplicationProperties.VRIPPER_DIR.pathString
-                                isEditable = false
                             }
                         }
                     }

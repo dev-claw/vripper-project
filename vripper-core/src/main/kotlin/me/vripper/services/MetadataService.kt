@@ -2,11 +2,11 @@ package me.vripper.services
 
 import me.vripper.entities.PostEntity
 import me.vripper.tasks.FetchMetadataTask
-import me.vripper.utilities.taskRunner
 
 internal class MetadataService(
     private val dataAccessService: DataAccessService,
     private val settingsService: SettingsService,
+    private val taskService: TaskService,
 ) {
 
     fun fetchExisting() {
@@ -21,7 +21,7 @@ internal class MetadataService(
         if (!settingsService.settings.viperSettings.fetchMetadata) {
             return
         }
-        taskRunner.submit(
+        taskService.submit(
             FetchMetadataTask(
                 post
             )

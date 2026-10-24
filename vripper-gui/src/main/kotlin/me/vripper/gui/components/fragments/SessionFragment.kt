@@ -7,12 +7,12 @@ import javafx.scene.control.RadioButton
 import javafx.scene.control.Spinner
 import javafx.scene.control.ToggleGroup
 import javafx.scene.layout.VBox
-import kotlinx.coroutines.runBlocking
 import me.vripper.gui.VripperGuiApplication
 import me.vripper.gui.components.views.AppView
 import me.vripper.gui.components.views.LoadingView
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
+import me.vripper.gui.utils.AppEndpointManager
 import tornadofx.*
 
 class SessionFragment : Fragment("Change Session") {
@@ -63,9 +63,8 @@ class SessionFragment : Fragment("Change Session") {
                         addClass(Styles.ACCENT)
                         isDefaultButton = true
                         action {
-                            runBlocking {
-                                GuiEventBus.publishEvent(GuiEventBus.ChangingSession)
-                            }
+                            AppEndpointManager.set(GuiEventBus.ChangingSession)
+                            GuiEventBus.tryPublishEvent(GuiEventBus.ChangingSession)
                             val selectedToggle = toggleGroup.selectedToggle
                             runLater {
                                 find<AppView>().replaceWith(find<LoadingView>())
@@ -82,9 +81,7 @@ class SessionFragment : Fragment("Change Session") {
 
                                     else -> VripperGuiApplication.APP_INSTANCE.stop()
                                 }
-                                runBlocking {
-                                    GuiEventBus.publishEvent(GuiEventBus.ApplicationInitialized(emptyList()))
-                                }
+                                GuiEventBus.tryPublishEvent(GuiEventBus.ApplicationInitialized(emptyList()))
                                 close()
                             }
                         }

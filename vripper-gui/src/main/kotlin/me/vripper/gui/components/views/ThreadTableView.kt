@@ -2,9 +2,14 @@ package me.vripper.gui.components.views
 
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
+import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.scene.control.*
+import javafx.scene.layout.Priority
+import javafx.scene.layout.VBox
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import kotlinx.coroutines.CoroutineScope
@@ -13,7 +18,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.javafx.asFlow
 import kotlinx.coroutines.launch
+import me.vripper.gui.components.EmptyState
+import me.vripper.gui.components.Shared
+import me.vripper.gui.components.ThreadQuickFilter
 import me.vripper.gui.components.fragments.ThreadSelectionTableFragment
+import me.vripper.gui.components.quickFilterPills
 import me.vripper.gui.controller.ThreadController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
@@ -30,13 +39,39 @@ class ThreadTableView : View() {
     private val widgetsController: WidgetsController by inject()
     private val mainView: MainView by inject()
     private val tableView: TableView<ThreadModel>
+    private val searchInput = Shared.threadsSearchInput
+    private val quickFilterProperty = Shared.threadQuickFilter
     private val items: ObservableList<ThreadModel> = FXCollections.observableArrayList()
+    private val filteredItems = SortedFilteredList(items)
+    private val loadingPlaceholder = Label("Loading")
+    private val connectionFailurePlaceholder = Label("Connection Failure")
+    private val emptyMessage = SimpleStringProperty("No threads yet")
+    private val emptyPlaceholder = EmptyState.create(Feather.MESSAGE_SQUARE, emptyMessage)
 
     override val root = vbox {}
 
     init {
+        searchInput.addListener { _, _, _ -> applyThreadFilter() }
+        quickFilterProperty.addListener { _, _, _ -> applyThreadFilter() }
+        applyThreadFilter()
         with(root) {
-            tableView = tableview(items) {
+            hbox {
+                padding = Insets(8.0)
+                spacing = 8.0
+                alignment = Pos.CENTER_LEFT
+                button("Clear threads", FontIcon.of(Feather.TRASH_2)) {
+                    action { clearThreads() }
+                }
+                spacer()
+                add(
+                    quickFilterPills(
+                        "Posts",
+                        ThreadQuickFilter.entries.map { it to it.label },
+                        quickFilterProperty.get(),
+                    ) { quickFilterProperty.set(it) }
+                )
+            }
+            tableView = tableview(filteredItems) {
                 isTableMenuButtonVisible = true
                 primaryStage.addEventFilter(KeyEvent.KEY_PRESSED) { event ->
                     if (event.code == KeyCode.DELETE) {
@@ -83,23 +118,6 @@ class ThreadTableView : View() {
                         .bind(tableRow.emptyProperty().map { empty -> if (empty) null else contextMenu })
                     tableRow
                 }
-                contextMenu = ContextMenu()
-                contextMenu.items.add(MenuItem("Clear", FontIcon.of(Feather.TRASH_2)).apply {
-                    setOnAction {
-                        confirm(
-                            "",
-                            "Confirm removal of all threads",
-                            ButtonType.YES,
-                            ButtonType.NO,
-                            owner = primaryStage,
-                            title = "Clean threads"
-                        ) {
-                            coroutineScope.launch {
-                                threadController.clearAll()
-                            }
-                        }
-                    }
-                })
                 column("Title", ThreadModel::titleProperty) {
                     isVisible = widgetsController.currentSettings.threadsColumnsModel.titleProperty.get()
                     visibleProperty().onChange {
@@ -143,17 +161,18 @@ class ThreadTableView : View() {
                     }
                 }
             }
+            tableView.maxHeight = Double.MAX_VALUE
+            VBox.setVgrow(tableView, Priority.ALWAYS)
         }
 
-        titleProperty.bind(items.sizeProperty.map {
+        titleProperty.bind(filteredItems.sizeProperty.map {
             if (it.toLong() > 0) {
                 "Threads (${it.toLong()})"
             } else {
                 "Threads"
             }
         })
-        tableView.prefHeightProperty().bind(root.heightProperty())
-        tableView.placeholder = Label("Loading")
+        tableView.placeholder = loadingPlaceholder
 
         threadController.newThread.let { flow ->
             coroutineScope.launch {
@@ -181,7 +200,7 @@ class ThreadTableView : View() {
             coroutineScope.launch {
                 flow.collect { threadId ->
                     runLater {
-                        tableView.items.removeIf { it.threadId == threadId }
+                        items.removeIf { it.threadId == threadId }
                     }
                 }
             }
@@ -191,7 +210,7 @@ class ThreadTableView : View() {
             coroutineScope.launch {
                 it.collect {
                     runLater {
-                        tableView.items.clear()
+                        items.clear()
                     }
                 }
             }
@@ -205,18 +224,18 @@ class ThreadTableView : View() {
                         runLater {
                             items.clear()
                             items.addAll(list)
-                            tableView.placeholder = Label("No content in table")
+                            tableView.placeholder = emptyPlaceholder
                         }
                     }
 
                     GuiEventBus.ChangingSession -> runLater {
-                        tableView.placeholder = Label("Loading")
+                        tableView.placeholder = loadingPlaceholder
                         items.clear()
                     }
 
                     is GuiEventBus.RemoteError -> runLater {
                         items.clear()
-                        tableView.placeholder = Label("Connection Failure")
+                        tableView.placeholder = connectionFailurePlaceholder
                     }
 
                     else -> {}
@@ -224,6 +243,30 @@ class ThreadTableView : View() {
             }
         }
     }
+
+    private fun applyThreadFilter() {
+        val query = searchInput.get().orEmpty().trim()
+        val filter = quickFilterProperty.get() ?: ThreadQuickFilter.ALL
+        emptyMessage.set(
+            if (query.isBlank() && filter == ThreadQuickFilter.ALL) "No threads yet" else "No matching threads"
+        )
+        filteredItems.predicate = { thread ->
+            matchesQuery(thread, query) && matchesQuickFilter(thread, filter)
+        }
+    }
+
+    private fun matchesQuery(thread: ThreadModel, query: String): Boolean =
+        query.isBlank() ||
+                thread.title.contains(query, ignoreCase = true) ||
+                thread.link.contains(query, ignoreCase = true) ||
+                thread.threadId.toString().contains(query)
+
+    private fun matchesQuickFilter(thread: ThreadModel, filter: ThreadQuickFilter): Boolean =
+        when (filter) {
+            ThreadQuickFilter.ALL -> true
+            ThreadQuickFilter.WITH_POSTS -> thread.total > 0
+            ThreadQuickFilter.EMPTY -> thread.total == 0
+        }
 
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "thread-tab"
 
@@ -239,6 +282,21 @@ class ThreadTableView : View() {
         ) {
             coroutineScope.launch {
                 threadController.delete(threadIdList)
+            }
+        }
+    }
+
+    private fun clearThreads() {
+        confirm(
+            "",
+            "Are you sure you want to clear all threads",
+            ButtonType.YES,
+            ButtonType.NO,
+            owner = primaryStage,
+            title = "Clear threads"
+        ) {
+            coroutineScope.launch {
+                threadController.clearAll()
             }
         }
     }

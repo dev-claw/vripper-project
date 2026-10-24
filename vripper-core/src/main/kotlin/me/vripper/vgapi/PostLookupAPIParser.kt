@@ -6,8 +6,8 @@ import me.vripper.exception.DownloadException
 import me.vripper.exception.PostParseException
 import me.vripper.services.HTTPService
 import me.vripper.services.RetryPolicyService
+import me.vripper.services.TaskService
 import me.vripper.services.VGAuthService
-import me.vripper.tasks.Tasks
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
 import org.apache.hc.client5.http.classic.methods.HttpGet
@@ -27,6 +27,7 @@ internal class PostLookupAPIParser(
     private val retryPolicyService: RetryPolicyService by inject()
     private val httpService: HTTPService by inject()
     private val vgAuthService: VGAuthService by inject()
+    private val taskService: TaskService by inject()
 
     @Throws(PostParseException::class)
     fun parse(): ThreadItem? {
@@ -38,7 +39,7 @@ internal class PostLookupAPIParser(
                 )
             }.build()).also { it.setAbsoluteRequestUri(true) }
         val threadLookupAPIResponseHandler = ThreadLookupAPIResponseHandler(siteProxy)
-        Tasks.increment()
+        taskService.increment()
         return try {
             Failsafe.with(retryPolicyService.buildRetryPolicy<Any>("Failed to parse $httpGet: ")).onFailure {
                 log.error(
@@ -65,7 +66,7 @@ internal class PostLookupAPIParser(
         } catch (e: Exception) {
             throw PostParseException(e)
         } finally {
-            Tasks.decrement()
+            taskService.decrement()
         }
     }
 
