@@ -41,7 +41,6 @@ object AppManager : KoinComponent {
         dataAccessService.setDownloadingToStopped()
         dataAccessService.stopImagesByPostEntityIdAndIsNotCompleted()
         settingsService.init()
-        metadataService.fetchExisting()
         downloadSpeedService.init()
         downloadService.init()
     }
