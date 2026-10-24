@@ -4,7 +4,6 @@
     ".": {
       "release-type": "java",
       "package-name": "vripper-project",
-      "skip-snapshot": true,
       "include-component-in-tag": false,
       "include-v-in-tag": false,
       "extra-files": [

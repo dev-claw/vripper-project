@@ -31,22 +31,15 @@ jobs:
 
       - name: Resolve nightly version
         id: version
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           revision=$(sed -n 's:.*<revision>\(.*\)</revision>.*:\1:p' pom.xml | head -n 1)
-          version=${revision%%-*}
-
-          latest=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name 2>/dev/null || true)
-          latest=${latest#v}
-          if [ -n "$latest" ]; then
-            highest=$(printf '%s\n%s\n' "$version" "$latest" | sort -V | tail -n 1)
-            if [ "$highest" = "$latest" ]; then
-              major=${latest%%.*}
-              rest=${latest#*.}
-              minor=${rest%%.*}
-              version="${major}.$((minor + 1)).0"
-            fi
+          if [[ "$revision" == *-SNAPSHOT ]]; then
+            version=${revision%-SNAPSHOT}
+          else
+            version=${revision%%-*}
+            IFS=. read -r major minor patch <<< "$version"
+            patch=${patch:-0}
+            version="${major}.${minor}.$((patch + 1))"
           fi
 
           {
