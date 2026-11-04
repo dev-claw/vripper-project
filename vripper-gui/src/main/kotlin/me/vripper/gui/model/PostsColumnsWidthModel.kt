@@ -9,6 +9,7 @@ class PostsColumnsWidthModel(
     title: Double,
     progress: Double,
     status: Double,
+    automation: Double,
     path: Double,
     total: Double,
     hosts: Double,
@@ -26,6 +27,9 @@ class PostsColumnsWidthModel(
 
     val statusProperty = SimpleDoubleProperty(status)
     var status: Double by statusProperty
+
+    val automationProperty = SimpleDoubleProperty(automation)
+    var automation: Double by automationProperty
 
     val pathProperty = SimpleDoubleProperty(path)
     var path: Double by pathProperty

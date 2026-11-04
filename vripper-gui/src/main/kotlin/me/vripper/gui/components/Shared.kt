@@ -11,5 +11,6 @@ object Shared {
 
     val threadQuickFilter = SimpleObjectProperty(ThreadQuickFilter.ALL)
     val taskQuickFilter = SimpleObjectProperty(TaskQuickFilter.ALL)
+    val taskGroupMode = SimpleObjectProperty(TaskGroupMode.NONE)
     val logQuickFilter = SimpleObjectProperty(LogQuickFilter.ALL)
 }

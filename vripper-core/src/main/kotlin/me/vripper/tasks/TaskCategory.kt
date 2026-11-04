@@ -7,4 +7,5 @@ enum class TaskCategory(private val str: String) {
     RENAME("Rename"),
     SCAN("Scan"),
     THREAD("Thread"),
+    AUTOMATION("Automation"),
 }

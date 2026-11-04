@@ -37,6 +37,8 @@ internal class FetchMetadataTask(
 
     override fun getCategory() = TaskCategory.METADATA
 
+    override fun getPostEntityId() = postEntity.id
+
     override fun getDescription() = "Fetching metadata for post #${postEntity.vgPostId}"
 
     override fun getResult() = result

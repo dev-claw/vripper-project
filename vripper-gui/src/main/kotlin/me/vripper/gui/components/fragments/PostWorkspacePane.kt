@@ -164,7 +164,7 @@ internal class PostWorkspacePane(
         widgetsController.currentSettings.fontSizeProperty.addListener(fontSizeListener)
 
         table = buildTable(images)
-        details = PostDetailsPane()
+        details = PostDetailsPane(postController, scope)
         split = SplitPane().apply {
             orientation = Orientation.HORIZONTAL
             items.add(listPane)

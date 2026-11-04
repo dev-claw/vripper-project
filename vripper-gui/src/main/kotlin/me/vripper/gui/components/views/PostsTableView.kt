@@ -25,6 +25,7 @@ import me.vripper.gui.controller.PostsTabController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.Preview
+import me.vripper.gui.utils.displayActionState
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import tornadofx.*
@@ -237,6 +238,41 @@ class PostsTableView : View("Posts") {
                     }
                     cellFactory = Callback {
                         StatusTableCell<PostModel>()
+                    }
+                }
+                column("Automation", PostModel::actionStateProperty) {
+                    isVisible = widgetsController.currentSettings.postsColumnsModel.automationProperty.get()
+                    visibleProperty().onChange {
+                        widgetsController.currentSettings.postsColumnsModel.automationProperty.set(it)
+                    }
+                    prefWidth = widgetsController.currentSettings.postsColumnsWidthModel.automation
+                    coroutineScope.launch {
+                        widthProperty().asFlow().debounce(200).collect {
+                            widgetsController.currentSettings.postsColumnsWidthModel.automation = it as Double
+                        }
+                    }
+                    cellFactory = Callback {
+                        object : TableCell<PostModel, String>() {
+                            override fun updateItem(item: String?, empty: Boolean) {
+                                super.updateItem(item, empty)
+                                text = if (empty) null else item?.displayActionState()
+                                styleClass.removeAll(
+                                    Styles.ACCENT,
+                                    Styles.SUCCESS,
+                                    Styles.DANGER,
+                                    Styles.WARNING,
+                                    Styles.TEXT_MUTED,
+                                )
+                                val style = when (item?.uppercase()) {
+                                    "AWAITING_REVIEW" -> Styles.WARNING
+                                    "READY", "RUNNING" -> Styles.ACCENT
+                                    "DONE" -> Styles.SUCCESS
+                                    "FAILED" -> Styles.DANGER
+                                    else -> Styles.TEXT_MUTED
+                                }
+                                styleClass.add(style)
+                            }
+                        }
                     }
                 }
                 column("Path", PostModel::pathProperty) {

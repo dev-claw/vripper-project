@@ -30,6 +30,9 @@ val coreModule = module {
     single<MetadataRepository> {
         MetadataRepositoryImpl()
     }
+    single<PostActionRepository> {
+        PostActionRepositoryImpl()
+    }
     single<ThreadRepository> {
         ThreadRepositoryImpl()
     }
@@ -39,8 +42,11 @@ val coreModule = module {
     single<TaskService> {
         TaskService(get(), get())
     }
+    single<PostActionService> {
+        PostActionService(get(), get(), get(), get())
+    }
     single<DataAccessService> {
-        DataAccessService(get(), get(), get(), get(), get(), get())
+        DataAccessService(get(), get(), get(), get(), get(), get(), get())
     }
     single<RetryPolicyService> {
         RetryPolicyService()
@@ -65,11 +71,11 @@ val coreModule = module {
     }
 
     single<AppEndpointService> {
-        AppEndpointService(get(), get(), get(), get(), get(), get(), get(), get())
+        AppEndpointService(get(), get(), get(), get(), get(), get(), get(), get(), get())
     }
 
     single((named("localAppEndpointService"))) {
-        AppEndpointService(get(), get(), get(), get(), get(), get(), get(), get())
+        AppEndpointService(get(), get(), get(), get(), get(), get(), get(), get(), get())
     } bind IAppEndpointService::class
 
     single<MetadataService> {

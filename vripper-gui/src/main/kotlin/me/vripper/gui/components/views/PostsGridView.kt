@@ -22,6 +22,7 @@ import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.AppThemeManager
 import me.vripper.gui.utils.ImageCacheManager
 import me.vripper.gui.utils.Preview
+import me.vripper.gui.utils.displayActionState
 import me.vripper.gui.utils.showPostPreviewOnHover
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
@@ -258,12 +259,16 @@ class PostsGridView : View("Posts") {
                 Bindings.createStringBinding(
                     {
                         val status = newPost.status.lowercase().replaceFirstChar { it.uppercase() }
-                        listOf(status, newPost.progressCount)
+                        val automation = newPost.actionState
+                            .takeIf { it.isNotBlank() && !it.equals("NONE", ignoreCase = true) }
+                            ?.let { "Automation: ${it.displayActionState()}" }
+                        listOfNotNull(status, newPost.progressCount, automation)
                             .filter { it.isNotBlank() }
                             .joinToString(" • ")
                     },
                     newPost.statusProperty,
                     newPost.progressCountProperty,
+                    newPost.actionStateProperty,
                 )
             )
             progressBar.stopAnimation()

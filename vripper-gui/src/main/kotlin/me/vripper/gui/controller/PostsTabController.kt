@@ -31,7 +31,7 @@ enum class PostQuickFilter(val label: String) {
     ALL("All"),
     ACTIVE("Active"),
     DONE("Done"),
-
+    AUTOMATION("Automation"),
     PAUSED("Paused"),
     ERROR("Error"),
 }
@@ -84,6 +84,7 @@ class PostsTabController : Controller() {
                 item.vgThreadId.toString().contains(query) ||
                 item.hosts.contains(query, ignoreCase = true) ||
                 item.status.contains(query, ignoreCase = true) ||
+                item.actionState.contains(query, ignoreCase = true) ||
                 item.path.contains(query, ignoreCase = true)
 
     private fun matchesQuickFilter(item: PostModel, filter: PostQuickFilter): Boolean =
@@ -92,6 +93,9 @@ class PostsTabController : Controller() {
             PostQuickFilter.ACTIVE -> item.status.matchesStatus(Status.PENDING) ||
                     item.status.matchesStatus(Status.DOWNLOADING)
             PostQuickFilter.DONE -> item.status.matchesStatus(Status.FINISHED)
+            PostQuickFilter.AUTOMATION -> item.actionState.uppercase() in setOf(
+                "AWAITING_REVIEW", "READY", "RUNNING", "FAILED"
+            )
             PostQuickFilter.ERROR -> item.status.matchesStatus(Status.ERROR)
             PostQuickFilter.PAUSED -> item.status.matchesStatus(Status.STOPPED)
         }
@@ -349,6 +353,19 @@ class PostsTabController : Controller() {
                         items.items.removeIf { it.id == id }
                         requestSort()
                         pruneSelection()
+                    }
+                }
+            }
+        }
+
+        postController.updatePostActionsFlow.let { flow ->
+            coroutineScope.launch {
+                flow.collect { action ->
+                    runLater {
+                        val postModel = items.items.find { it.id == action.postIdRef } ?: return@runLater
+                        postModel.actionState = action.state.name
+                        postModel.actionError = action.lastError
+                        postModel.missingFields = FXCollections.observableArrayList(action.missingFields)
                     }
                 }
             }

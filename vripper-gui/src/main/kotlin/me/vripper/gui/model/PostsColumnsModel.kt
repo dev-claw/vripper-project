@@ -9,6 +9,7 @@ class PostsColumnsModel(
     title: Boolean,
     progress: Boolean,
     status: Boolean,
+    automation: Boolean,
     path: Boolean,
     total: Boolean,
     hosts: Boolean,
@@ -26,6 +27,9 @@ class PostsColumnsModel(
 
     val statusProperty = SimpleBooleanProperty(status)
     var status: Boolean by statusProperty
+
+    val automationProperty = SimpleBooleanProperty(automation)
+    var automation: Boolean by automationProperty
 
     val pathProperty = SimpleBooleanProperty(path)
     var path: Boolean by pathProperty

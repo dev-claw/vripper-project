@@ -25,4 +25,7 @@ data class LoadingTasks(val loading: Boolean)
 data class TaskCreateEvent(val taskEntity: TaskEntity)
 data class TaskUpdateEvent(val taskEntity: TaskEntity)
 class TaskClearEvent
+data class TaskDismissEvent(val taskId: Long)
 data class StoppedEvent(val postIds: List<Long>)
+data class PostCompletedEvent(val postEntityId: Long)
+data class PostActionUpdateEvent(val postActionEntity: PostActionEntity)

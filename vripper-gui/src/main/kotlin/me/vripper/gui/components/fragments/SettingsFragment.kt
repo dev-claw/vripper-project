@@ -19,6 +19,7 @@ import me.vripper.gui.controller.SettingsController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.ImageCacheManager
 import me.vripper.gui.utils.WidgetSettings
+import me.vripper.model.AutomationSettings
 import me.vripper.model.ConnectionSettings
 import me.vripper.model.DownloadSettings
 import me.vripper.model.SystemSettings
@@ -34,6 +35,7 @@ class SettingsFragment : Fragment("Settings") {
     val connectionSettings: ConnectionSettings by param()
     val viperSettings: ViperSettings by param()
     val systemSettings: SystemSettings by param()
+    val automationSettings: AutomationSettings by param()
     val hostSettings: Map<String, Map<String, String>> by param()
     private val settingsController: SettingsController by inject()
     private val widgetsController: WidgetsController by inject()
@@ -46,6 +48,8 @@ class SettingsFragment : Fragment("Settings") {
         find(mapOf(ViperSettingsFragment::viperSettings to viperSettings))
     private val systemSettingsFragment: SystemSettingsFragment =
         find(mapOf(SystemSettingsFragment::systemSettings to systemSettings))
+    private val automationSettingsFragment: AutomationSettingsFragment =
+        find(mapOf(AutomationSettingsFragment::automationSettings to automationSettings))
     private val hostSettingsFragment: HostSettingsFragment =
         find(mapOf(HostSettingsFragment::hostSettings to hostSettings))
     private val postsSettingsFragment: PostsSettingsFragment = find()
@@ -60,6 +64,7 @@ class SettingsFragment : Fragment("Settings") {
         SettingsSection("Downloads", Feather.FOLDER, downloadSettingsFragment),
         SettingsSection("Connection", Feather.ACTIVITY, connectionSettingsFragment),
         SettingsSection("System", Feather.CLIPBOARD, systemSettingsFragment),
+        SettingsSection("Automation", Feather.PLAY, automationSettingsFragment),
         SettingsSection("Viper", Feather.LINK_2, viperSettingsFragment),
         SettingsSection("Hosts", Feather.IMAGE, hostSettingsFragment),
         SettingsSection("Posts", Feather.GRID, postsSettingsFragment),
@@ -151,6 +156,7 @@ class SettingsFragment : Fragment("Settings") {
                             connectionSettingsFragment.connectionSettingsModel,
                             viperSettingsFragment.viperSettingsModel,
                             systemSettingsFragment.systemSettingsModel,
+                            automationSettingsFragment.automationSettingsModel,
                             hostSettingsFragment.hostSettingsModels
                         )
                         runLater {

@@ -35,6 +35,7 @@ import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.AppThemeManager
 import me.vripper.gui.utils.ImageCacheManager
 import me.vripper.gui.utils.Preview
+import me.vripper.gui.utils.displayActionState
 import me.vripper.gui.utils.displayLabel
 import me.vripper.gui.utils.displayStatusLabel
 import me.vripper.gui.utils.parseStatus
@@ -220,7 +221,11 @@ class PostsListView : View("Posts") {
             textOverrun = OverrunStyle.ELLIPSIS
             style = "-fx-font-size: 0.714em; -fx-opacity: 0.62;"
         }
-        private val metaRow = HBox(10.0, statusBadge, progressCountLabel, hostsLabel).apply {
+        private val automationLabel = Label().apply {
+            textOverrun = OverrunStyle.ELLIPSIS
+            style = "-fx-font-size: 0.714em; -fx-opacity: 0.78;"
+        }
+        private val metaRow = HBox(10.0, statusBadge, progressCountLabel, hostsLabel, automationLabel).apply {
             alignment = Pos.CENTER_LEFT
         }
         private val pathLabel = Label().apply {
@@ -333,6 +338,19 @@ class PostsListView : View("Posts") {
             )
             hostsLabel.visibleProperty().bind(hostsLabel.textProperty().isNotEmpty)
             hostsLabel.managedProperty().bind(hostsLabel.visibleProperty())
+            automationLabel.textProperty().bind(
+                Bindings.createStringBinding(
+                    {
+                        item.actionState
+                            .takeIf { it.isNotBlank() && !it.equals("NONE", ignoreCase = true) }
+                            ?.let { "Automation: ${it.displayActionState()}" }
+                            .orEmpty()
+                    },
+                    item.actionStateProperty,
+                )
+            )
+            automationLabel.visibleProperty().bind(automationLabel.textProperty().isNotEmpty)
+            automationLabel.managedProperty().bind(automationLabel.visibleProperty())
             pathLabel.textProperty().bind(
                 Bindings.createStringBinding(
                     { item.folderName.ifBlank { item.path } },
@@ -368,6 +386,9 @@ class PostsListView : View("Posts") {
             hostsLabel.textProperty().unbind()
             hostsLabel.visibleProperty().unbind()
             hostsLabel.managedProperty().unbind()
+            automationLabel.textProperty().unbind()
+            automationLabel.visibleProperty().unbind()
+            automationLabel.managedProperty().unbind()
             pathLabel.textProperty().unbind()
             addedOnLabel.textProperty().unbind()
             authorLabel.textProperty().unbind()
@@ -383,6 +404,9 @@ class PostsListView : View("Posts") {
             hostsLabel.text = ""
             hostsLabel.isVisible = false
             hostsLabel.isManaged = false
+            automationLabel.text = ""
+            automationLabel.isVisible = false
+            automationLabel.isManaged = false
             pathLabel.text = ""
             addedOnLabel.text = ""
             authorLabel.text = ""

@@ -1,6 +1,7 @@
 package me.vripper.gui.controller
 
 import kotlinx.coroutines.flow.map
+import me.vripper.entities.CustomField
 import me.vripper.entities.Status
 import me.vripper.gui.components.fragments.BytesImageSource
 import me.vripper.gui.components.fragments.ImageSource
@@ -50,6 +51,11 @@ class PostController : Controller() {
     val updateMetadataFlow = ChannelFlowBuilder.build(
         localAppEndpointService::onUpdateMetadata,
         remoteAppEndpointService::onUpdateMetadata,
+    )
+
+    val updatePostActionsFlow = ChannelFlowBuilder.build(
+        localAppEndpointService::onUpdatePostActions,
+        remoteAppEndpointService::onUpdatePostActions,
     )
 
     val queueStateUpdate = ChannelFlowBuilder.build(
@@ -118,6 +124,24 @@ class PostController : Controller() {
         GuiErrorReporter.call("posts.renameToFirst") { currentAppEndpointService().renameToFirst(postEntityIds) }
     }
 
+    suspend fun runAction(postEntityId: Long) {
+        GuiErrorReporter.call("posts.action.run") { currentAppEndpointService().runPostAction(postEntityId) }
+    }
+
+    suspend fun retryAction(postEntityId: Long) {
+        GuiErrorReporter.call("posts.action.retry") { currentAppEndpointService().retryPostAction(postEntityId) }
+    }
+
+    suspend fun skipAction(postEntityId: Long) {
+        GuiErrorReporter.call("posts.action.skip") { currentAppEndpointService().skipPostAction(postEntityId) }
+    }
+
+    suspend fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>) {
+        GuiErrorReporter.call("posts.customFields") {
+            currentAppEndpointService().updateCustomFields(postEntityId, customFields)
+        }
+    }
+
     suspend fun moveTo(postEntityId: Long, position: MovePosition) {
         GuiErrorReporter.call("posts.move") { currentAppEndpointService().move(postEntityId, position) }
     }
@@ -143,7 +167,11 @@ class PostController : Controller() {
             post.previews,
             post.resolvedNames,
             post.postedBy,
-            post.threadId
+            post.threadId,
+            post.customFields,
+            post.actionState.name,
+            post.actionError,
+            post.missingFields,
         )
     }
 

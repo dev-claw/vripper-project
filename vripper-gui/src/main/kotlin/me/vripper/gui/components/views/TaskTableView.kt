@@ -10,8 +10,13 @@ import javafx.collections.ObservableList
 import javafx.collections.transformation.FilteredList
 import javafx.geometry.Insets
 import javafx.geometry.Pos
+import javafx.scene.control.Button
 import javafx.scene.control.ButtonType
+import javafx.scene.control.Label
 import javafx.scene.control.ScrollPane
+import javafx.scene.control.Tooltip
+import javafx.scene.layout.HBox
+import javafx.scene.layout.VBox
 import javafx.scene.layout.Priority
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +24,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import me.vripper.gui.components.EmptyState
 import me.vripper.gui.components.Shared
+import me.vripper.gui.components.TaskGroupMode
 import me.vripper.gui.components.TaskQuickFilter
 import me.vripper.gui.components.quickFilterPills
 import me.vripper.gui.controller.TaskController
@@ -30,6 +36,7 @@ import org.kordamp.ikonli.material2.Material2OutlinedAL
 import org.kordamp.ikonli.material2.Material2OutlinedMZ
 import tornadofx.*
 import java.util.function.Predicate
+import javafx.util.StringConverter
 
 class TaskTableView : View() {
 
@@ -37,6 +44,7 @@ class TaskTableView : View() {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val searchInput = Shared.tasksSearchInput
     private val quickFilterProperty = Shared.taskQuickFilter
+    private val groupModeProperty = Shared.taskGroupMode
     private val items: ObservableList<TaskModel> = FXCollections.observableArrayList()
     private val filteredItems = FilteredList(items)
     private val messageContainer = vbox {
@@ -55,6 +63,21 @@ class TaskTableView : View() {
             alignment = Pos.CENTER_LEFT
             button("Clear tasks", FontIcon.of(Feather.TRASH_2)) {
                 action { clearTasks() }
+            }
+            label("Group") {
+                styleClass.add(Styles.TEXT_MUTED)
+            }
+            combobox<TaskGroupMode> {
+                items = FXCollections.observableArrayList(TaskGroupMode.entries)
+                value = groupModeProperty.get()
+                converter = object : StringConverter<TaskGroupMode>() {
+                    override fun toString(value: TaskGroupMode?): String = value?.label.orEmpty()
+                    override fun fromString(value: String?): TaskGroupMode? =
+                        TaskGroupMode.entries.firstOrNull { it.label == value }
+                }
+                valueProperty().addListener { _, _, selected ->
+                    if (selected != null) groupModeProperty.set(selected)
+                }
             }
             spacer()
             add(
@@ -81,6 +104,7 @@ class TaskTableView : View() {
     init {
         searchInput.addListener { _, _, _ -> applyTaskFilter() }
         quickFilterProperty.addListener { _, _, _ -> applyTaskFilter() }
+        groupModeProperty.addListener { _, _, _ -> refresh() }
         applyTaskFilter()
         titleProperty.bind(filteredItems.sizeProperty.map {
             if (it.toLong() > 0) {
@@ -145,14 +169,72 @@ class TaskTableView : View() {
     }
 
     private fun refresh() {
-        messageContainer.children.setAll(filteredItems.map(::createMessage))
+        val tasks = filteredItems.toList()
+        val mode = groupModeProperty.get() ?: TaskGroupMode.NONE
+        if (mode == TaskGroupMode.NONE) {
+            messageContainer.children.setAll(tasks.map(::taskCard))
+            return
+        }
+        val groups = tasks.groupBy { groupLabel(it, mode) }
+            .toSortedMap(compareBy { if (it == "No post") "\uFFFF$it" else it })
+        val children = mutableListOf<javafx.scene.Node>()
+        groups.forEach { (label, groupTasks) ->
+            children.add(groupHeader(label, groupTasks.size))
+            children.addAll(groupTasks.sortedByDescending { it.updatedAt }.map(::taskCard))
+        }
+        messageContainer.children.setAll(children)
     }
+
+    private fun groupLabel(task: TaskModel, mode: TaskGroupMode): String =
+        when (mode) {
+            TaskGroupMode.NONE -> ""
+            TaskGroupMode.CATEGORY -> task.taskCategory.name.lowercase().replaceFirstChar { it.uppercase() }
+            TaskGroupMode.POST -> task.postEntityId?.let { "Post #$it" } ?: "No post"
+        }
+
+    private fun groupHeader(label: String, count: Int): javafx.scene.Node =
+        Label("$label ($count)").apply {
+            styleClass.addAll(Styles.TEXT_BOLD, Styles.TEXT_MUTED)
+            padding = Insets(8.0, 4.0, 0.0, 4.0)
+        }
+
+    private fun taskCard(task: TaskModel): javafx.scene.Node {
+        val message = createMessage(task)
+        HBox.setHgrow(message, Priority.ALWAYS)
+        val dismiss = Button("", FontIcon.of(Feather.X)).apply {
+            styleClass.add(Styles.FLAT)
+            tooltip = Tooltip("Dismiss task")
+            setOnAction {
+                coroutineScope.launch { taskController.dismiss(task.id) }
+            }
+        }
+        return HBox(8.0, message, dismiss).apply {
+            alignment = Pos.TOP_LEFT
+            maxWidth = Double.MAX_VALUE
+            message.maxWidth = Double.MAX_VALUE
+            style = "-fx-border-color: transparent transparent transparent ${statusColor(task.status)}; " +
+                    "-fx-border-width: 0 0 0 3; -fx-padding: 0 0 0 8;"
+        }
+    }
+
+    private fun statusColor(status: TaskStatus): String =
+        when (status) {
+            TaskStatus.WAITING -> "-color-fg-muted"
+            TaskStatus.RUNNING -> "-color-accent-emphasis"
+            TaskStatus.SUCCESS -> "-color-success-emphasis"
+            TaskStatus.WARNING -> "-color-warning-emphasis"
+            TaskStatus.FAILURE -> "-color-danger-emphasis"
+        }
 
     private fun createMessage(task: TaskModel): Message {
         val text = buildString {
             append(task.taskCategory)
             append(" - ")
             append(task.description)
+            task.postEntityId?.let {
+                append("\nPost: #")
+                append(it)
+            }
             if (task.result.isNotBlank()) {
                 append('\n')
                 append(task.result)

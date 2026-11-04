@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter
 
 data class TaskModel(
     val id: Long,
+    val postEntityId: Long?,
     val name: String,
     val taskCategory: TaskCategory,
     val description: String,

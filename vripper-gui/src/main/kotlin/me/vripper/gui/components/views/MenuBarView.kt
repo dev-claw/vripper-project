@@ -92,6 +92,7 @@ class MenuBarView : View() {
                             val connectionSettings = settingsController.findConnectionSettings()
                             val viperGirlsSettings = settingsController.findViperGirlsSettings()
                             val systemSettings = settingsController.findSystemSettings()
+                            val automationSettings = settingsController.findAutomationSettings()
                             val hostSettings = settingsController.findHostSettings()
                             runLater {
                                 find<SettingsFragment>(
@@ -100,6 +101,7 @@ class MenuBarView : View() {
                                         SettingsFragment::connectionSettings to connectionSettings,
                                         SettingsFragment::viperSettings to viperGirlsSettings,
                                         SettingsFragment::systemSettings to systemSettings,
+                                        SettingsFragment::automationSettings to automationSettings,
                                         SettingsFragment::hostSettings to hostSettings,
                                     )
                                 ).openModal()

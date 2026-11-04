@@ -3,7 +3,9 @@ package me.vripper.web.grpc
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import me.vripper.entities.CustomField as EntityCustomField
 import me.vripper.entities.ImageEntity
+import me.vripper.entities.PostActionEntity
 import me.vripper.entities.TaskEntity
 import me.vripper.model.*
 import me.vripper.proto.*
@@ -97,11 +99,26 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             .addAllTasks(appEndpointService.findAllTasks().map(::mapper))
             .build()
 
+    override suspend fun findTasksByPostId(request: EndpointServiceOuterClass.Id): EndpointServiceOuterClass.Tasks =
+        EndpointServiceOuterClass.Tasks.newBuilder()
+            .addAllTasks(appEndpointService.findTasksByPostEntityId(request.id).map(::mapper))
+            .build()
+
     override fun onNewTask(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Task> =
         appEndpointService.onNewTask().map(::mapper)
 
     override fun onUpdateTask(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Task> =
         appEndpointService.onUpdateTask().map(::mapper)
+
+    override suspend fun dismissTask(request: EndpointServiceOuterClass.Id): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.dismissTask(request.id)
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override fun onDismissTask(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Id> =
+        appEndpointService.onDismissTask().map {
+            EndpointServiceOuterClass.Id.newBuilder().setId(it).build()
+        }
 
     override suspend fun clearTasks(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.clearTasks()
@@ -136,6 +153,43 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
 
     override suspend fun renameToFirst(request: EndpointServiceOuterClass.RenameToFirst): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.renameToFirst(request.postIdsList)
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override fun onUpdatePostActions(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.PostAction> =
+        appEndpointService.onUpdatePostActions().map(::mapper)
+
+    override suspend fun findPostAction(request: EndpointServiceOuterClass.Id): EndpointServiceOuterClass.PostAction {
+        val action = appEndpointService.findPostAction(request.id)
+            ?: return EndpointServiceOuterClass.PostAction.getDefaultInstance()
+        return mapper(action)
+    }
+
+    override suspend fun findAllPostActions(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.PostActions =
+        EndpointServiceOuterClass.PostActions.newBuilder()
+            .addAllPostActions(appEndpointService.findAllPostActions().map(::mapper))
+            .build()
+
+    override suspend fun runPostAction(request: EndpointServiceOuterClass.Id): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.runPostAction(request.id)
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override suspend fun retryPostAction(request: EndpointServiceOuterClass.Id): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.retryPostAction(request.id)
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override suspend fun skipPostAction(request: EndpointServiceOuterClass.Id): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.skipPostAction(request.id)
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override suspend fun updateCustomFields(request: EndpointServiceOuterClass.CustomFieldsUpdate): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.updateCustomFields(
+            request.postId,
+            request.customFieldsList.map { EntityCustomField(it.name, it.value) }
+        )
         return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
@@ -234,6 +288,19 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     enableClipboardMonitoring = request.systemSettings.enableClipboardMonitoring,
                     clipboardPollingRate = request.systemSettings.clipboardPollingRate,
                     maxEventLog = request.systemSettings.maxEventLog,
+                ), automationSettings = AutomationSettings(
+                    enabled = request.automationSettings.enabled,
+                    mode = AutomationMode.valueOf(request.automationSettings.mode.ifBlank { AutomationMode.REVIEW.name }),
+                    compress = request.automationSettings.compress,
+                    action = TriggerAction.valueOf(request.automationSettings.action.ifBlank { TriggerAction.NONE.name }),
+                    moveDestination = request.automationSettings.moveDestination,
+                    moveOverride = request.automationSettings.moveOverride,
+                    webhookUrl = request.automationSettings.webhookUrl,
+                    webhookMethod = WebhookMethod.valueOf(request.automationSettings.webhookMethod.ifBlank { WebhookMethod.POST.name }),
+                    webhookPayload = request.automationSettings.webhookPayload,
+                    scriptPath = request.automationSettings.scriptPath,
+                    scriptArguments = request.automationSettings.scriptArguments,
+                    requiredCustomFields = request.automationSettings.requiredCustomFieldsList,
                 ), hostSettings = request.hostSettingsMap.entries.associate { hostSettings ->
                     HostName.valueOf(hostSettings.key) to hostSettings.value.settingsMap.entries.associate {
                         HostSettingKey.valueOf(
@@ -357,6 +424,22 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             build()
         }
 
+        val automationSettings = with(SettingsOuterClass.AutomationSettings.newBuilder()) {
+            enabled = settings.automationSettings.enabled
+            mode = settings.automationSettings.mode.name
+            compress = settings.automationSettings.compress
+            action = settings.automationSettings.action.name
+            moveDestination = settings.automationSettings.moveDestination
+            moveOverride = settings.automationSettings.moveOverride
+            webhookUrl = settings.automationSettings.webhookUrl
+            webhookMethod = settings.automationSettings.webhookMethod.name
+            webhookPayload = settings.automationSettings.webhookPayload
+            scriptPath = settings.automationSettings.scriptPath
+            scriptArguments = settings.automationSettings.scriptArguments
+            addAllRequiredCustomFields(settings.automationSettings.requiredCustomFields)
+            build()
+        }
+
         val hostSettings = settings.hostSettings.entries.associate {
             val hostSettings = with(SettingsOuterClass.HostSettingsMap.newBuilder()) {
                 this.putAllSettings(it.value.entries.associate { setting ->
@@ -372,6 +455,7 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             this.downloadSettings = downloadSettings
             this.viperSettings = viperSettings
             this.systemSettings = systemSettings
+            this.automationSettings = automationSettings
             this.putAllHostSettings(hostSettings)
             build()
         }
@@ -399,7 +483,28 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             addAllPreviews(post.previews)
             this.postedBy = post.postedBy
             addAllResolvedNames(post.resolvedNames)
+            addAllCustomFields(post.customFields.map {
+                MetadataOuterClass.CustomField.newBuilder().setName(it.name).setValue(it.value).build()
+            })
+            actionState = post.actionState.name
+            actionError = post.actionError
+            addAllMissingFields(post.missingFields)
 
+            build()
+        }
+    }
+
+    private fun mapper(action: PostActionEntity): EndpointServiceOuterClass.PostAction {
+        return with(EndpointServiceOuterClass.PostAction.newBuilder()) {
+            id = action.id
+            postId = action.postIdRef
+            this.action = action.action.name
+            state = action.state.name
+            attempts = action.attempts
+            lastError = action.lastError
+            addAllMissingFields(action.missingFields)
+            targetPath = action.targetPath
+            updatedAt = action.updatedAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             build()
         }
     }
@@ -426,6 +531,9 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             postId = metadata.postIdRef
             postedBy = metadata.data.postedBy
             addAllResolvedNames(metadata.data.resolvedNames)
+            addAllCustomFields(metadata.data.customFields.map {
+                MetadataOuterClass.CustomField.newBuilder().setName(it.name).setValue(it.value).build()
+            })
 
             build()
         }
@@ -446,6 +554,7 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
     private fun mapper(task: TaskEntity): EndpointServiceOuterClass.Task {
         return with(EndpointServiceOuterClass.Task.newBuilder()) {
             id = task.id
+            task.postEntityId?.let { postEntityId = it }
             name = task.name
             category = task.taskCategory.name
             description = task.description

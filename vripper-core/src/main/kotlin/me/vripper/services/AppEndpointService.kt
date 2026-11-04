@@ -44,6 +44,7 @@ internal class AppEndpointService(
     private val vgAuthService: VGAuthService,
     private val logService: LogService,
     private val taskService: TaskService,
+    private val postActionService: PostActionService,
 ) : IAppEndpointService {
 
     private val log by LoggerDelegate()
@@ -158,6 +159,28 @@ internal class AppEndpointService(
         taskService.submit(RenameTask(postEntityId, newName))
     }
 
+    override suspend fun findPostAction(postEntityId: Long): PostActionEntity? =
+        dataAccessService.findPostActionAsync(postEntityId)
+
+    override suspend fun findAllPostActions(): List<PostActionEntity> =
+        withContext(Dispatchers.IO) { dataAccessService.findAllPostActions() }
+
+    override suspend fun runPostAction(postEntityId: Long) {
+        postActionService.run(postEntityId)
+    }
+
+    override suspend fun retryPostAction(postEntityId: Long) {
+        postActionService.retry(postEntityId)
+    }
+
+    override suspend fun skipPostAction(postEntityId: Long) {
+        postActionService.skip(postEntityId)
+    }
+
+    override suspend fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>) {
+        postActionService.updateCustomFields(postEntityId, customFields)
+    }
+
     override fun onNewPosts(): Flow<Post> =
         EventBus.events.filterIsInstance(PostCreateEvent::class)
             .map { it.postEntities.map { post -> mapper(post) } }
@@ -182,18 +205,31 @@ internal class AppEndpointService(
         val snapshot = dataAccessService.findAllPostsSnapshotAsync()
         val imagesByPost = snapshot.images.groupBy { it.postEntityId }
         val metadataByPost = snapshot.metadata.associateBy { it.postIdRef }
+        val actionsByPost = withContext(Dispatchers.IO) { dataAccessService.findAllPostActions() }
+            .associateBy { it.postIdRef }
         return snapshot.posts.map { postEntity ->
-            mapper(postEntity, imagesByPost[postEntity.id].orEmpty(), metadataByPost[postEntity.id])
+            mapper(
+                postEntity,
+                imagesByPost[postEntity.id].orEmpty(),
+                metadataByPost[postEntity.id],
+                actionsByPost[postEntity.id]
+            )
         }
     }
 
     private suspend fun mapper(postEntity: PostEntity): Post {
         val images = dataAccessService.findImagesByPostEntityIdAsync(postEntity.id)
         val metadata = dataAccessService.findMetadataByPostEntityIdAsync(postEntity.id).orElse(null)
-        return mapper(postEntity, images, metadata)
+        val action = dataAccessService.findPostActionAsync(postEntity.id)
+        return mapper(postEntity, images, metadata, action)
     }
 
-    private fun mapper(postEntity: PostEntity, images: List<ImageEntity>, metadata: MetadataEntity?): Post {
+    private fun mapper(
+        postEntity: PostEntity,
+        images: List<ImageEntity>,
+        metadata: MetadataEntity?,
+        action: PostActionEntity? = null,
+    ): Post {
         return Post(
             postEntity.id,
             postEntity.postTitle,
@@ -215,12 +251,17 @@ internal class AppEndpointService(
             images.map { it.thumbUrl },
             metadata?.data?.postedBy ?: "",
             metadata?.data?.resolvedNames ?: emptyList(),
+            metadata?.data?.customFields ?: emptyList(),
+            action?.state ?: ActionState.NONE,
+            action?.lastError ?: "",
+            action?.missingFields ?: emptyList(),
         )
     }
 
     override suspend fun findPost(postEntityId: Long): Post {
         val snapshot = dataAccessService.findPostSnapshotAsync(postEntityId)
-        return mapper(snapshot.post, snapshot.images, snapshot.metadata)
+        val action = dataAccessService.findPostActionAsync(postEntityId)
+        return mapper(snapshot.post, snapshot.images, snapshot.metadata, action)
     }
 
     override suspend fun findImagesByPostEntityId(postEntityId: Long): List<Image> {
@@ -237,6 +278,9 @@ internal class AppEndpointService(
 
     override fun onStopped(): Flow<Long> =
         EventBus.events.filterIsInstance(StoppedEvent::class).flatMapConcat { it.postIds.asFlow() }
+
+    override fun onUpdatePostActions(): Flow<PostActionEntity> =
+        EventBus.events.filterIsInstance(PostActionUpdateEvent::class).map { it.postActionEntity }
 
     override fun onNewLog() = EventBus.events.filterIsInstance(LogCreateEvent::class).map { it.logEntryEntity }
 
@@ -282,11 +326,19 @@ internal class AppEndpointService(
 
     override suspend fun findAllTasks(): List<TaskEntity> = taskService.findAllAsync()
 
+    override suspend fun findTasksByPostEntityId(postEntityId: Long): List<TaskEntity> =
+        taskService.findByPostEntityIdAsync(postEntityId)
+
     override fun onNewTask(): Flow<TaskEntity> =
         EventBus.events.filterIsInstance(TaskCreateEvent::class).map { it.taskEntity }
 
     override fun onUpdateTask(): Flow<TaskEntity> =
         EventBus.events.filterIsInstance(TaskUpdateEvent::class).map { it.taskEntity }
+
+    override suspend fun dismissTask(taskId: Long) = taskService.dismissAsync(taskId)
+
+    override fun onDismissTask(): Flow<Long> =
+        EventBus.events.filterIsInstance(TaskDismissEvent::class).map { it.taskId }
 
     override suspend fun clearTasks() = taskService.clearAsync()
 

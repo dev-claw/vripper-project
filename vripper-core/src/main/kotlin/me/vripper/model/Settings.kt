@@ -25,7 +25,8 @@ data class Settings(
     val systemSettings: SystemSettings = SystemSettings(),
     val hostSettings: Map<HostName, Map<HostSettingKey, String>> = mapOf(
         HostName.IMX to mapOf(HostSettingKey.TRY_TO_FETCH_ORIGINAL_FILENAME to "false")
-    )
+    ),
+    val automationSettings: AutomationSettings = AutomationSettings()
 )
 
 @Serializable
@@ -66,4 +67,34 @@ data class SystemSettings(
     val clipboardPollingRate: Int = 500,
     val maxEventLog: Int = 1_000,
 )
+
+@Serializable
+data class AutomationSettings(
+    val enabled: Boolean = false,
+    val mode: AutomationMode = AutomationMode.REVIEW,
+    val compress: Boolean = false,
+    val action: TriggerAction = TriggerAction.NONE,
+    val moveDestination: String = "",
+    val moveOverride: Boolean = false,
+    val webhookUrl: String = "",
+    val webhookMethod: WebhookMethod = WebhookMethod.POST,
+    val webhookPayload: String = "",
+    val scriptPath: String = "",
+    val scriptArguments: String = "",
+    val requiredCustomFields: List<String> = emptyList(),
+) {
+    fun isActive(): Boolean = enabled && (compress || action != TriggerAction.NONE)
+}
+
+enum class AutomationMode {
+    AUTO, REVIEW
+}
+
+enum class TriggerAction {
+    NONE, MOVE, WEBHOOK, SCRIPT
+}
+
+enum class WebhookMethod {
+    GET, POST
+}
 

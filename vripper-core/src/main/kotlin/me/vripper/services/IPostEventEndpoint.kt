@@ -3,6 +3,7 @@ package me.vripper.services
 import kotlinx.coroutines.flow.Flow
 import me.vripper.model.Image
 import me.vripper.model.Metadata
+import me.vripper.entities.PostActionEntity
 import me.vripper.model.Post
 
 interface IPostEventEndpoint {
@@ -13,4 +14,5 @@ interface IPostEventEndpoint {
     fun onUpdateImagesByPostEntityId(postEntityId: Long): Flow<Image>
     fun onUpdateImages(): Flow<Image>
     fun onStopped(): Flow<Long>
+    fun onUpdatePostActions(): Flow<PostActionEntity>
 }

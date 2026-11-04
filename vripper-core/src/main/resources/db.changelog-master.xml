@@ -189,4 +189,52 @@
             <column name="CREATED_AT"/>
         </createIndex>
     </changeSet>
+    <changeSet author="vripper" id="0013">
+        <createTable tableName="POST_ACTION">
+            <column autoIncrement="true" name="ID" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="POST_ACTION_PK"/>
+            </column>
+            <column name="POST_ID_REF" type="INTEGER">
+                <constraints nullable="false" unique="true" uniqueConstraintName="POST_ACTION_POST_ID_REF_UQ"
+                             foreignKeyName="POST_ACTION_POST_ID_REF_POST_ID_FK" references="POST(ID)"/>
+            </column>
+            <column name="ACTION" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="STATE" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValue="0" name="ATTEMPTS" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValue="" name="LAST_ERROR" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValue="" name="MISSING_FIELDS" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValue="" name="TARGET_PATH" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="CREATED_AT" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="UPDATED_AT" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex indexName="POST_ACTION_STATE_IDX" tableName="POST_ACTION">
+            <column name="STATE"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="vripper" id="0014">
+        <addColumn tableName="TASK">
+            <column name="POST_ENTITY_ID" type="INTEGER">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <createIndex indexName="TASK_POST_ENTITY_ID_IDX" tableName="TASK">
+            <column name="POST_ENTITY_ID"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>
