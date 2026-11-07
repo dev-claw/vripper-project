@@ -57,15 +57,14 @@ internal class ImxHost : Host("imx", listOf("imx.to"), 8) {
                 HtmlUtils.clean(response.entity.content)
             }
 
-            log.debug("Looking for xpath expression $IMG_XPATH in $pageUrl")
-            val imgNode = XpathUtils.getAsNode(doc, IMG_XPATH)
+            log.debug("Looking for xpath expression $TITLE_XPATH in $pageUrl")
+            val imgNode = XpathUtils.getAsNode(doc, TITLE_XPATH)
 
             log.debug("Resolving name for $pageUrl")
-            val imgTitle = imgNode?.attributes?.getNamedItem("alt")?.textContent?.trim() ?: ""
-            if (imgTitle.isBlank()) {
+            val imgTitle = imgNode?.textContent?.trim() ?: ""
+            imgTitle.ifBlank {
+                log.warn("Failed to retrieve the original title for ${context.imageEntity.url}, defaulting to generic file name")
                 getDefaultImageName(context.imageEntity.thumbUrl)
-            } else {
-                imgTitle
             }
         } else {
             getDefaultImageName(context.imageEntity.thumbUrl)
@@ -124,6 +123,6 @@ internal class ImxHost : Host("imx", listOf("imx.to"), 8) {
 
     companion object {
         private const val CONTINUE_BUTTON_XPATH = "//*[@name='imgContinue']"
-        private const val IMG_XPATH = "//img[@class='centred']"
+        private const val TITLE_XPATH = "//div[contains(@class,'img-title')]"
     }
 }
