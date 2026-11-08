@@ -3,6 +3,7 @@ package me.vripper.gui.model
 import javafx.beans.property.*
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import me.vripper.entities.CustomField
 import tornadofx.getValue
 import tornadofx.setValue
 
@@ -24,7 +25,11 @@ class PostModel(
     previewList: List<String>,
     altTitles: List<String>,
     postedBy: String,
-    var vgThreadId: Long
+    var vgThreadId: Long,
+    customFields: List<CustomField> = emptyList(),
+    actionState: String = "",
+    actionError: String = "",
+    missingFields: List<String> = emptyList(),
 ) {
 
     val titleProperty = SimpleStringProperty(title)
@@ -72,4 +77,16 @@ class PostModel(
 
     val postedByProperty = SimpleStringProperty(postedBy)
     var postedBy: String by postedByProperty
+
+    val customFieldsProperty = SimpleListProperty(FXCollections.observableArrayList(customFields))
+    var customFields: ObservableList<CustomField> by customFieldsProperty
+
+    val actionStateProperty = SimpleStringProperty(actionState)
+    var actionState: String by actionStateProperty
+
+    val actionErrorProperty = SimpleStringProperty(actionError)
+    var actionError: String by actionErrorProperty
+
+    val missingFieldsProperty = SimpleListProperty(FXCollections.observableArrayList(missingFields))
+    var missingFields: ObservableList<String> by missingFieldsProperty
 }

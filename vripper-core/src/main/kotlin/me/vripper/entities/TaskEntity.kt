@@ -9,6 +9,7 @@ import java.time.LocalDateTime
 @Serializable
 data class TaskEntity(
     val id: Long = -1,
+    val postEntityId: Long? = null,
     val name: String,
     val taskCategory: TaskCategory,
     val description: String,

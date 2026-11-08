@@ -13,6 +13,12 @@ enum class TaskQuickFilter(val label: String) {
     ISSUES("Issues"),
 }
 
+enum class TaskGroupMode(val label: String) {
+    NONE("None"),
+    CATEGORY("Category"),
+    POST("Post"),
+}
+
 enum class LogQuickFilter(val label: String) {
     ALL("All"),
     ERRORS("Errors"),

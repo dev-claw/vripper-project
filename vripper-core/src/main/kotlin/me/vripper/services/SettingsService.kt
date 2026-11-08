@@ -8,6 +8,7 @@ import me.vripper.event.EventBus
 import me.vripper.event.SettingsUpdateEvent
 import me.vripper.exception.ValidationException
 import me.vripper.model.Settings
+import me.vripper.model.TriggerAction
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.md5Hex
@@ -191,6 +192,39 @@ class SettingsService(private val eventBus: EventBus) {
             throw ValidationException(
                 "Invalid request rate limit, values must be in [1,5]"
             )
+        }
+
+        val automation = settings.automationSettings
+        if (automation.enabled) {
+            if (automation.action == TriggerAction.MOVE && automation.moveDestination.isBlank()) {
+                throw ValidationException("Automation move destination must not be empty")
+            }
+            if (automation.action == TriggerAction.WEBHOOK) {
+                if (automation.webhookUrl.isBlank()) {
+                    throw ValidationException("Automation webhook URL must not be empty")
+                }
+                try {
+                    java.net.URI.create(automation.webhookUrl)
+                } catch (_: IllegalArgumentException) {
+                    throw ValidationException("Automation webhook URL is invalid")
+                }
+            }
+            if (automation.action == TriggerAction.SCRIPT) {
+                if (automation.scriptPath.isBlank()) {
+                    throw ValidationException("Automation script path must not be empty")
+                }
+                val scriptPath = try {
+                    Paths.get(automation.scriptPath)
+                } catch (_: InvalidPathException) {
+                    throw ValidationException("Automation script path is invalid")
+                }
+                if (!Files.isRegularFile(scriptPath)) {
+                    throw ValidationException("Automation script does not exist: ${automation.scriptPath}")
+                }
+            }
+            if (automation.requiredCustomFields.any { it.isBlank() }) {
+                throw ValidationException("Automation custom field names must not be empty")
+            }
         }
     }
 }

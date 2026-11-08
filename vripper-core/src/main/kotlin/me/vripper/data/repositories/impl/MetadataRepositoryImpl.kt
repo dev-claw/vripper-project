@@ -10,15 +10,26 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.update
 import java.sql.Connection
 import java.util.*
 
 internal class MetadataRepositoryImpl : MetadataRepository {
 
     override fun save(metadataEntity: MetadataEntity): MetadataEntity {
-        MetadataTable.insert {
-            it[postIdRef] = metadataEntity.postIdRef
-            it[data] = Json.encodeToString(metadataEntity.data)
+        val encoded = Json.encodeToString(metadataEntity.data)
+        val exists = MetadataTable.selectAll().where {
+            MetadataTable.postIdRef eq metadataEntity.postIdRef
+        }.any()
+        if (exists) {
+            MetadataTable.update({ MetadataTable.postIdRef eq metadataEntity.postIdRef }) {
+                it[data] = encoded
+            }
+        } else {
+            MetadataTable.insert {
+                it[postIdRef] = metadataEntity.postIdRef
+                it[data] = encoded
+            }
         }
 
         return metadataEntity

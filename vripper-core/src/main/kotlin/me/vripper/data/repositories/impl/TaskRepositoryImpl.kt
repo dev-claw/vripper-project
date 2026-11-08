@@ -12,6 +12,7 @@ internal class TaskRepositoryImpl : TaskRepository {
 
     override fun save(taskEntity: TaskEntity): TaskEntity {
         val id = TaskTable.insertAndGetId {
+            it[postEntityId] = taskEntity.postEntityId
             it[name] = taskEntity.name
             it[category] = taskEntity.taskCategory.name
             it[description] = taskEntity.description
@@ -54,6 +55,7 @@ internal class TaskRepositoryImpl : TaskRepository {
     private fun transform(resultRow: ResultRow): TaskEntity {
         return TaskEntity(
             id = resultRow[TaskTable.id].value,
+            postEntityId = resultRow[TaskTable.postEntityId],
             name = resultRow[TaskTable.name],
             taskCategory = TaskCategory.valueOf(resultRow[TaskTable.category]),
             description = resultRow[TaskTable.description],

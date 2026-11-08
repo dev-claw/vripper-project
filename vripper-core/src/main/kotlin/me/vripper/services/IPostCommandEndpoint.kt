@@ -1,5 +1,8 @@
 package me.vripper.services
 
+import me.vripper.entities.CustomField
+import me.vripper.entities.PostActionEntity
+
 interface IPostCommandEndpoint {
 
     enum class ScanOrigin(val str: String) {
@@ -16,4 +19,10 @@ interface IPostCommandEndpoint {
     suspend fun clearCompleted(): List<Long>
     suspend fun rename(postEntityId: Long, newName: String)
     suspend fun renameToFirst(postEntityIds: List<Long>)
+    suspend fun findPostAction(postEntityId: Long): PostActionEntity?
+    suspend fun findAllPostActions(): List<PostActionEntity>
+    suspend fun runPostAction(postEntityId: Long)
+    suspend fun retryPostAction(postEntityId: Long)
+    suspend fun skipPostAction(postEntityId: Long)
+    suspend fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>)
 }

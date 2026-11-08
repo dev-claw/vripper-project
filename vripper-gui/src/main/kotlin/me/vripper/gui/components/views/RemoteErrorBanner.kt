@@ -1,42 +1,37 @@
 package me.vripper.gui.components.views
 
+import atlantafx.base.controls.Message
+import atlantafx.base.theme.Styles
 import javafx.beans.property.SimpleBooleanProperty
-import javafx.beans.property.SimpleStringProperty
-import javafx.scene.paint.Color
+import javafx.event.EventHandler
 import kotlinx.coroutines.*
 import me.vripper.gui.event.GuiEventBus
+import org.kordamp.ikonli.javafx.FontIcon
+import org.kordamp.ikonli.material2.Material2OutlinedAL
 import tornadofx.View
-import tornadofx.action
-import tornadofx.button
-import tornadofx.hbox
-import tornadofx.insets
-import tornadofx.label
 import tornadofx.runLater
 
 class RemoteErrorBanner : View() {
 
-    private val message = SimpleStringProperty("")
     private val visible = SimpleBooleanProperty(false)
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var hideJob: Job? = null
 
-    override val root = hbox {
-        id = "remote_error_banner"
-        spacing = 8.0
-        padding = insets(6.0, 10.0, 6.0, 10.0)
-        style = "-fx-background-color: #b00020; -fx-background-radius: 0;"
-        visibleProperty().bind(visible)
-        managedProperty().bind(visible)
-        label(message) {
-            textFill = Color.WHITE
-            maxWidth = Double.MAX_VALUE
-        }
-        button("Dismiss") {
-            action { hide() }
-        }
+    private val message = Message(
+        "Error",
+        "",
+        FontIcon(Material2OutlinedAL.ERROR_OUTLINE)
+    ).apply {
+        styleClass.add(Styles.DANGER)
+        maxWidth = Double.MAX_VALUE
+        onClose = EventHandler { hide() }
     }
 
+    override val root = message
+
     init {
+        root.visibleProperty().bind(visible)
+        root.managedProperty().bind(visible)
         coroutineScope.launch {
             GuiEventBus.events.collect { event ->
                 if (event is GuiEventBus.RemoteError) {
@@ -53,11 +48,11 @@ class RemoteErrorBanner : View() {
 
     private fun show(event: GuiEventBus.RemoteError) {
         val text = "${event.source}: ${event.message}"
-        if (visible.get() && message.get() == text) {
+        if (visible.get() && message.description == text) {
             scheduleHide()
             return
         }
-        message.set(text)
+        message.description = text
         visible.set(true)
         scheduleHide()
     }

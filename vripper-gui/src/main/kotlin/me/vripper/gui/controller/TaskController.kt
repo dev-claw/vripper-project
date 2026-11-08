@@ -58,6 +58,11 @@ class TaskController : Controller() {
         remoteAppEndpointService::onClearTasks,
     )
 
+    val dismissTask = ChannelFlowBuilder.build(
+        localAppEndpointService::onDismissTask,
+        remoteAppEndpointService::onDismissTask,
+    )
+
     init {
         taskScope.launch {
             newTask.collect { upsert(it) }
@@ -67,6 +72,11 @@ class TaskController : Controller() {
         }
         taskScope.launch {
             clearTasks.collect { taskMap.value = emptyMap() }
+        }
+        taskScope.launch {
+            dismissTask.collect { taskId ->
+                taskMap.update { current -> current - taskId }
+            }
         }
         taskScope.launch {
             GuiEventBus.events.collect { event ->
@@ -90,6 +100,10 @@ class TaskController : Controller() {
         }.getOrDefault(emptyList())
     }
 
+    suspend fun dismiss(taskId: Long) {
+        GuiErrorReporter.call("tasks.dismiss") { currentAppEndpointService().dismissTask(taskId) }
+    }
+
     suspend fun clearAll() {
         GuiErrorReporter.call("tasks.clear") { currentAppEndpointService().clearTasks() }
     }
@@ -105,6 +119,7 @@ class TaskController : Controller() {
     private fun mapper(task: TaskEntity): TaskModel {
         return TaskModel(
             id = task.id,
+            postEntityId = task.postEntityId,
             name = task.name,
             taskCategory = task.taskCategory,
             description = task.description,

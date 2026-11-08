@@ -14,3 +14,14 @@ fun parseStatus(value: String): Status? = Status.entries.firstOrNull {
 fun String.displayStatusLabel(): String = parseStatus(this)?.displayLabel() ?: this
 
 fun String.matchesStatus(status: Status): Boolean = parseStatus(this) == status
+
+fun String.displayActionState(): String = when (uppercase()) {
+    "", "NONE" -> "None"
+    "AWAITING_REVIEW" -> "Awaiting review"
+    "READY" -> "Ready"
+    "RUNNING" -> "Running"
+    "DONE" -> "Done"
+    "FAILED" -> "Failed"
+    "SKIPPED" -> "Skipped"
+    else -> lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+}

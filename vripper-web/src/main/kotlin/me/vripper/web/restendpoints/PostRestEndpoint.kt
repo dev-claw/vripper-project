@@ -1,10 +1,13 @@
 package me.vripper.web.restendpoints
 
 import kotlinx.coroutines.runBlocking
+import me.vripper.entities.PostActionEntity
 import me.vripper.model.PostSelection
 import me.vripper.model.ThreadPostId
 import me.vripper.services.IAppEndpointService
 import me.vripper.utilities.LoggerDelegate
+import me.vripper.web.restendpoints.domain.CustomFieldsRequest
+import me.vripper.web.restendpoints.domain.PostActionRequest
 import me.vripper.web.restendpoints.domain.RenameRequest
 import me.vripper.web.restendpoints.domain.ScanRequest
 import me.vripper.web.restendpoints.exceptions.BadRequestException
@@ -107,5 +110,41 @@ class PostRestEndpoint : KoinComponent {
     @ResponseStatus(value = HttpStatus.OK)
     fun rename(@RequestBody renameRequest: RenameRequest) {
         runBlocking { appEndpointService.rename(renameRequest.postId, renameRequest.name) }
+    }
+
+    @GetMapping("/post/{postId}/action")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun findAction(@PathVariable("postId") postId: Long): PostActionEntity? {
+        return runBlocking { appEndpointService.findPostAction(postId) }
+    }
+
+    @GetMapping("/post/actions")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun findAllActions(): List<PostActionEntity> {
+        return runBlocking { appEndpointService.findAllPostActions() }
+    }
+
+    @PostMapping("/post/action/run")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun runAction(@RequestBody request: PostActionRequest) {
+        runBlocking { appEndpointService.runPostAction(request.postId) }
+    }
+
+    @PostMapping("/post/action/retry")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun retryAction(@RequestBody request: PostActionRequest) {
+        runBlocking { appEndpointService.retryPostAction(request.postId) }
+    }
+
+    @PostMapping("/post/action/skip")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun skipAction(@RequestBody request: PostActionRequest) {
+        runBlocking { appEndpointService.skipPostAction(request.postId) }
+    }
+
+    @PostMapping("/post/custom-fields")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun updateCustomFields(@RequestBody request: CustomFieldsRequest) {
+        runBlocking { appEndpointService.updateCustomFields(request.postId, request.customFields) }
     }
 }

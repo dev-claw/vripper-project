@@ -75,7 +75,7 @@ class ActionBarView : View() {
             }
             separator(Orientation.VERTICAL)
 
-            button("Start All", FontIcon.of(Feather.SKIP_FORWARD)) {
+            button("Start All", FontIcon.of(Feather.PLAY)) {
                 contentDisplay = ContentDisplay.GRAPHIC_ONLY
                 tooltip("Start downloads [Ctrl+S]")
                 disableWhen(downloadActiveProperty)
@@ -126,6 +126,7 @@ class ActionBarView : View() {
                         val connectionSettings = settingsController.findConnectionSettings()
                         val viperGirlsSettings = settingsController.findViperGirlsSettings()
                         val systemSettings = settingsController.findSystemSettings()
+                        val automationSettings = settingsController.findAutomationSettings()
                         val hostSettings = settingsController.findHostSettings()
                         runLater {
                             find<SettingsFragment>(
@@ -134,6 +135,7 @@ class ActionBarView : View() {
                                     SettingsFragment::connectionSettings to connectionSettings,
                                     SettingsFragment::viperSettings to viperGirlsSettings,
                                     SettingsFragment::systemSettings to systemSettings,
+                                    SettingsFragment::automationSettings to automationSettings,
                                     SettingsFragment::hostSettings to hostSettings,
                                 )
                             ).openModal()

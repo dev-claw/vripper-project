@@ -231,24 +231,6 @@ class PostWorkspaceFragment : Fragment("Image Viewer") {
             }
         }
 
-        val startButton = Button().apply {
-            graphic = FontIcon.of(Feather.PLAY)
-            styleClass.add(Styles.BUTTON_ICON)
-            tooltip = Tooltip("Start downloads for this post")
-            visibleProperty().bind(browseModeProperty)
-            managedProperty().bind(browseModeProperty)
-            setOnAction { startPostDownloads() }
-        }
-
-        val stopButton = Button().apply {
-            graphic = FontIcon.of(Feather.SQUARE)
-            styleClass.add(Styles.BUTTON_ICON)
-            tooltip = Tooltip("Stop downloads for this post")
-            visibleProperty().bind(browseModeProperty)
-            managedProperty().bind(browseModeProperty)
-            setOnAction { stopPostDownloads() }
-        }
-
         val prevButton = Button().apply {
             graphic = FontIcon.of(Feather.ARROW_LEFT)
             styleClass.add(Styles.BUTTON_ICON)
@@ -290,9 +272,6 @@ class PostWorkspaceFragment : Fragment("Image Viewer") {
         toolbar = ToolBar(
             browseToggle,
             viewToggle,
-            Separator(Orientation.VERTICAL),
-            startButton,
-            stopButton,
             Separator(Orientation.VERTICAL),
             prevButton,
             nextButton,
@@ -773,20 +752,6 @@ class PostWorkspaceFragment : Fragment("Image Viewer") {
      */
     private fun setThumbSize(newSize: Double) {
         workspacePane?.setThumbSize(newSize)
-    }
-
-    private fun startPostDownloads() {
-        val postId = sources.firstOrNull()?.postEntityId?.takeIf { it >= 0 } ?: return
-        coroutineScope.launch {
-            postController.start(listOf(postId))
-        }
-    }
-
-    private fun stopPostDownloads() {
-        val postId = sources.firstOrNull()?.postEntityId?.takeIf { it >= 0 } ?: return
-        coroutineScope.launch {
-            postController.stop(listOf(postId))
-        }
     }
 
     /**

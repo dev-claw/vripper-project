@@ -71,6 +71,7 @@ internal class TaskService(
 
     fun register(task: ITask): TaskEntity {
         val taskEntity = TaskEntity(
+            postEntityId = task.getPostEntityId(),
             name = task.getName(),
             taskCategory = task.getCategory(),
             description = task.getDescription(),
@@ -109,6 +110,10 @@ internal class TaskService(
         return dbQuery { taskRepository.findAll() }
     }
 
+    suspend fun findByPostEntityIdAsync(postEntityId: Long): List<TaskEntity> {
+        return dbQuery { taskRepository.findAll().filter { it.postEntityId == postEntityId } }
+    }
+
     fun clear() {
         transaction { taskRepository.deleteAll() }
         log.debug("[{}] Publishing event: TaskClearEvent", System.currentTimeMillis())
@@ -119,6 +124,12 @@ internal class TaskService(
         dbQuery { taskRepository.deleteAll() }
         log.debug("[{}] Publishing event: TaskClearEvent", System.currentTimeMillis())
         eventBus.publishEvent(TaskClearEvent())
+    }
+
+    suspend fun dismissAsync(taskId: Long) {
+        dbQuery { taskRepository.deleteById(taskId) }
+        log.debug("[{}] Publishing event: TaskDismissEvent for task {}", System.currentTimeMillis(), taskId)
+        eventBus.publishEvent(TaskDismissEvent(taskId))
     }
 
     private suspend fun <T> dbQuery(block: suspend Transaction.() -> T): T =

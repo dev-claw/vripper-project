@@ -7,4 +7,5 @@ interface ITask {
     fun getDescription(): String
     fun getResult(): String
     fun getStatus(): TaskStatus
+    fun getPostEntityId(): Long? = null
 }

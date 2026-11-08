@@ -1,8 +1,14 @@
 syntax = "proto3";
 option java_package = "me.vripper.proto";
 
+message CustomField {
+  string name = 1;
+  string value = 2;
+}
+
 message Metadata {
   int64 postId = 1;
   string postedBy = 2;
   repeated string resolvedNames = 3;
+  repeated CustomField customFields = 4;
 }

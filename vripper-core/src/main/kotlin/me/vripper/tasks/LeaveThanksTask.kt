@@ -28,6 +28,8 @@ internal class LeaveThanksTask(
 
     override fun getCategory() = TaskCategory.THANKS
 
+    override fun getPostEntityId() = postEntity.id
+
     override fun getDescription() = "Leaving thanks for post #${postEntity.vgPostId}"
 
     override fun getResult() = result

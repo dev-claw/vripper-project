@@ -34,6 +34,12 @@ class SettingsController : Controller() {
         }.getOrDefault(SystemSettings())
     }
 
+    suspend fun findAutomationSettings(): AutomationSettings {
+        return GuiErrorReporter.call("settings.automation") {
+            AppEndpointManager.currentAppEndpointService().getSettings().automationSettings
+        }.getOrDefault(AutomationSettings())
+    }
+
     suspend fun findHostSettings(): Map<HostName, Map<HostSettingKey, String>> {
         return GuiErrorReporter.call("settings.host") {
             AppEndpointManager.currentAppEndpointService().getSettings().hostSettings
@@ -45,6 +51,7 @@ class SettingsController : Controller() {
         connectionSettingsModel: ConnectionSettingsModel,
         viperSettingsModel: ViperSettingsModel,
         systemSettingsModel: SystemSettingsModel,
+        automationSettingsModel: AutomationSettingsModel,
         hostSettingsModel: List<HostSettingsModel>,
     ) {
         GuiErrorReporter.call("settings.save") {
@@ -82,6 +89,23 @@ class SettingsController : Controller() {
                             systemSettingsModel.pollingRate,
                             systemSettingsModel.logEntries
                         ),
+                    automationSettings = AutomationSettings(
+                        enabled = automationSettingsModel.enabled,
+                        mode = automationSettingsModel.mode,
+                        compress = automationSettingsModel.compress,
+                        action = automationSettingsModel.action,
+                        moveDestination = automationSettingsModel.moveDestination,
+                        moveOverride = automationSettingsModel.moveOverride,
+                        webhookUrl = automationSettingsModel.webhookUrl,
+                        webhookMethod = automationSettingsModel.webhookMethod,
+                        webhookPayload = automationSettingsModel.webhookPayload,
+                        scriptPath = automationSettingsModel.scriptPath,
+                        scriptArguments = automationSettingsModel.scriptArguments,
+                        requiredCustomFields = automationSettingsModel.requiredCustomFields
+                            .split(",")
+                            .map { it.trim() }
+                            .filter { it.isNotEmpty() },
+                    ),
                     hostSettings = run {
                         val hostSettingsMap = mutableMapOf<HostName, MutableMap<HostSettingKey, String>>()
                         hostSettingsModel.forEach { model ->

@@ -99,11 +99,24 @@ class PostWorkspaceState(
         }
 
         jobs += scope.launch {
+            postController.updatePostActionsFlow.filter { it.postIdRef == postEntityId }.collect { action ->
+                runLater {
+                    postModel.get()?.apply {
+                        actionState = action.state.name
+                        actionError = action.lastError
+                        missingFields = FXCollections.observableArrayList(action.missingFields)
+                    }
+                }
+            }
+        }
+
+        jobs += scope.launch {
             postController.updateMetadataFlow.filter { it.postIdRef == postEntityId }.collect { metadata ->
                 runLater {
                     postModel.get()?.apply {
                         altTitles = FXCollections.observableArrayList(metadata.data.resolvedNames)
                         postedBy = metadata.data.postedBy
+                        customFields = FXCollections.observableArrayList(metadata.data.customFields)
                     }
                 }
             }

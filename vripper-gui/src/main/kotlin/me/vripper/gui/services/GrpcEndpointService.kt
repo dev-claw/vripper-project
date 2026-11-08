@@ -5,7 +5,10 @@ import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import me.vripper.entities.ActionState
+import me.vripper.entities.CustomField
 import me.vripper.entities.MetadataEntity
+import me.vripper.entities.PostActionEntity
 import me.vripper.entities.Status
 import me.vripper.entities.TaskEntity
 import me.vripper.model.*
@@ -80,6 +83,37 @@ internal class GrpcEndpointService : IGrpcEndpointService {
         stub.renameToFirst(RenameToFirst.newBuilder().addAllPostIds(postEntityIds).build())
     }
 
+    override suspend fun findPostAction(postEntityId: Long): PostActionEntity? {
+        val action = stub.findPostAction(Id.newBuilder().setId(postEntityId).build())
+        return if (action.id == 0L) null else mapper(action)
+    }
+
+    override suspend fun findAllPostActions(): List<PostActionEntity> =
+        stub.findAllPostActions(EmptyRequest.getDefaultInstance()).postActionsList.map(::mapper)
+
+    override suspend fun runPostAction(postEntityId: Long) {
+        stub.runPostAction(Id.newBuilder().setId(postEntityId).build())
+    }
+
+    override suspend fun retryPostAction(postEntityId: Long) {
+        stub.retryPostAction(Id.newBuilder().setId(postEntityId).build())
+    }
+
+    override suspend fun skipPostAction(postEntityId: Long) {
+        stub.skipPostAction(Id.newBuilder().setId(postEntityId).build())
+    }
+
+    override suspend fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>) {
+        stub.updateCustomFields(
+            CustomFieldsUpdate.newBuilder()
+                .setPostId(postEntityId)
+                .addAllCustomFields(customFields.map {
+                    MetadataOuterClass.CustomField.newBuilder().setName(it.name).setValue(it.value).build()
+                })
+                .build()
+        )
+    }
+
     override fun onNewPosts(): Flow<Post> =
         stub.onNewPosts(EmptyRequest.getDefaultInstance()).map { mapper(it) }
 
@@ -114,6 +148,9 @@ internal class GrpcEndpointService : IGrpcEndpointService {
 
     override fun onStopped(): Flow<Long> =
         stub.onStopped(EmptyRequest.getDefaultInstance()).map { it.id }
+
+    override fun onUpdatePostActions(): Flow<PostActionEntity> =
+        stub.onUpdatePostActions(EmptyRequest.getDefaultInstance()).map(::mapper)
 
 
     override fun onNewLog(): Flow<LogEntry> =
@@ -195,11 +232,21 @@ internal class GrpcEndpointService : IGrpcEndpointService {
     override suspend fun findAllTasks(): List<TaskEntity> =
         stub.findAllTasks(EmptyRequest.getDefaultInstance()).tasksList.map(::mapper)
 
+    override suspend fun findTasksByPostEntityId(postEntityId: Long): List<TaskEntity> =
+        stub.findTasksByPostId(Id.newBuilder().setId(postEntityId).build()).tasksList.map(::mapper)
+
     override fun onNewTask(): Flow<TaskEntity> =
         stub.onNewTask(EmptyRequest.getDefaultInstance()).map(::mapper)
 
     override fun onUpdateTask(): Flow<TaskEntity> =
         stub.onUpdateTask(EmptyRequest.getDefaultInstance()).map(::mapper)
+
+    override suspend fun dismissTask(taskId: Long) {
+        stub.dismissTask(Id.newBuilder().setId(taskId).build())
+    }
+
+    override fun onDismissTask(): Flow<Long> =
+        stub.onDismissTask(EmptyRequest.getDefaultInstance()).map { it.id }
 
     override suspend fun clearTasks() {
         stub.clearTasks(EmptyRequest.getDefaultInstance())
@@ -306,6 +353,20 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             clipboardPollingRate = settings.systemSettings.clipboardPollingRate,
             maxEventLog = settings.systemSettings.maxEventLog,
         ),
+        automationSettings = AutomationSettings(
+            enabled = settings.automationSettings.enabled,
+            mode = AutomationMode.valueOf(settings.automationSettings.mode.ifBlank { AutomationMode.REVIEW.name }),
+            compress = settings.automationSettings.compress,
+            action = TriggerAction.valueOf(settings.automationSettings.action.ifBlank { TriggerAction.NONE.name }),
+            moveDestination = settings.automationSettings.moveDestination,
+            moveOverride = settings.automationSettings.moveOverride,
+            webhookUrl = settings.automationSettings.webhookUrl,
+            webhookMethod = WebhookMethod.valueOf(settings.automationSettings.webhookMethod.ifBlank { WebhookMethod.POST.name }),
+            webhookPayload = settings.automationSettings.webhookPayload,
+            scriptPath = settings.automationSettings.scriptPath,
+            scriptArguments = settings.automationSettings.scriptArguments,
+            requiredCustomFields = settings.automationSettings.requiredCustomFieldsList,
+        ),
         hostSettings = settings.hostSettingsMap.entries.associate {
             val host = HostName.valueOf(it.key)
             val hostSettings = it.value.settingsMap.entries.associate { hostSettingsEntry ->
@@ -357,11 +418,28 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             build()
         }
 
+        val automationSettings = with(SettingsOuterClass.AutomationSettings.newBuilder()) {
+            enabled = this@toProto.automationSettings.enabled
+            mode = this@toProto.automationSettings.mode.name
+            compress = this@toProto.automationSettings.compress
+            action = this@toProto.automationSettings.action.name
+            moveDestination = this@toProto.automationSettings.moveDestination
+            moveOverride = this@toProto.automationSettings.moveOverride
+            webhookUrl = this@toProto.automationSettings.webhookUrl
+            webhookMethod = this@toProto.automationSettings.webhookMethod.name
+            webhookPayload = this@toProto.automationSettings.webhookPayload
+            scriptPath = this@toProto.automationSettings.scriptPath
+            scriptArguments = this@toProto.automationSettings.scriptArguments
+            addAllRequiredCustomFields(this@toProto.automationSettings.requiredCustomFields)
+            build()
+        }
+
         return with(SettingsOuterClass.Settings.newBuilder()) {
             this.connectionSettings = connectionSettings
             this.downloadSettings = downloadSettings
             this.viperSettings = viperSettings
             this.systemSettings = systemSettings
+            this.automationSettings = automationSettings
             this@toProto.hostSettings.forEach { (hostKey, hostSettings) ->
                 val hostSetting = with(SettingsOuterClass.HostSettingsMap.newBuilder()) {
                     hostSettings.forEach { (settingKey, settingValue) ->
@@ -397,6 +475,10 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             previews = postEntity.previewsList.toList(),
             postedBy = postEntity.postedBy,
             resolvedNames = postEntity.resolvedNamesList.toList(),
+            customFields = postEntity.customFieldsList.map { CustomField(it.name, it.value) },
+            actionState = if (postEntity.actionState.isBlank()) ActionState.NONE else ActionState.valueOf(postEntity.actionState),
+            actionError = postEntity.actionError,
+            missingFields = postEntity.missingFieldsList.toList(),
         )
     }
 
@@ -417,7 +499,26 @@ internal class GrpcEndpointService : IGrpcEndpointService {
 
     private fun mapper(metadata: MetadataOuterClass.Metadata): Metadata {
         return Metadata(
-            metadata.postId, MetadataEntity.Data(metadata.postedBy, metadata.resolvedNamesList)
+            metadata.postId,
+            MetadataEntity.Data(
+                metadata.postedBy,
+                metadata.resolvedNamesList,
+                metadata.customFieldsList.map { CustomField(it.name, it.value) }
+            )
+        )
+    }
+
+    private fun mapper(action: EndpointServiceOuterClass.PostAction): PostActionEntity {
+        return PostActionEntity(
+            id = action.id,
+            postIdRef = action.postId,
+            action = TriggerAction.valueOf(action.action.ifBlank { TriggerAction.NONE.name }),
+            state = ActionState.valueOf(action.state.ifBlank { ActionState.NONE.name }),
+            attempts = action.attempts,
+            lastError = action.lastError,
+            missingFields = action.missingFieldsList.toList(),
+            targetPath = action.targetPath,
+            updatedAt = if (action.updatedAt.isBlank()) java.time.LocalDateTime.now() else LocalDateTime.parse(action.updatedAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME),
         )
     }
 
@@ -436,6 +537,7 @@ internal class GrpcEndpointService : IGrpcEndpointService {
     private fun mapper(task: Task): TaskEntity {
         return TaskEntity(
             id = task.id,
+            postEntityId = task.postEntityId.takeIf { it > 0 },
             name = task.name,
             taskCategory = TaskCategory.valueOf(task.category),
             description = task.description,

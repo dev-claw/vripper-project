@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.vripper.data.repositories.ImageRepository
 import me.vripper.data.repositories.MetadataRepository
+import me.vripper.data.repositories.PostActionRepository
 import me.vripper.data.repositories.PostRepository
 import me.vripper.data.repositories.ThreadRepository
 import me.vripper.entities.*
@@ -43,6 +44,7 @@ internal class DataAccessService(
     private val imageRepository: ImageRepository,
     private val threadRepository: ThreadRepository,
     private val metadataRepository: MetadataRepository,
+    private val postActionRepository: PostActionRepository,
     private val eventBus: EventBus,
 ) {
 
@@ -268,19 +270,22 @@ internal class DataAccessService(
             else -> {
                 post.status = Status.FINISHED
                 updatePost(post)
-                if (settingsService.settings.downloadSettings.clearCompleted && automatic) {
+                if (settingsService.settings.automationSettings.isActive()) {
+                    eventBus.publishEvent(PostCompletedEvent(post.id))
+                } else if (settingsService.settings.downloadSettings.clearCompleted && automatic) {
                     remove(listOf(post.id))
                 }
             }
         }
     }
 
-    private fun countErrorsByPostEntityId(postEntityId: Long): Int {
+    fun countErrorsByPostEntityId(postEntityId: Long): Int {
         return transaction { imageRepository.countByPostEntityIdAndIsError(postEntityId) }
     }
 
     private fun remove(postEntityIds: List<Long>) {
         transaction {
+            postActionRepository.deleteAllByPostIds(postEntityIds)
             metadataRepository.deleteAllByPostEntityId(postEntityIds)
             imageRepository.deleteAllByPostEntityId(postEntityIds)
             postRepository.deleteAll(postEntityIds)
@@ -294,6 +299,7 @@ internal class DataAccessService(
 
     private suspend fun removeAsync(postEntityIds: List<Long>) {
         dbQuery {
+            postActionRepository.deleteAllByPostIds(postEntityIds)
             metadataRepository.deleteAllByPostEntityId(postEntityIds)
             imageRepository.deleteAllByPostEntityId(postEntityIds)
             postRepository.deleteAll(postEntityIds)
@@ -318,15 +324,27 @@ internal class DataAccessService(
     }
 
     fun clearCompleted(): List<Long> {
-        val completed = transaction { postRepository.findCompleted() }
+        val completed = transaction {
+            postRepository.findCompleted().filter { isActionTerminal(it) }
+        }
         remove(completed)
         return completed
     }
 
     suspend fun clearCompletedAsync(): List<Long> {
-        val completed = dbQuery { postRepository.findCompleted() }
+        val completed = dbQuery {
+            postRepository.findCompleted().filter { isActionTerminal(it) }
+        }
         removeAsync(completed)
         return completed
+    }
+
+    private fun isActionTerminal(postEntityId: Long): Boolean {
+        val action = postActionRepository.findByPostId(postEntityId) ?: return true
+        return action.state == ActionState.DONE ||
+            action.state == ActionState.FAILED ||
+            action.state == ActionState.SKIPPED ||
+            action.state == ActionState.NONE
     }
 
     fun removeAll(postEntityIds: List<Long> = emptyList()) {
@@ -498,5 +516,46 @@ internal class DataAccessService(
 
     suspend fun findMetadataByPostEntityIdAsync(postEntityId: Long): Optional<MetadataEntity> {
         return dbQuery { metadataRepository.findByPostEntityId(postEntityId) }
+    }
+
+    fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>): MetadataEntity {
+        val metadata = transaction {
+            val existing = metadataRepository.findByPostEntityId(postEntityId).orElse(null)
+            val data = existing?.data?.copy(customFields = customFields)
+                ?: MetadataEntity.Data("", emptyList(), customFields)
+            metadataRepository.save(MetadataEntity(postEntityId, data))
+        }
+        eventBus.publishEvent(MetadataUpdateEvent(metadata))
+        return metadata
+    }
+
+    fun findPostAction(postEntityId: Long): PostActionEntity? {
+        return transaction { postActionRepository.findByPostId(postEntityId) }
+    }
+
+    suspend fun findPostActionAsync(postEntityId: Long): PostActionEntity? {
+        return dbQuery { postActionRepository.findByPostId(postEntityId) }
+    }
+
+    fun findAllPostActions(): List<PostActionEntity> {
+        return transaction { postActionRepository.findAll() }
+    }
+
+    fun findNonTerminalPostActions(): List<PostActionEntity> {
+        return transaction { postActionRepository.findNonTerminal() }
+    }
+
+    fun savePostAction(postAction: PostActionEntity): PostActionEntity {
+        return transaction { postActionRepository.save(postAction) }
+    }
+
+    fun updatePostAction(postAction: PostActionEntity): PostActionEntity {
+        val updated = postAction.copy(updatedAt = java.time.LocalDateTime.now())
+        transaction { postActionRepository.update(updated) }
+        return updated
+    }
+
+    fun deletePostAction(postEntityId: Long) {
+        transaction { postActionRepository.deleteByPostId(postEntityId) }
     }
 }

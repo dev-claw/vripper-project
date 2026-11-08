@@ -81,6 +81,7 @@ internal class PostRepositoryImpl :
             it[size] = postEntity.size
             it[downloaded] = postEntity.downloaded
             it[folderName] = postEntity.folderName
+            it[outputPath] = postEntity.downloadDirectory
         }
     }
 

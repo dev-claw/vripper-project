@@ -21,6 +21,8 @@ internal class RenameTask(
 
     override fun getCategory() = TaskCategory.RENAME
 
+    override fun getPostEntityId() = postEntityId
+
     override fun getDescription() = "Renaming post #$postEntityId to \"$newName\""
 
     override fun getResult() = result

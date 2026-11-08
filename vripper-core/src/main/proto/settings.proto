@@ -40,10 +40,26 @@ message HostSettingsMap {
   map<string, string> settings = 1;
 }
 
+message AutomationSettings {
+  bool enabled = 1;
+  string mode = 2;
+  bool compress = 3;
+  string action = 4;
+  string moveDestination = 5;
+  bool moveOverride = 6;
+  string webhookUrl = 7;
+  string webhookMethod = 8;
+  string webhookPayload = 9;
+  string scriptPath = 10;
+  string scriptArguments = 11;
+  repeated string requiredCustomFields = 12;
+}
+
 message Settings {
   ConnectionSettings connectionSettings = 1;
   DownloadSettings downloadSettings = 2;
   ViperSettings viperSettings = 3;
   SystemSettings systemSettings = 4;
   map<string, HostSettingsMap> hostSettings = 5;
+  AutomationSettings automationSettings = 6;
 }

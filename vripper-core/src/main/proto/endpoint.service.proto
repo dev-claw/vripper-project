@@ -52,6 +52,7 @@ message Task {
   string result = 6;
   string createdAt = 7;
   string updatedAt = 8;
+  int64 postEntityId = 9;
 }
 message Tasks {
   repeated Task tasks = 1;
@@ -62,6 +63,24 @@ message Rename {
 }
 message RenameToFirst {
   repeated int64 postIds = 1;
+}
+message PostAction {
+  int64 id = 1;
+  int64 postId = 2;
+  string action = 3;
+  string state = 4;
+  int32 attempts = 5;
+  string lastError = 6;
+  repeated string missingFields = 7;
+  string targetPath = 8;
+  string updatedAt = 9;
+}
+message PostActions {
+  repeated PostAction postActions = 1;
+}
+message CustomFieldsUpdate {
+  int64 postId = 1;
+  repeated CustomField customFields = 2;
 }
 message PostSelection {
   int64 threadId = 1;
@@ -165,8 +184,11 @@ service EndpointService {
   rpc onErrorCountUpdate (EmptyRequest) returns (stream ErrorCount) {}
   rpc onTasksRunning (EmptyRequest) returns (stream TasksRunning) {}
   rpc findAllTasks (EmptyRequest) returns (Tasks) {}
+  rpc findTasksByPostId (Id) returns (Tasks) {}
   rpc onNewTask (EmptyRequest) returns (stream Task) {}
   rpc onUpdateTask (EmptyRequest) returns (stream Task) {}
+  rpc dismissTask (Id) returns (EmptyResponse) {}
+  rpc onDismissTask (EmptyRequest) returns (stream Id) {}
   rpc clearTasks (EmptyRequest) returns (EmptyResponse) {}
   rpc onClearTasks (EmptyRequest) returns (stream EmptyResponse) {}
   rpc onUpdateMetadata (EmptyRequest) returns (stream Metadata) {}
@@ -174,6 +196,13 @@ service EndpointService {
   rpc clearCompleted (EmptyRequest) returns (IdList) {}
   rpc rename (Rename) returns (EmptyResponse) {}
   rpc renameToFirst (RenameToFirst) returns (EmptyResponse) {}
+  rpc onUpdatePostActions (EmptyRequest) returns (stream PostAction) {}
+  rpc findPostAction (Id) returns (PostAction) {}
+  rpc findAllPostActions (EmptyRequest) returns (PostActions) {}
+  rpc runPostAction (Id) returns (EmptyResponse) {}
+  rpc retryPostAction (Id) returns (EmptyResponse) {}
+  rpc skipPostAction (Id) returns (EmptyResponse) {}
+  rpc updateCustomFields (CustomFieldsUpdate) returns (EmptyResponse) {}
   rpc onStopped (EmptyRequest) returns (stream Id) {}
   rpc onNewLog (EmptyRequest) returns (stream Log) {}
   rpc onNewThread (EmptyRequest) returns (stream Thread) {}

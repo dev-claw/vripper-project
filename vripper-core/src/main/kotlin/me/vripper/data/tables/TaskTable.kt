@@ -5,6 +5,7 @@ import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDateTime
 
 internal object TaskTable : LongIdTable(name = "TASK", columnName = "ID") {
+    val postEntityId = long("POST_ENTITY_ID").nullable()
     val name = varchar("NAME", 255)
     val category = varchar("CATEGORY", 255)
     val description = varchar("DESCRIPTION", 1000)
