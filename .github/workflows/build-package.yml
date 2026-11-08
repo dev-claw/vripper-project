@@ -182,33 +182,40 @@ jobs:
           mv "VRipper-${{ inputs.revision }}.msi" "${{ inputs.asset_prefix }}-windows-installer.msi"
           mv "VRipper-${{ inputs.revision }}.exe" "${{ inputs.asset_prefix }}-windows-installer.exe"
 
-      - if: matrix.target == 'macos-arm'
-        name: Package for macOS (arm64)
+      - if: matrix.target == 'macos-arm' || matrix.target == 'macos-intel'
+        name: Package for macOS (${{ matrix.arch_suffix }})
+        shell: bash
         env:
           REVISION: ${{ inputs.revision }}
           ASSET_PREFIX: ${{ inputs.asset_prefix }}
+          ARCH_SUFFIX: ${{ matrix.arch_suffix }}
         run: |
           set -euo pipefail
           cd jpackage
-          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.icns
-          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type pkg
-          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
-          mv "dist/VRipper-${REVISION}.pkg" "dist/${ASSET_PREFIX}-macos-arm64.pkg"
-          mv "dist/VRipper-${REVISION}.dmg" "dist/${ASSET_PREFIX}-macos-arm64.dmg"
+          arch="${ARCH_SUFFIX#.}"
 
-      - if: matrix.target == 'macos-intel'
-        name: Package for macOS (x86_64)
-        env:
-          REVISION: ${{ inputs.revision }}
-          ASSET_PREFIX: ${{ inputs.asset_prefix }}
-        run: |
-          set -euo pipefail
-          cd jpackage
+          # Portable application image used by the portable zip artifact.
           jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-app-image.cfg" --icon resources/VRipper.icns
-          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type pkg
-          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" --resource-dir resources --type dmg
-          mv "dist/VRipper-${REVISION}.pkg" "dist/${ASSET_PREFIX}-macos-x86_64.pkg"
-          mv "dist/VRipper-${REVISION}.dmg" "dist/${ASSET_PREFIX}-macos-x86_64.dmg"
+
+          # Build the installer application image separately so it keeps the
+          # non-portable configuration while being signed before packaging.
+          jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" "@jpackage-app-image-installer.cfg" --icon resources/VRipper.icns
+
+          # Ad-hoc sign both bundles. Apple Silicon requires a signature to run
+          # arm64 binaries natively; signing Intel too keeps both builds
+          # consistent and ensures a valid bundle seal on every artifact.
+          for app in "dist/VRipper.app" "dist-installer/VRipper.app"; do
+            codesign --force --deep --sign - "${app}"
+            codesign --verify --deep --strict --verbose=2 "${app}"
+          done
+
+          # Build the installers from the signed application image so the
+          # signature is preserved inside the pkg/dmg.
+          jpackage --app-version "${REVISION}" "@jpackage-macos-installer.cfg" --resource-dir resources --type pkg --app-image "dist-installer/VRipper.app"
+          jpackage --app-version "${REVISION}" "@jpackage-macos-installer.cfg" --resource-dir resources --type dmg --app-image "dist-installer/VRipper.app"
+
+          mv "dist/VRipper-${REVISION}.pkg" "dist/${ASSET_PREFIX}-macos-${arch}.pkg"
+          mv "dist/VRipper-${REVISION}.dmg" "dist/${ASSET_PREFIX}-macos-${arch}.dmg"
 
       - name: Zip portable
         uses: thedoctor0/zip-release@0.7.1
@@ -216,6 +223,8 @@ jobs:
           type: 'zip'
           directory: 'jpackage/dist'
           path: ${{ matrix.portable_path }}
+          # Preserve symlinks so the macOS code signature is not invalidated.
+          custom: '-y'
           filename: ${{ inputs.asset_prefix }}-${{ matrix.platform }}-portable${{ matrix.arch_suffix }}.zip
 
       - name: Upload packages
