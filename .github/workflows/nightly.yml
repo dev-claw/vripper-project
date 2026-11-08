@@ -27,7 +27,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       nightly-version: ${{ steps.version.outputs.nightly-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Resolve nightly version
         id: version
@@ -102,7 +102,7 @@ jobs:
       contents: write
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: nightly-*
           path: dist

@@ -32,18 +32,20 @@ jobs:
         working-directory: vripper-mobile-client
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout_ref || github.ref }}
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: zulu
           java-version: '25'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
 
       - name: Install required Android SDK packages
         run: |
@@ -122,7 +124,7 @@ jobs:
           cp "$APK" "dist/$ASSET_NAME"
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
           path: vripper-mobile-client/dist/${{ inputs.asset_name }}
