@@ -1,0 +1,12 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+
+message Log {
+  int64 sequence = 1;
+  string timestamp = 2;
+  string threadName = 3;
+  string loggerName = 4;
+  string levelString = 5;
+  string formattedMessage = 6;
+  string throwable = 7;
+}

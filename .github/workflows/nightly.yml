@@ -84,8 +84,18 @@ jobs:
       jar_suffix: '-nightly'
       docker_tags: ghcr.io/dev-claw/vripper-web:nightly
 
+  android:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    uses: ./.github/workflows/android-build.yml
+    secrets: inherit
+    with:
+      version_name: ${{ needs.check.outputs.nightly-version }}
+      artifact_name: nightly-android-apk
+      asset_name: vripper-nightly-android.apk
+
   publish:
-    needs: [check, build]
+    needs: [check, build, android]
     if: needs.check.outputs.build == 'true'
     runs-on: ubuntu-latest
     permissions:

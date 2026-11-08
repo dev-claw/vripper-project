@@ -1,0 +1,25 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+
+message Post {
+  int64 id = 1;
+  string postTitle = 2;
+  string threadTitle = 3;
+  string forum = 4;
+  string url = 5;
+  string token = 6;
+  int64 postId = 7;
+  int64 threadId = 8;
+  int32 total = 9;
+  repeated string hosts = 10;
+  string downloadDirectory = 11;
+  string addedOn = 12;
+  string folderName = 13;
+  string status = 14;
+  int32 done = 15;
+  int64 size = 16;
+  int64 downloaded = 17;
+  repeated string previews = 18;
+  string postedBy = 19;
+  repeated string resolvedNames = 20;
+}

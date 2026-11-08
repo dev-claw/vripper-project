@@ -1,0 +1,131 @@
+name: Android Build
+
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: Git ref to check out. Defaults to the caller's ref.
+        required: false
+        type: string
+        default: ''
+      version_name:
+        description: Optional version name override. Defaults to the root pom.xml revision.
+        required: false
+        type: string
+        default: ''
+      artifact_name:
+        description: Name of the uploaded APK artifact.
+        required: true
+        type: string
+      asset_name:
+        description: Filename of the APK inside the artifact.
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: vripper-mobile-client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.ref }}
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '25'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platforms;android-37.0" "build-tools;37.0.0" >/dev/null ||
+            sdkmanager --install "platforms;android-37" "build-tools;37.0.0" >/dev/null
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Configure signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          SECRET_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SECRET_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SECRET_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          KEYSTORE="$RUNNER_TEMP/vripper-release.keystore"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Using the release keystore from repository secrets."
+            echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE"
+            STORE_PASSWORD="${SECRET_STORE_PASSWORD:-vripper-ci}"
+            KEY_ALIAS="${SECRET_KEY_ALIAS:-vripper}"
+            KEY_PASSWORD="${SECRET_KEY_PASSWORD:-vripper-ci}"
+          else
+            echo "No ANDROID_KEYSTORE_BASE64 secret configured; generating a self-signed keystore."
+            STORE_PASSWORD="vripper-ci"
+            KEY_ALIAS="vripper"
+            KEY_PASSWORD="vripper-ci"
+            keytool -genkeypair -v \
+              -keystore "$KEYSTORE" \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "$STORE_PASSWORD" \
+              -keypass "$KEY_PASSWORD" \
+              -dname "CN=VRipper Mobile, OU=Mobile, O=VRipper, L=Unknown, ST=Unknown, C=US"
+          fi
+
+          {
+            echo "VRIPPER_KEYSTORE_FILE=$KEYSTORE"
+            echo "VRIPPER_KEYSTORE_PASSWORD=$STORE_PASSWORD"
+            echo "VRIPPER_KEY_ALIAS=$KEY_ALIAS"
+            echo "VRIPPER_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Run shared unit tests
+        run: ./gradlew :shared:jvmTest --no-daemon --stacktrace
+
+      - name: Build signed release APK
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          if [ -n "$VERSION_NAME" ]; then
+            ./gradlew :androidApp:assembleRelease -Pvripper.versionName="$VERSION_NAME" --no-daemon --stacktrace
+          else
+            ./gradlew :androidApp:assembleRelease --no-daemon --stacktrace
+          fi
+
+      - name: Verify APK signature
+        run: |
+          APK=$(find androidApp/build/outputs/apk/release -name '*.apk' | head -n 1)
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+
+      - name: Collect APK artifact
+        env:
+          ASSET_NAME: ${{ inputs.asset_name }}
+        run: |
+          mkdir -p dist
+          APK=$(find androidApp/build/outputs/apk/release -name '*.apk' | head -n 1)
+          cp "$APK" "dist/$ASSET_NAME"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: vripper-mobile-client/dist/${{ inputs.asset_name }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0

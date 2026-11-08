@@ -1,0 +1,199 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+import "post.proto";
+import "posts.proto";
+import "image.proto";
+import "images.proto";
+import "metadata.proto";
+import "log.proto";
+import "thread.proto";
+import "threads.proto";
+import "settings.proto";
+
+message EmptyRequest {}
+message EmptyResponse {}
+message Links {
+  string links = 1;
+  string origin = 2;
+}
+message IdList {
+  repeated int64 ids = 1;
+}
+message Id {
+  int64 id = 1;
+}
+message DownloadSpeed {
+  int64 speed = 1;
+}
+message VGUser {
+  string user = 1;
+}
+message Rank {
+  int64 postEntityId = 1;
+  int64 rank = 2;
+}
+message QueueState {
+  int32 running = 1;
+  int32 remaining = 2;
+  repeated Rank rank = 3;
+}
+message ErrorCount {
+  int32 count = 1;
+}
+message TasksRunning {
+  bool running = 1;
+}
+message Task {
+  int64 id = 1;
+  string name = 2;
+  string category = 3;
+  string description = 4;
+  string status = 5;
+  string result = 6;
+  string createdAt = 7;
+  string updatedAt = 8;
+}
+message Tasks {
+  repeated Task tasks = 1;
+}
+message Rename {
+  int64 postId = 1;
+  string name = 2;
+}
+message RenameToFirst {
+  repeated int64 postIds = 1;
+}
+message PostSelection {
+  int64 threadId = 1;
+  string threadTitle = 2;
+  int64 postId = 3;
+  int32 number = 4;
+  string title = 5;
+  int32 imageCount = 6;
+  string url = 7;
+  string hosts = 8;
+  string forum = 10;
+  repeated string previews = 11;
+}
+message PostSelectionList {
+  repeated PostSelection postSelectionList = 1;
+}
+message ThreadPostId {
+  int64 threadId = 1;
+  int64 postId = 2;
+}
+message ThreadPostIdList {
+  repeated ThreadPostId threadPostIdList = 1;
+}
+message ProxyList {
+  repeated string proxies = 1;
+}
+message LoggedInUser {
+  string user = 1;
+}
+message Version {
+  string version = 1;
+}
+message DBMigrationResponse {
+  string message = 1;
+}
+message ServerInfoResponse {
+  string version = 1;
+  string applicationFolder = 2;
+  string databasePath = 3;
+  bool databaseExists = 4;
+  int64 databaseSize = 5;
+  string logPath = 6;
+  bool logExists = 7;
+  int64 logSize = 8;
+  string settingsPath = 9;
+  bool settingsExists = 10;
+  int64 settingsSize = 11;
+  string downloadPath = 12;
+  string tempPath = 13;
+  string operatingSystem = 14;
+  string javaVersion = 15;
+  string javaVendor = 16;
+  int64 uptimeMillis = 17;
+  int32 threadCount = 18;
+  int64 heapUsed = 19;
+  int64 heapCommitted = 20;
+  int64 heapMax = 21;
+  int32 processors = 22;
+  int64 gcCount = 23;
+  int64 gcTimeMillis = 24;
+}
+enum MovePositionEnum {
+  UP = 0;
+  DOWN = 1;
+  TOP = 2;
+  BOTTOM = 3;
+}
+message MovePositionMessage {
+  int64 postEntityId = 1;
+  MovePositionEnum position = 2;
+}
+
+message DownloadRequest {
+  int64 imageId = 1;
+}
+
+message ImageChunk {
+  bool missing = 1;
+  int64 imageId = 2;
+  int64 offset = 3;
+  bytes data = 4;
+  bool isLast = 5;
+}
+
+service EndpointService {
+  rpc scanLinks (Links) returns (EmptyResponse) {}
+  rpc onNewPosts (EmptyRequest) returns (stream Post) {}
+  rpc onUpdatePosts (EmptyRequest) returns (stream Post) {}
+  rpc onDeletePosts (EmptyRequest) returns (stream Id) {}
+  rpc findAllPosts (EmptyRequest) returns (Posts) {}
+  rpc restartAll (IdList) returns (EmptyResponse) {}
+  rpc stopAll (IdList) returns (EmptyResponse) {}
+  rpc findPost (Id) returns (Post) {}
+  rpc findImagesByPostId (Id) returns (Images) {}
+  rpc onUpdateImagesByPostId (Id) returns (stream Image) {}
+  rpc onUpdateImages (EmptyRequest) returns (stream Image) {}
+  rpc onDownloadSpeed (EmptyRequest) returns (stream DownloadSpeed) {}
+  rpc onVGUserUpdate (EmptyRequest) returns (stream VGUser) {}
+  rpc onQueueStateUpdate (EmptyRequest) returns (stream QueueState) {}
+  rpc getQueueState (EmptyRequest) returns (QueueState) {}
+  rpc onErrorCountUpdate (EmptyRequest) returns (stream ErrorCount) {}
+  rpc onTasksRunning (EmptyRequest) returns (stream TasksRunning) {}
+  rpc findAllTasks (EmptyRequest) returns (Tasks) {}
+  rpc onNewTask (EmptyRequest) returns (stream Task) {}
+  rpc onUpdateTask (EmptyRequest) returns (stream Task) {}
+  rpc clearTasks (EmptyRequest) returns (EmptyResponse) {}
+  rpc onClearTasks (EmptyRequest) returns (stream EmptyResponse) {}
+  rpc onUpdateMetadata (EmptyRequest) returns (stream Metadata) {}
+  rpc remove (IdList) returns (EmptyResponse) {}
+  rpc clearCompleted (EmptyRequest) returns (IdList) {}
+  rpc rename (Rename) returns (EmptyResponse) {}
+  rpc renameToFirst (RenameToFirst) returns (EmptyResponse) {}
+  rpc onStopped (EmptyRequest) returns (stream Id) {}
+  rpc onNewLog (EmptyRequest) returns (stream Log) {}
+  rpc onNewThread (EmptyRequest) returns (stream Thread) {}
+  rpc onUpdateThread (EmptyRequest) returns (stream Thread) {}
+  rpc onDeleteThread (EmptyRequest) returns (stream Id) {}
+  rpc onClearThreads (EmptyRequest) returns (stream EmptyResponse) {}
+  rpc findAllThreads (EmptyRequest) returns (Threads) {}
+  rpc threadRemove (IdList) returns (EmptyResponse) {}
+  rpc threadClear (EmptyRequest) returns (EmptyResponse) {}
+  rpc grab (Id) returns (PostSelectionList) {}
+  rpc download (ThreadPostIdList) returns (EmptyResponse) {}
+  rpc getSettings (EmptyRequest) returns (Settings) {}
+  rpc saveSettings (Settings) returns (EmptyResponse) {}
+  rpc getProxies (EmptyRequest) returns (ProxyList) {}
+  rpc onUpdateSettings (EmptyRequest) returns (stream Settings) {}
+  rpc loggedInUser (EmptyRequest) returns (LoggedInUser) {}
+  rpc getVersion (EmptyRequest) returns (Version) {}
+  rpc getServerInfo (EmptyRequest) returns (ServerInfoResponse) {}
+  rpc dbMigration (EmptyRequest) returns (DBMigrationResponse) {}
+  rpc initLogger (EmptyRequest) returns (EmptyResponse) {}
+  rpc move(MovePositionMessage) returns (EmptyResponse) {}
+  rpc downloadImage(DownloadRequest) returns (stream ImageChunk);
+}

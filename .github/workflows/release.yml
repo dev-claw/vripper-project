@@ -38,8 +38,17 @@ jobs:
         ghcr.io/dev-claw/vripper-web:latest
         ghcr.io/dev-claw/vripper-web:${{ github.event.release.tag_name || inputs.tag }}
 
+  android:
+    if: github.event.release.tag_name != 'nightly' && inputs.tag != 'nightly'
+    uses: ./.github/workflows/android-build.yml
+    secrets: inherit
+    with:
+      checkout_ref: ${{ github.event.release.tag_name || inputs.tag }}
+      artifact_name: release-android-apk
+      asset_name: vripper-android.apk
+
   release:
-    needs: build
+    needs: [build, android]
     if: github.event.release.tag_name != 'nightly' && inputs.tag != 'nightly'
     runs-on: ubuntu-latest
     permissions:

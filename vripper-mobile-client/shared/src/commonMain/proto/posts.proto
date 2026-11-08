@@ -1,0 +1,7 @@
+syntax = "proto3";
+option java_package = "me.vripper.proto";
+import "post.proto";
+
+message Posts {
+  repeated Post posts = 1;
+}
