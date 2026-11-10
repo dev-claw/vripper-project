@@ -201,10 +201,26 @@ jobs:
           # non-portable configuration while being signed before packaging.
           jpackage --app-version "${REVISION}" "@jpackage.cfg" "@jpackage-macos.cfg" "@jpackage-app-image-installer.cfg" --icon resources/VRipper.icns
 
-          # Ad-hoc sign both bundles. Apple Silicon requires a signature to run
-          # arm64 binaries natively; signing Intel too keeps both builds
-          # consistent and ensures a valid bundle seal on every artifact.
+          # jpackage omits CFBundleSupportedPlatforms, which makes macOS
+          # classify the app as iOS/Intel instead of Apple Silicon. Add it and
+          # re-seal the bundle with an ad-hoc signature (editing Info.plist
+          # invalidates the signature jpackage already applied).
+          if [ "${arch}" = "arm64" ]; then
+            sqlite_arch=aarch64
+          else
+            sqlite_arch=x86_64
+          fi
+
+          # The shaded jar must contain the native libraries for this target.
+          jar tf jar/vripper-gui.jar | grep -F "org/bytedeco/leptonica/macosx-${arch}/libleptonica" >/dev/null
+          jar tf jar/vripper-gui.jar | grep -F "org/sqlite/native/Mac/${sqlite_arch}/libsqlitejdbc.dylib" >/dev/null
+
           for app in "dist/VRipper.app" "dist-installer/VRipper.app"; do
+            plist="${app}/Contents/Info.plist"
+            plutil -insert CFBundleSupportedPlatforms -json '["MacOSX"]' "${plist}" 2>/dev/null || \
+              plutil -replace CFBundleSupportedPlatforms -json '["MacOSX"]' "${plist}"
+            plutil -extract CFBundleSupportedPlatforms json -o - "${plist}" | grep -F '"MacOSX"' >/dev/null
+            lipo -archs "${app}/Contents/MacOS/VRipper" | grep -F "${arch}" >/dev/null
             codesign --force --deep --sign - "${app}"
             codesign --verify --deep --strict --verbose=2 "${app}"
           done
