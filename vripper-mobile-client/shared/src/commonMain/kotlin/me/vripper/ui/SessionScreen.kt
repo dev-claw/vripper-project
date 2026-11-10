@@ -1,5 +1,6 @@
 package me.vripper.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,14 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -40,6 +39,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.vripper.session.SessionConfig
 import me.vripper.session.SessionState
+import org.jetbrains.compose.resources.painterResource
+import vripper.shared.generated.resources.Res
+import vripper.shared.generated.resources.vripper_logo
 
 @Composable
 fun SessionScreen(
@@ -71,20 +73,14 @@ fun SessionScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(24.dp),
-            ) {
-                Icon(
-                    imageVector = VripperIcons.Link,
-                    contentDescription = null,
-                    modifier = Modifier.padding(16.dp).size(40.dp),
-                )
-            }
+            Image(
+                painter = painterResource(Res.drawable.vripper_logo),
+                contentDescription = null,
+                modifier = Modifier.size(72.dp),
+            )
             Spacer(Modifier.height(16.dp))
             Text(
-                text = "vRipper",
+                text = "VRipper",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary,
             )

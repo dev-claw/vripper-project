@@ -8,7 +8,7 @@ class AesGcmTest {
     @Test
     fun `encrypts with iv and gcm tag and decrypts back`() {
         val crypto = JvmAesGcm()
-        val plain = "hello vRipper".encodeToByteArray()
+        val plain = "hello VRipper".encodeToByteArray()
 
         val encrypted = crypto.encrypt(plain, "correct horse battery staple")
 
