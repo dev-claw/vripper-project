@@ -154,12 +154,24 @@ class WidgetsViewModel(
         threadsTableColumns.title,
         threadsTableColumns.link,
         threadsTableColumns.count,
+        threadsTableColumns.forum,
+        threadsTableColumns.starter,
+        threadsTableColumns.lastPost,
+        threadsTableColumns.lastPoster,
+        threadsTableColumns.replyCount,
+        threadsTableColumns.views,
     )
 
     val threadsColumnsWidthModel = ThreadsColumnsWidthModel(
         threadsTableColumnsWidth.title,
         threadsTableColumnsWidth.link,
         threadsTableColumnsWidth.count,
+        threadsTableColumnsWidth.forum,
+        threadsTableColumnsWidth.starter,
+        threadsTableColumnsWidth.lastPost,
+        threadsTableColumnsWidth.lastPoster,
+        threadsTableColumnsWidth.replyCount,
+        threadsTableColumnsWidth.views,
     )
 
     val logsColumnsModel = LogsColumnsModel(

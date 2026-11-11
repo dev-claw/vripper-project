@@ -172,6 +172,9 @@ class PostController : Controller() {
             post.actionState.name,
             post.actionError,
             post.missingFields,
+            post.author,
+            post.postDate,
+            post.edited,
         )
     }
 

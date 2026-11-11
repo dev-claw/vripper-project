@@ -82,12 +82,28 @@
           <button
             (click)="clearThreadsClick()"
             mat-icon-button
-            matTooltip="Remove all"
+            matTooltip="Clear Thread Library"
           >
             <mat-icon>delete_sweep</mat-icon>
           </button>
         </ng-container>
         <ng-container *ngIf="selectedTab() === 2">
+          <button
+            (click)="refreshSubscriptionsClick()"
+            mat-icon-button
+            matTooltip="Refresh subscriptions"
+          >
+            <mat-icon>refresh</mat-icon>
+          </button>
+          <button
+            (click)="clearSubscriptionsClick()"
+            mat-icon-button
+            matTooltip="Clear subscriptions"
+          >
+            <mat-icon>delete_sweep</mat-icon>
+          </button>
+        </ng-container>
+        <ng-container *ngIf="selectedTab() === 3">
           <button
             (click)="clearLogsClick()"
             mat-icon-button

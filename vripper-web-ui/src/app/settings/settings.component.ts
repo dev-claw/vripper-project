@@ -54,6 +54,10 @@ export class SettingsComponent {
     password: new FormControl(''),
     thanks: new FormControl(false),
     host: new FormControl(''),
+    requestLimit: new FormControl(2),
+    fetchMetadata: new FormControl(false),
+    watchSubscriptions: new FormControl(false),
+    watchIntervalMinutes: new FormControl(15),
   });
 
   downloadSettingsForm = new FormGroup({

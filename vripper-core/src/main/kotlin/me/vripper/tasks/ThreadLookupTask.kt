@@ -1,5 +1,8 @@
 package me.vripper.tasks
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import me.vripper.entities.ThreadEntity
 import me.vripper.model.PostIdentifier
 import me.vripper.model.Settings
@@ -8,6 +11,7 @@ import me.vripper.services.DataAccessService
 import me.vripper.services.TaskService
 import me.vripper.services.ThreadCacheService
 import me.vripper.utilities.LoggerDelegate
+import me.vripper.utilities.ViperLinks
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -16,6 +20,7 @@ internal class ThreadLookupTask(
     private val settings: Settings
 ) : KoinComponent, ITask {
     private val log by LoggerDelegate()
+    private val uniqueThreadIdentifiers = threadIdentifiers.distinctBy { it.threadId }
     private val dataAccessService by inject<DataAccessService>()
     private val taskService by inject<TaskService>()
     private val threadCacheService by inject<ThreadCacheService>()
@@ -26,7 +31,7 @@ internal class ThreadLookupTask(
 
     override fun getCategory() = TaskCategory.THREAD
 
-    override fun getDescription() = "Looking up ${threadIdentifiers.size} thread(s)"
+    override fun getDescription() = "Looking up ${uniqueThreadIdentifiers.size} thread(s)"
 
     override fun getResult() = result
 
@@ -34,18 +39,57 @@ internal class ThreadLookupTask(
 
     override suspend fun run() {
         status = TaskStatus.RUNNING
-        val total = threadIdentifiers.size
+        val total = uniqueThreadIdentifiers.size
         val queued = mutableListOf<Pair<Long, Int>>()
         val saved = mutableListOf<Pair<Long, Int>>()
         val alreadyQueued = mutableListOf<Long>()
         val failed = mutableListOf<Pair<Long, String>>()
         try {
-            threadIdentifiers.forEach { threadIdentifier ->
-                val link = "${threadIdentifier.siteProxy}/threads/${threadIdentifier.threadId}"
+            uniqueThreadIdentifiers.forEach { threadIdentifier ->
+                currentCoroutineContext().ensureActive()
+                val link = ViperLinks.threadUrl(threadIdentifier.siteProxy, threadIdentifier.threadId)
                 try {
-                    if (!dataAccessService.findThreadByThreadId(threadIdentifier.threadId).isEmpty) {
-                        log.info("Thread ${threadIdentifier.threadId} is already queued")
-                        alreadyQueued.add(threadIdentifier.threadId)
+                    val existingThread = dataAccessService.findThreadByThreadId(threadIdentifier.threadId).orElse(null)
+                    if (existingThread != null) {
+                        val threadLookupResult = if (existingThread.newestPostId > 0) {
+                            threadCacheService.loadSince(
+                                threadIdentifier.threadId,
+                                threadIdentifier.siteProxy,
+                                existingThread.newestPostId,
+                            )
+                        } else {
+                            threadCacheService.loadThenCache(threadIdentifier.threadId, threadIdentifier.siteProxy)
+                        }
+                        when {
+                            threadLookupResult.error.isNotBlank() -> {
+                                log.error("Error loading $link: ${threadLookupResult.error}")
+                                failed.add(threadIdentifier.threadId to "Error loading $link: ${threadLookupResult.error}")
+                            }
+
+                            threadLookupResult.postItemList.isEmpty() -> {
+                                log.info("Thread ${threadIdentifier.threadId} is up to date")
+                                alreadyQueued.add(threadIdentifier.threadId)
+                            }
+
+                            else -> {
+                                val newPostItems = threadLookupResult.postItemList.filter {
+                                    !dataAccessService.existsPostId(it.postId)
+                                }
+                                if (newPostItems.isEmpty()) {
+                                    log.info("Thread ${threadIdentifier.threadId} is up to date")
+                                    alreadyQueued.add(threadIdentifier.threadId)
+                                } else {
+                                    taskService.submit(
+                                        QueueItemsTask(newPostItems.map {
+                                            PostIdentifier(
+                                                threadIdentifier.siteProxy, it.threadId, it.postId
+                                            )
+                                        })
+                                    )
+                                    queued.add(threadIdentifier.threadId to newPostItems.size)
+                                }
+                            }
+                        }
                         return@forEach
                     }
                     val threadLookupResult =
@@ -78,12 +122,28 @@ internal class ThreadLookupTask(
                                     title = threadLookupResult.title,
                                     link = link,
                                     threadId = threadIdentifier.threadId,
-                                    total = threadLookupResult.postItemList.size
+                                    total = threadLookupResult.replyCount + 1,
+                                    forumId = threadLookupResult.forumId,
+                                    forum = threadLookupResult.forum,
+                                    prefixId = threadLookupResult.prefixId,
+                                    starter = threadLookupResult.starter,
+                                    starterId = threadLookupResult.starterId,
+                                    created = threadLookupResult.created,
+                                    lastPost = threadLookupResult.lastPost,
+                                    lastPostId = threadLookupResult.lastPostId,
+                                    lastPoster = threadLookupResult.lastPoster,
+                                    replyCount = threadLookupResult.replyCount,
+                                    views = threadLookupResult.views,
+                                    open = threadLookupResult.open,
+                                    sticky = threadLookupResult.sticky,
+                                    newestPostId = threadLookupResult.newestPostId,
                                 )
                             )
                             saved.add(threadIdentifier.threadId to threadLookupResult.postItemList.size)
                         }
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     log.error("Error when processing $link", e)
                     failed.add(threadIdentifier.threadId to "Error when processing $link: ${e.message ?: e.toString()}")
@@ -92,6 +152,8 @@ internal class ThreadLookupTask(
 
             status = if (failed.isNotEmpty()) TaskStatus.WARNING else TaskStatus.SUCCESS
             result = summarize(total, queued, saved, alreadyQueued, failed)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             result = e.message ?: "Error when looking up threads"
             status = TaskStatus.FAILURE

@@ -188,6 +188,27 @@ private class WireEndpointApi(
         )
     }
 
+    override suspend fun findAllSubscriptions(): List<ForumThread> =
+        client.findAllSubscriptions().execute(EmptyRequest()).threads.map { it.toDomain() }
+
+    override fun onNewSubscription(): Flow<ForumThread> =
+        stream(client::onNewSubscription) { it.toDomain() }
+
+    override fun onUpdateSubscription(): Flow<ForumThread> =
+        stream(client::onUpdateSubscription) { it.toDomain() }
+
+    override fun onDeleteSubscription(): Flow<Long> = stream(client::onDeleteSubscription) { it.id }
+
+    override fun onClearSubscriptions(): Flow<Unit> = stream(client::onClearSubscriptions) { }
+
+    override suspend fun removeSubscriptions(ids: List<Long>) {
+        client.subscriptionRemove().execute(IdList(ids = ids))
+    }
+
+    override suspend fun clearSubscriptions() {
+        client.subscriptionClear().execute(EmptyRequest())
+    }
+
     override suspend fun findAllTasks(): List<DownloadTask> =
         client.findAllTasks().execute(EmptyRequest()).tasks.map { it.toDomain() }
 

@@ -12,7 +12,9 @@
     (renameSelected)='onRenameSelected()'
     (clearDownload)="onClearDownloads()"
     (clearLogs)="onClearLogs()"
-    (clearThreads)="onClearThreads()"></app-toolbar>
+    (clearThreads)="onClearThreads()"
+    (clearSubscriptions)="onClearSubscriptions()"
+    (refreshSubscriptions)="onRefreshSubscriptions()"></app-toolbar>
   <mat-tab-group (selectedIndexChange)="onTabChange($event)" id="tab-group">
     <mat-tab>
       <ng-template mat-tab-label>
@@ -31,7 +33,7 @@
     </mat-tab>
     <mat-tab>
       <ng-template mat-tab-label>
-        <span>Threads</span>
+        <span>Thread Library</span>
         <mat-icon
           [matBadgeHidden]="threadCount() < 1"
           [matBadge]="threadCount()"
@@ -41,6 +43,19 @@
       </ng-template>
       <app-thread-table
         (rowCountChange)="threadCount.set($event)"></app-thread-table>
+    </mat-tab>
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span>Subscriptions</span>
+        <mat-icon
+          [matBadgeHidden]="subscriptionCount() < 1"
+          [matBadge]="subscriptionCount()"
+          class="icon"
+          >subscriptions
+        </mat-icon>
+      </ng-template>
+      <app-subscription-table
+        (rowCountChange)="subscriptionCount.set($event)"></app-subscription-table>
     </mat-tab>
     <mat-tab>
       <ng-template mat-tab-label>

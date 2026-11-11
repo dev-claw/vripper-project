@@ -400,6 +400,20 @@ private fun ViperSection(
                 update { it.copy(viper = it.viper.copy(fetchMetadata = value)) }
             },
         )
+        SettingsSwitch(
+            label = "Watch subscriptions and Thread Library",
+            checked = settings.viper.watchSubscriptions,
+            onCheckedChange = { value ->
+                update { it.copy(viper = it.viper.copy(watchSubscriptions = value)) }
+            },
+        )
+        IntField(
+            label = "Watcher interval (minutes)",
+            value = settings.viper.watchIntervalMinutes,
+            onValueChange = { value ->
+                update { it.copy(viper = it.viper.copy(watchIntervalMinutes = value)) }
+            },
+        )
     }
 }
 

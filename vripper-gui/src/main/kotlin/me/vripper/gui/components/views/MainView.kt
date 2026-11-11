@@ -12,6 +12,7 @@ import tornadofx.vgrow
 class MainView : View("Center view") {
 
     private val threadTableView: ThreadTableView by inject()
+    private val subscriptionTableView: SubscriptionTableView by inject()
     private val logTableView: LogTableView by inject()
     private val taskTableView: TaskTableView by inject()
     private val postsView: PostsView by inject()
@@ -26,6 +27,10 @@ class MainView : View("Center view") {
         tab(threadTableView) {
             graphic = FontIcon(Feather.FILE_TEXT)
             id = "thread-tab"
+        }
+        tab(subscriptionTableView) {
+            graphic = FontIcon(Feather.RSS)
+            id = "subscription-tab"
         }
         tab(taskTableView) {
             graphic = FontIcon(Feather.ACTIVITY)

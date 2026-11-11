@@ -1,6 +1,7 @@
 package me.vripper.gui.model.settings
 
 import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleLongProperty
 import javafx.beans.property.SimpleStringProperty
 import tornadofx.getValue
@@ -27,4 +28,10 @@ class ViperSettingsModel {
 
     val fetchMetadataProperty = SimpleBooleanProperty()
     var fetchMetadata: Boolean by fetchMetadataProperty
+
+    val watchSubscriptionsProperty = SimpleBooleanProperty()
+    var watchSubscriptions: Boolean by watchSubscriptionsProperty
+
+    val watchIntervalMinutesProperty = SimpleIntegerProperty()
+    var watchIntervalMinutes: Int by watchIntervalMinutesProperty
 }

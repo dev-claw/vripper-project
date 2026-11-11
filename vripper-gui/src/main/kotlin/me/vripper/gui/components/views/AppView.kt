@@ -12,12 +12,15 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.AppThemeManager
 import tornadofx.View
 import tornadofx.onChange
+import tornadofx.stackpane
 import tornadofx.vbox
 import java.net.URI
 
 class AppView : View() {
 
-    override val root = vbox { }
+    private val content = vbox { }
+    override val root = stackpane { }
+    private val notificationHost: NotificationHost by inject()
     private val mainController: MainController by inject()
     private val menuBarView: MenuBarView by inject()
     private val remoteErrorBanner: RemoteErrorBanner by inject()
@@ -30,7 +33,9 @@ class AppView : View() {
     init {
         title = "VRipper ${mainController.version}"
         val banner = remoteErrorBanner
-        with(root) {
+        root.add(content)
+        root.add(notificationHost.root)
+        with(content) {
             add(menuBarView)
             if (widgetsController.currentSettings.visibleToolbarPanel) {
                 add(actionBarView)
@@ -64,17 +69,17 @@ class AppView : View() {
 
         widgetsController.currentSettings.visibleToolbarPanelProperty.onChange { it ->
             if (it) {
-                root.children.add(1, actionBarView.root)
+                content.children.add(1, actionBarView.root)
             } else {
-                root.children.removeIf { it.id == "action_toolbar" }
+                content.children.removeIf { it.id == "action_toolbar" }
             }
         }
 
         widgetsController.currentSettings.visibleStatusBarPanelProperty.onChange { it ->
             if (it) {
-                root.children.add(statusBarView.root)
+                content.children.add(statusBarView.root)
             } else {
-                root.children.removeIf { it.id == "statusbar" }
+                content.children.removeIf { it.id == "statusbar" }
             }
         }
 

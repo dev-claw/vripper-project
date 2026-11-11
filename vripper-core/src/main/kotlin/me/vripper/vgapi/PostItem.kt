@@ -11,5 +11,10 @@ internal data class PostItem(
     val hosts: List<Pair<String, Int>>,
     val securityToken: String,
     val forum: String,
-    val imageItemList: List<ImageItem>
+    val imageItemList: List<ImageItem>,
+    val prefixId: String = "",
+    val author: String = "",
+    val userId: Long = -1,
+    val date: String = "",
+    val edited: String = "",
 )

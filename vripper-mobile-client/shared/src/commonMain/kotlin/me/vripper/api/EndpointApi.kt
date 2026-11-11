@@ -60,6 +60,14 @@ interface EndpointApi {
     suspend fun grabThread(threadId: Long): List<ThreadSelection>
     suspend fun downloadThreadPosts(posts: List<ThreadPostRef>)
 
+    suspend fun findAllSubscriptions(): List<ForumThread>
+    fun onNewSubscription(): Flow<ForumThread>
+    fun onUpdateSubscription(): Flow<ForumThread>
+    fun onDeleteSubscription(): Flow<Long>
+    fun onClearSubscriptions(): Flow<Unit>
+    suspend fun removeSubscriptions(ids: List<Long>)
+    suspend fun clearSubscriptions()
+
     suspend fun findAllTasks(): List<DownloadTask>
     fun onNewTask(): Flow<DownloadTask>
     fun onUpdateTask(): Flow<DownloadTask>

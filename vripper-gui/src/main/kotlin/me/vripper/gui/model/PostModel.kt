@@ -30,6 +30,9 @@ class PostModel(
     actionState: String = "",
     actionError: String = "",
     missingFields: List<String> = emptyList(),
+    author: String = "",
+    postDate: String = "",
+    edited: String = "",
 ) {
 
     val titleProperty = SimpleStringProperty(title)
@@ -77,6 +80,15 @@ class PostModel(
 
     val postedByProperty = SimpleStringProperty(postedBy)
     var postedBy: String by postedByProperty
+
+    val authorProperty = SimpleStringProperty(author)
+    var author: String by authorProperty
+
+    val postDateProperty = SimpleStringProperty(postDate)
+    var postDate: String by postDateProperty
+
+    val editedProperty = SimpleStringProperty(edited)
+    var edited: String by editedProperty
 
     val customFieldsProperty = SimpleListProperty(FXCollections.observableArrayList(customFields))
     var customFields: ObservableList<CustomField> by customFieldsProperty

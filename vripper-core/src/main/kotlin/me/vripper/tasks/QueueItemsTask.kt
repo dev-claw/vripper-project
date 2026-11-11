@@ -10,6 +10,7 @@ import me.vripper.services.SettingsService
 import me.vripper.services.ThreadCacheService
 import me.vripper.services.download.DownloadService
 import me.vripper.utilities.LoggerDelegate
+import me.vripper.utilities.ViperLinks
 import me.vripper.vgapi.PostItem
 import me.vripper.vgapi.PostLookupAPIParser
 import org.koin.core.component.KoinComponent
@@ -48,8 +49,7 @@ internal class QueueItemsTask(private val items: List<PostIdentifier>) : KoinCom
             val failed = mutableListOf<Pair<Long, String>>()
             try {
                 for ((siteProxy, threadId, postId) in items) {
-                    val link =
-                        "$siteProxy/threads/$threadId?p=$postId&viewfull=1#post$postId"
+                    val link = ViperLinks.postUrl(siteProxy, threadId, postId)
 
                     if (dataAccessService.existsPostId(postId)) {
                         log.info("Post $postId already loaded")
@@ -58,7 +58,7 @@ internal class QueueItemsTask(private val items: List<PostIdentifier>) : KoinCom
                     }
 
                     val threadItem = try {
-                        threadCacheService.getIfPresent(threadId)
+                        threadCacheService.getIfPresent(siteProxy, threadId)
                             ?: PostLookupAPIParser(siteProxy, threadId, postId).parse()
                     } catch (e: Exception) {
                         log.error("Failed to load $link", e)

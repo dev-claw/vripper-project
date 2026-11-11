@@ -237,4 +237,146 @@
             <column name="POST_ENTITY_ID"/>
         </createIndex>
     </changeSet>
+    <changeSet author="vripper" id="0015">
+        <addColumn tableName="THREAD">
+            <column name="FORUM_ID" type="INTEGER" defaultValue="-1">
+                <constraints nullable="true"/>
+            </column>
+            <column name="FORUM" type="TEXT" defaultValue="">
+                <constraints nullable="true"/>
+            </column>
+            <column name="PREFIX_ID" type="TEXT" defaultValue="">
+                <constraints nullable="true"/>
+            </column>
+            <column name="STARTER" type="TEXT" defaultValue="">
+                <constraints nullable="true"/>
+            </column>
+            <column name="STARTER_ID" type="INTEGER" defaultValue="-1">
+                <constraints nullable="true"/>
+            </column>
+            <column name="CREATED" type="TEXT" defaultValue="">
+                <constraints nullable="true"/>
+            </column>
+            <column name="LAST_POST" type="TEXT" defaultValue="">
+                <constraints nullable="true"/>
+            </column>
+            <column name="LAST_POST_ID" type="INTEGER" defaultValue="-1">
+                <constraints nullable="true"/>
+            </column>
+            <column name="LAST_POSTER" type="TEXT" defaultValue="">
+                <constraints nullable="true"/>
+            </column>
+            <column name="REPLY_COUNT" type="INTEGER" defaultValue="0">
+                <constraints nullable="true"/>
+            </column>
+            <column name="VIEWS" type="INTEGER" defaultValue="0">
+                <constraints nullable="true"/>
+            </column>
+            <column name="OPEN" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="true"/>
+            </column>
+            <column name="STICKY" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="true"/>
+            </column>
+            <column name="NEWEST_POST_ID" type="INTEGER" defaultValue="0">
+                <constraints nullable="true"/>
+            </column>
+            <column name="FOLDER_ID" type="INTEGER" defaultValue="0">
+                <constraints nullable="true"/>
+            </column>
+            <column name="SUBSCRIBED" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="vripper" id="0016">
+        <addColumn tableName="POST">
+            <column name="AUTHOR" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="USER_ID" type="INTEGER">
+                <constraints nullable="true"/>
+            </column>
+            <column name="POST_DATE" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="EDITED" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="vripper" id="0017">
+        <createTable tableName="SUBSCRIPTION">
+            <column autoIncrement="true" name="ID" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="SUBSCRIPTION_PK"/>
+            </column>
+            <column name="TOTAL" type="INTEGER" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="URL" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="THREAD_ID" type="INTEGER">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="TITLE" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="FORUM_ID" type="INTEGER" defaultValue="-1"/>
+            <column name="FORUM" type="TEXT" defaultValue=""/>
+            <column name="PREFIX_ID" type="TEXT" defaultValue=""/>
+            <column name="STARTER" type="TEXT" defaultValue=""/>
+            <column name="STARTER_ID" type="INTEGER" defaultValue="-1"/>
+            <column name="CREATED" type="TEXT" defaultValue=""/>
+            <column name="LAST_POST" type="TEXT" defaultValue=""/>
+            <column name="LAST_POST_ID" type="INTEGER" defaultValue="-1"/>
+            <column name="LAST_POSTER" type="TEXT" defaultValue=""/>
+            <column name="REPLY_COUNT" type="INTEGER" defaultValue="0"/>
+            <column name="VIEWS" type="INTEGER" defaultValue="0"/>
+            <column name="OPEN" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="STICKY" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="NEWEST_POST_ID" type="INTEGER" defaultValue="0"/>
+        </createTable>
+        <createIndex indexName="SUBSCRIPTION_THREAD_ID_IDX" tableName="SUBSCRIPTION">
+            <column name="THREAD_ID"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="vripper" id="0018">
+        <sql>DROP INDEX IF EXISTS SUBSCRIPTION_THREAD_ID_IDX</sql>
+        <sql>
+            INSERT INTO SUBSCRIPTION (
+                TOTAL, URL, THREAD_ID, TITLE, FORUM_ID, FORUM, PREFIX_ID, STARTER, STARTER_ID,
+                CREATED, LAST_POST, LAST_POST_ID, LAST_POSTER, REPLY_COUNT, VIEWS, OPEN, STICKY, NEWEST_POST_ID
+            )
+            SELECT
+                COALESCE(t.REPLY_COUNT, 0) + 1,
+                t.URL,
+                t.THREAD_ID,
+                t.TITLE,
+                COALESCE(t.FORUM_ID, -1),
+                COALESCE(t.FORUM, ''),
+                COALESCE(t.PREFIX_ID, ''),
+                COALESCE(t.STARTER, ''),
+                COALESCE(t.STARTER_ID, -1),
+                COALESCE(t.CREATED, ''),
+                COALESCE(t.LAST_POST, ''),
+                COALESCE(t.LAST_POST_ID, -1),
+                COALESCE(t.LAST_POSTER, ''),
+                COALESCE(t.REPLY_COUNT, 0),
+                COALESCE(t.VIEWS, 0),
+                COALESCE(t.OPEN, 1),
+                COALESCE(t.STICKY, 0),
+                COALESCE(t.NEWEST_POST_ID, 0)
+            FROM THREAD t
+            WHERE t.SUBSCRIBED = 1
+              AND t.ID = (
+                  SELECT MAX(t2.ID) FROM THREAD t2
+                  WHERE t2.THREAD_ID = t.THREAD_ID AND t2.SUBSCRIBED = 1
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM SUBSCRIPTION s WHERE s.THREAD_ID = t.THREAD_ID
+              )
+        </sql>
+        <sql>DELETE FROM THREAD WHERE SUBSCRIBED = 1</sql>
+    </changeSet>
 </databaseChangeLog>

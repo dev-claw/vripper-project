@@ -11,7 +11,9 @@ import me.vripper.services.VGAuthService
 import me.vripper.utilities.HtmlUtils
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
+import me.vripper.utilities.ViperLinks
 import me.vripper.utilities.XpathUtils
+import me.vripper.utilities.extractBaseUrl
 import org.apache.hc.client5.http.classic.methods.HttpGet
 import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.apache.hc.core5.net.URIBuilder
@@ -54,11 +56,15 @@ internal class FetchMetadataTask(
             return
         }
         try {
-            val httpGet = HttpGet(URIBuilder(settingsService.settings.viperSettings.host + "/threads/").also {
-                it.setParameter(
-                    "p", postEntity.vgPostId.toString()
-                )
-            }.build()).also { it.setAbsoluteRequestUri(true) }
+            val httpGet = HttpGet(
+                URIBuilder(
+                    ViperLinks.threadUrl(postEntity.url.extractBaseUrl(), postEntity.vgThreadId)
+                ).also {
+                    it.setParameter(
+                        "p", postEntity.vgPostId.toString()
+                    )
+                }.build()
+            ).also { it.setAbsoluteRequestUri(true) }
 
             RequestLimit.getPermit(1)
             log.info("{}", httpGet)

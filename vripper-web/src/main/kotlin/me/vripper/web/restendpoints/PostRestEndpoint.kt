@@ -106,6 +106,24 @@ class PostRestEndpoint : KoinComponent {
         runBlocking { appEndpointService.threadClear() }
     }
 
+    @PostMapping("/grab/subscriptions")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun refreshSubscriptions() {
+        runBlocking { appEndpointService.refreshSubscriptions() }
+    }
+
+    @PostMapping("/subscriptions/remove")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun subscriptionRemove(@RequestBody threadIds: List<Long>) {
+        runBlocking { appEndpointService.subscriptionRemove(threadIds) }
+    }
+
+    @GetMapping("/subscriptions/clear")
+    @ResponseStatus(value = HttpStatus.OK)
+    fun subscriptionClear() {
+        runBlocking { appEndpointService.subscriptionClear() }
+    }
+
     @PostMapping("/post/rename")
     @ResponseStatus(value = HttpStatus.OK)
     fun rename(@RequestBody renameRequest: RenameRequest) {

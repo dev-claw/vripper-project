@@ -23,4 +23,8 @@ data class PostEntity(
     var done: Int = 0,
     var size: Long = -1,
     var downloaded: Long = 0,
+    val author: String = "",
+    val userId: Long = -1,
+    val postDate: String = "",
+    val edited: String = "",
 )

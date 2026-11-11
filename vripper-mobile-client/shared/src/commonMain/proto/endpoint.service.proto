@@ -74,6 +74,9 @@ message PostSelection {
   string hosts = 8;
   string forum = 10;
   repeated string previews = 11;
+  string author = 12;
+  string postDate = 13;
+  string edited = 14;
 }
 message PostSelectionList {
   repeated PostSelection postSelectionList = 1;
@@ -183,6 +186,14 @@ service EndpointService {
   rpc findAllThreads (EmptyRequest) returns (Threads) {}
   rpc threadRemove (IdList) returns (EmptyResponse) {}
   rpc threadClear (EmptyRequest) returns (EmptyResponse) {}
+  rpc onNewSubscription (EmptyRequest) returns (stream Thread) {}
+  rpc onUpdateSubscription (EmptyRequest) returns (stream Thread) {}
+  rpc onDeleteSubscription (EmptyRequest) returns (stream Id) {}
+  rpc onClearSubscriptions (EmptyRequest) returns (stream EmptyResponse) {}
+  rpc findAllSubscriptions (EmptyRequest) returns (Threads) {}
+  rpc subscriptionRemove (IdList) returns (EmptyResponse) {}
+  rpc subscriptionClear (EmptyRequest) returns (EmptyResponse) {}
+  rpc refreshSubscriptions (EmptyRequest) returns (EmptyResponse) {}
   rpc grab (Id) returns (PostSelectionList) {}
   rpc download (ThreadPostIdList) returns (EmptyResponse) {}
   rpc getSettings (EmptyRequest) returns (Settings) {}

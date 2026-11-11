@@ -29,6 +29,11 @@ class ThreadController : KoinComponent, Controller() {
         remoteAppEndpointService::onUpdateThread,
     )
 
+    val newThreadPosts = ChannelFlowBuilder.build(
+        localAppEndpointService::onThreadNewPosts,
+        remoteAppEndpointService::onThreadNewPosts,
+    )
+
     val deleteThread = ChannelFlowBuilder.build(
         localAppEndpointService::onDeleteThread,
         remoteAppEndpointService::onDeleteThread,
@@ -50,7 +55,16 @@ class ThreadController : KoinComponent, Controller() {
             it.title,
             it.link,
             it.total,
-            it.threadId
+            it.threadId,
+            it.forum,
+            it.starter,
+            it.lastPost,
+            it.lastPoster,
+            it.replyCount,
+            it.views,
+            it.newestPostId,
+            it.sticky,
+            it.open,
         )
     }
 

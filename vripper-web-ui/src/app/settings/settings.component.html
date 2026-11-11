@@ -202,6 +202,31 @@
           </mat-select>
         </mat-form-field>
 
+        <mat-form-field appearance="outline">
+          <mat-label>Request limit (requests/s)</mat-label>
+          <input
+            formControlName="requestLimit"
+            matInput
+            max="5"
+            min="1"
+            name="requestLimit"
+            type="number"
+          />
+        </mat-form-field>
+
+        <div style="display: flex; align-items: center">
+          <mat-checkbox
+            color="primary"
+            formControlName="fetchMetadata"
+            name="fetchMetadata"
+            >Fetch metadata
+          </mat-checkbox>
+          <mat-icon
+            matTooltip="Fetch additional poster names and original filenames from the forum"
+            >info</mat-icon
+          >
+        </div>
+
         <mat-slide-toggle
           color="primary"
           formControlName="login"
@@ -238,6 +263,27 @@
               >info</mat-icon
             >
           </div>
+
+          <mat-slide-toggle
+            color="primary"
+            formControlName="watchSubscriptions"
+            name="watchSubscriptions"
+            style="padding-bottom: 20px"
+          >
+            Watch subscriptions and Thread Library
+          </mat-slide-toggle>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Watcher interval (minutes)</mat-label>
+            <input
+              formControlName="watchIntervalMinutes"
+              matInput
+              max="1440"
+              min="5"
+              name="watchIntervalMinutes"
+              type="number"
+            />
+          </mat-form-field>
         </div>
       </form>
     </mat-tab>

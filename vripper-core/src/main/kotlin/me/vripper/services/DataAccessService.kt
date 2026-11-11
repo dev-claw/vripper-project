@@ -10,6 +10,7 @@ import me.vripper.data.repositories.ImageRepository
 import me.vripper.data.repositories.MetadataRepository
 import me.vripper.data.repositories.PostActionRepository
 import me.vripper.data.repositories.PostRepository
+import me.vripper.data.repositories.SubscriptionRepository
 import me.vripper.data.repositories.ThreadRepository
 import me.vripper.entities.*
 import me.vripper.event.*
@@ -43,6 +44,7 @@ internal class DataAccessService(
     private val postRepository: PostRepository,
     private val imageRepository: ImageRepository,
     private val threadRepository: ThreadRepository,
+    private val subscriptionRepository: SubscriptionRepository,
     private val metadataRepository: MetadataRepository,
     private val postActionRepository: PostActionRepository,
     private val eventBus: EventBus,
@@ -127,6 +129,50 @@ internal class DataAccessService(
         transaction { threadRepository.update(threadEntity) }
         log.debug("[{}] Publishing event: ThreadUpdateEvent for thread {}", System.currentTimeMillis(), threadEntity.id)
         eventBus.publishEvent(ThreadUpdateEvent(threadEntity))
+    }
+
+    fun saveSubscription(subscriptionEntity: SubscriptionEntity) {
+        val saved = transaction { subscriptionRepository.save(subscriptionEntity) }
+        log.debug("[{}] Publishing event: SubscriptionCreateEvent for thread {}", System.currentTimeMillis(), saved.threadId)
+        eventBus.publishEvent(SubscriptionCreateEvent(saved))
+    }
+
+    suspend fun saveSubscriptionAsync(subscriptionEntity: SubscriptionEntity) {
+        val saved = dbQuery { subscriptionRepository.save(subscriptionEntity) }
+        log.debug("[{}] Publishing event: SubscriptionCreateEvent for thread {}", System.currentTimeMillis(), saved.threadId)
+        eventBus.publishEvent(SubscriptionCreateEvent(saved))
+    }
+
+    fun updateSubscription(subscriptionEntity: SubscriptionEntity) {
+        transaction { subscriptionRepository.update(subscriptionEntity) }
+        log.debug("[{}] Publishing event: SubscriptionUpdateEvent for thread {}", System.currentTimeMillis(), subscriptionEntity.threadId)
+        eventBus.publishEvent(SubscriptionUpdateEvent(subscriptionEntity))
+    }
+
+    suspend fun updateSubscriptionAsync(subscriptionEntity: SubscriptionEntity) {
+        dbQuery { subscriptionRepository.update(subscriptionEntity) }
+        log.debug("[{}] Publishing event: SubscriptionUpdateEvent for thread {}", System.currentTimeMillis(), subscriptionEntity.threadId)
+        eventBus.publishEvent(SubscriptionUpdateEvent(subscriptionEntity))
+    }
+
+    suspend fun removeSubscriptionAsync(threadId: Long) {
+        dbQuery { subscriptionRepository.deleteByThreadId(threadId) }
+        log.debug("[{}] Publishing event: SubscriptionDeleteEvent for thread {}", System.currentTimeMillis(), threadId)
+        eventBus.publishEvent(SubscriptionDeleteEvent(threadId))
+    }
+
+    suspend fun clearSubscriptionsAsync() {
+        dbQuery { subscriptionRepository.deleteAll() }
+        log.debug("[{}] Publishing event: SubscriptionClearEvent", System.currentTimeMillis())
+        eventBus.publishEvent(SubscriptionClearEvent())
+    }
+
+    suspend fun findAllSubscriptionsAsync(): List<SubscriptionEntity> {
+        return dbQuery { subscriptionRepository.findAll() }
+    }
+
+    suspend fun findSubscriptionByThreadIdAsync(threadId: Long): Optional<SubscriptionEntity> {
+        return dbQuery { subscriptionRepository.findByThreadId(threadId) }
     }
 
     fun updateImages(imageEntities: List<ImageEntity>) {
@@ -233,6 +279,10 @@ internal class DataAccessService(
                 hosts = postItem.hosts.map { "${it.first} (${it.second})" }.toSet(),
                 threadTitle = postItem.threadTitle,
                 forum = postItem.forum,
+                author = postItem.author,
+                userId = postItem.userId,
+                postDate = postItem.date,
+                edited = postItem.edited,
                 downloadDirectory = PathUtils.calculateDownloadPath(
                     postItem.forum,
                     postItem.threadTitle,

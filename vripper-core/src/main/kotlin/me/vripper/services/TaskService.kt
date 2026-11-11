@@ -1,8 +1,11 @@
 package me.vripper.services
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import me.vripper.data.repositories.TaskRepository
 import me.vripper.entities.TaskEntity
@@ -19,16 +22,26 @@ internal class TaskService(
     private val taskRepository: TaskRepository,
     private val eventBus: EventBus,
 ) {
-    private val taskRunner = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var taskRunner = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val log by LoggerDelegate()
     private var current = 0
 
-    fun submit(task: ITask) {
+    fun start() {
+        if (taskRunner.coroutineContext[Job]?.isActive != true) {
+            taskRunner = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        }
+    }
+
+    fun stop() {
+        taskRunner.cancel()
+    }
+
+    fun submit(task: ITask): Job {
         val taskEntity = runCatching { register(task) }
             .onFailure { log.error("Unable to persist task ${task.getName()}", it) }
             .getOrNull()
 
-        taskRunner.launch {
+        return taskRunner.launch {
             if (taskEntity != null) {
                 runCatching { markRunning(taskEntity.id) }
                     .onFailure { log.error("Unable to mark task ${taskEntity.id} as running", it) }
@@ -40,6 +53,9 @@ internal class TaskService(
                     runCatching { complete(taskEntity.id, task.getStatus(), task.getResult()) }
                         .onFailure { log.error("Unable to complete task ${taskEntity.id}", it) }
                 }
+            } catch (e: CancellationException) {
+                log.debug("Task {} cancelled", task.getName())
+                throw e
             } catch (e: Exception) {
                 log.error("Task ${task.getName()} failed", e)
                 if (taskEntity != null) {

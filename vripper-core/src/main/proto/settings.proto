@@ -9,6 +9,8 @@ message ViperSettings {
   string host = 5;
   int64 requestLimit = 6;
   bool fetchMetadata = 7;
+  bool watchSubscriptions = 8;
+  int32 watchIntervalMinutes = 9;
 }
 
 message DownloadSettings {

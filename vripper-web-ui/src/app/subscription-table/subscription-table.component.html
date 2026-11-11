@@ -1,0 +1,95 @@
+<table [dataSource]="dataSource" class="mat-elevation-z4" mat-table>
+  <ng-container matColumnDef="title">
+    <th *matHeaderCellDef mat-header-cell>Title</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.title"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.title }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="link">
+    <th *matHeaderCellDef mat-header-cell>Link</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.link"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.link }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="total">
+    <th *matHeaderCellDef mat-header-cell>Total</th>
+    <td *matCellDef="let element" class="truncate-cell" mat-cell>
+      {{ element.total }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="forum">
+    <th *matHeaderCellDef mat-header-cell>Forum</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.forum"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.forum }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="starter">
+    <th *matHeaderCellDef mat-header-cell>Starter</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.starter"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.starter }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="lastPost">
+    <th *matHeaderCellDef mat-header-cell>Last post</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.lastPost"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.lastPost }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="lastPoster">
+    <th *matHeaderCellDef mat-header-cell>Last poster</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.lastPoster"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.lastPoster }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="replyCount">
+    <th *matHeaderCellDef mat-header-cell>Replies</th>
+    <td *matCellDef="let element" class="truncate-cell" mat-cell>
+      {{ element.replyCount }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="views">
+    <th *matHeaderCellDef mat-header-cell>Views</th>
+    <td *matCellDef="let element" class="truncate-cell" mat-cell>
+      {{ element.views }}
+    </td>
+  </ng-container>
+
+  <tr *matHeaderRowDef="displayedColumns" mat-header-row></tr>
+  <tr
+    (dblclick)="onRowDoubleClicked(row)"
+    *matRowDef="let row; columns: displayedColumns"
+    class="row"
+    mat-row></tr>
+</table>

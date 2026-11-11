@@ -19,6 +19,7 @@ import me.vripper.services.download.QueueManager
 import me.vripper.tasks.QueueItemsTask
 import me.vripper.tasks.RenameTask
 import me.vripper.tasks.ScanLinksTask
+import me.vripper.tasks.SubscriptionsTask
 import me.vripper.utilities.ApplicationProperties
 import me.vripper.utilities.ApplicationProperties.VRIPPER_DIR
 import me.vripper.utilities.LoggerDelegate
@@ -70,8 +71,14 @@ internal class AppEndpointService(
     override suspend fun download(posts: List<ThreadPostId>) {
         posts.map {
             val thread = dataAccessService.findThreadByThreadIdAsync(it.threadId).getOrNull()
-                ?: throw PostParseException("Could not find thread with id ${it.threadId}")
-            PostIdentifier(thread.link.extractBaseUrl(), it.threadId, it.postId)
+            val subscription = if (thread == null) {
+                dataAccessService.findSubscriptionByThreadIdAsync(it.threadId).getOrNull()
+            } else {
+                null
+            }
+            val siteProxy = (thread?.link ?: subscription?.link)?.extractBaseUrl()
+                ?: settingsService.settings.viperSettings.host
+            PostIdentifier(siteProxy, it.threadId, it.postId)
         }.also {
             taskService.submit(QueueItemsTask(it))
         }
@@ -96,17 +103,22 @@ internal class AppEndpointService(
         }
     }
 
+    override suspend fun refreshSubscriptions() {
+        taskService.submit(SubscriptionsTask())
+    }
+
     override suspend fun grab(threadId: Long): List<PostSelection> {
         lock.withLock {
             return try {
-                val thread = dataAccessService.findThreadByThreadIdAsync(threadId).orElseThrow {
-                    PostParseException(
-                        String.format(
-                            "Unable to find links for threadId = %s", threadId
-                        )
-                    )
+                val thread = dataAccessService.findThreadByThreadIdAsync(threadId).getOrNull()
+                val subscription = if (thread == null) {
+                    dataAccessService.findSubscriptionByThreadIdAsync(threadId).getOrNull()
+                } else {
+                    null
                 }
-                val threadLookupResult = threadCacheService[thread.threadId]
+                val siteProxy = (thread?.link ?: subscription?.link)?.extractBaseUrl()
+                    ?: settingsService.settings.viperSettings.host
+                val threadLookupResult = threadCacheService.loadThenCache(threadId, siteProxy)
                 if (threadLookupResult.error.isNotBlank()) {
                     throw PostParseException("Error occurred for threadId = $threadId, ${threadLookupResult.error}")
                 }
@@ -121,7 +133,11 @@ internal class AppEndpointService(
                         postItem.url,
                         postItem.hosts.joinToString(", ") { "${it.first} (${it.second})" },
                         postItem.forum,
-                        postItem.imageItemList.map { it.thumbLink })
+                        postItem.imageItemList.map { it.thumbLink },
+                        postItem.author,
+                        postItem.date,
+                        postItem.edited,
+                    )
                 }.ifEmpty {
                     throw PostParseException(
                         "Nothing found for threadId = $threadId"
@@ -255,6 +271,10 @@ internal class AppEndpointService(
             action?.state ?: ActionState.NONE,
             action?.lastError ?: "",
             action?.missingFields ?: emptyList(),
+            postEntity.author,
+            postEntity.userId,
+            postEntity.postDate,
+            postEntity.edited,
         )
     }
 
@@ -301,8 +321,35 @@ internal class AppEndpointService(
     override fun onClearThreads(): Flow<Unit> = EventBus.events.filterIsInstance(ThreadClearEvent::class).map { }
 
 
+    override fun onThreadNewPosts(): Flow<ThreadNewPostsEvent> =
+        EventBus.events.filterIsInstance(ThreadNewPostsEvent::class)
+
+
     override suspend fun findAllThreads(): List<Thread> {
         return dataAccessService.findAllThreadsAsync()
+    }
+
+    override fun onNewSubscription(): Flow<Subscription> =
+        EventBus.events.filterIsInstance(SubscriptionCreateEvent::class).map { it.subscriptionEntity }
+
+    override fun onUpdateSubscription(): Flow<Subscription> =
+        EventBus.events.filterIsInstance(SubscriptionUpdateEvent::class).map { it.subscriptionEntity }
+
+    override fun onDeleteSubscription(): Flow<Long> =
+        EventBus.events.filterIsInstance(SubscriptionDeleteEvent::class).map { it.threadId }
+
+    override fun onClearSubscriptions(): Flow<Unit> =
+        EventBus.events.filterIsInstance(SubscriptionClearEvent::class).map { }
+
+    override suspend fun findAllSubscriptions(): List<Subscription> =
+        dataAccessService.findAllSubscriptionsAsync()
+
+    override suspend fun subscriptionRemove(threadIdList: List<Long>) {
+        threadIdList.forEach { dataAccessService.removeSubscriptionAsync(it) }
+    }
+
+    override suspend fun subscriptionClear() {
+        dataAccessService.clearSubscriptionsAsync()
     }
 
     override fun onDownloadSpeed(): Flow<DownloadSpeed> =

@@ -25,6 +25,8 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
         viperSettingsModel.host = viperSettings.host
         viperSettingsModel.requestLimit = viperSettings.requestLimit
         viperSettingsModel.fetchMetadata = viperSettings.fetchMetadata
+        viperSettingsModel.watchSubscriptions = viperSettings.watchSubscriptions
+        viperSettingsModel.watchIntervalMinutes = viperSettings.watchIntervalMinutes
         proxies.addAll(runBlocking { settingsController.getProxies() })
         with(root) {
             form {
@@ -50,6 +52,20 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
                         add(ToggleSwitch().apply {
                             isSelected = viperSettings.login
                             viperSettingsModel.loginProperty.bind(selectedProperty())
+                        })
+                    }
+                    field("Watch subscriptions and Thread Library") {
+                        checkbox {
+                            bind(viperSettingsModel.watchSubscriptionsProperty)
+                        }
+                    }
+                    field("Watcher interval (minutes)") {
+                        add(Spinner<Int>(5, 1440, viperSettingsModel.watchIntervalMinutes).apply {
+                            valueProperty().onChange {
+                                viperSettingsModel.watchIntervalMinutes = it!!
+                            }
+                            isEditable = true
+                            atlantafx.base.util.IntegerStringConverter.createFor(this)
                         })
                     }
                     fieldset {

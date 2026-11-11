@@ -194,6 +194,14 @@ class SettingsService(private val eventBus: EventBus) {
             )
         }
 
+        if (settings.viperSettings.watchSubscriptions &&
+            (settings.viperSettings.watchIntervalMinutes !in 5..1440)
+        ) {
+            throw ValidationException(
+                "Invalid subscription watcher interval, values must be in [5,1440] minutes"
+            )
+        }
+
         val automation = settings.automationSettings
         if (automation.enabled) {
             if (automation.action == TriggerAction.MOVE && automation.moveDestination.isBlank()) {

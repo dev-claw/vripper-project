@@ -66,6 +66,24 @@ export class ApplicationEndpointService {
     return this.threadRemoveAll;
   }
 
+  private subscriptions!: Observable<Thread[]>;
+
+  get subscriptions$(): Observable<Thread[]> {
+    return this.subscriptions;
+  }
+
+  private subscriptionRemove!: Observable<number>;
+
+  get subscriptionRemove$(): Observable<number> {
+    return this.subscriptionRemove;
+  }
+
+  private subscriptionRemoveAll!: Observable<void>;
+
+  get subscriptionRemoveAll$(): Observable<void> {
+    return this.subscriptionRemoveAll;
+  }
+
   private newLogs!: Observable<Log>;
 
   get newLogs$(): Observable<Log> {
@@ -177,6 +195,24 @@ export class ApplicationEndpointService {
       share()
     );
 
+    this.subscriptionRemove = this.rxStomp
+      .watch('/topic/subscriptions/deleted')
+      .pipe(
+        map((e) => {
+          return parseInt(e.body);
+        }),
+        share()
+      );
+
+    this.subscriptionRemoveAll = this.rxStomp
+      .watch('/topic/subscriptions/deletedAll')
+      .pipe(
+        map(() => {
+          return;
+        }),
+        share()
+      );
+
     this.queueState = this.rxStomp.watch('/topic/queue-state').pipe(
       map((e) => {
         const state: QueueState = JSON.parse(e.body);
@@ -253,6 +289,29 @@ export class ApplicationEndpointService {
       share()
     );
 
+    this.subscriptions = this.rxStomp.watch('/topic/subscriptions').pipe(
+      map((e) => {
+        return JSON.parse(e.body).map((element: any) => {
+          return new Thread(
+            element.link,
+            element.title,
+            element.threadId,
+            element.total,
+            element.forum,
+            element.starter,
+            element.lastPost,
+            element.lastPoster,
+            element.replyCount,
+            element.views,
+            element.newestPostId,
+            element.sticky,
+            element.open
+          );
+        });
+      }),
+      share()
+    );
+
     this.threads = this.rxStomp.watch('/topic/threads').pipe(
       map((e) => {
         return JSON.parse(e.body).map((element: any) => {
@@ -260,7 +319,16 @@ export class ApplicationEndpointService {
             element.link,
             element.title,
             element.threadId,
-            element.total
+            element.total,
+            element.forum,
+            element.starter,
+            element.lastPost,
+            element.lastPoster,
+            element.replyCount,
+            element.views,
+            element.newestPostId,
+            element.sticky,
+            element.open
           );
         });
       }),
@@ -341,6 +409,24 @@ export class ApplicationEndpointService {
 
   clearThreads() {
     return this.httpClient.get<void>(this.baseUrl + '/api/grab/clear');
+  }
+
+  deleteSubscriptions(subscriptions: Thread[]) {
+    return this.httpClient.post<void>(
+      this.baseUrl + '/api/subscriptions/remove',
+      subscriptions.map((e) => e.threadId)
+    );
+  }
+
+  clearSubscriptions() {
+    return this.httpClient.get<void>(this.baseUrl + '/api/subscriptions/clear');
+  }
+
+  refreshSubscriptions() {
+    return this.httpClient.post<void>(
+      this.baseUrl + '/api/grab/subscriptions',
+      {}
+    );
   }
 
   renamePost(data: { postId: number; name: string }) {

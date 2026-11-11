@@ -32,6 +32,7 @@ import {
 import { ApplicationEndpointService } from './services/application-endpoint.service';
 import { SettingsComponent } from './settings/settings.component';
 import { StatusBarComponent } from './status-bar/status-bar.component';
+import { SubscriptionTableComponent } from './subscription-table/subscription-table.component';
 import { ThreadTableComponent } from './thread-table/thread-table.component';
 import { ToolbarComponent } from './toolbar/toolbar.component';
 
@@ -44,6 +45,7 @@ import { ToolbarComponent } from './toolbar/toolbar.component';
     MatBadgeModule,
     DownloadTableComponent,
     ThreadTableComponent,
+    SubscriptionTableComponent,
     LogTableComponent,
     ToolbarComponent,
     MatDialogModule,
@@ -57,6 +59,7 @@ import { ToolbarComponent } from './toolbar/toolbar.component';
 export class AppComponent {
   downloadCount = signal(0);
   threadCount = signal(0);
+  subscriptionCount = signal(0);
   logCount = signal(0);
   tabIndex = signal(0);
   clearLogs = new Subject<void>();
@@ -200,13 +203,29 @@ export class AppComponent {
       });
   };
 
+  onRefreshSubscriptions = () => {
+    this.applicationEndpoint.refreshSubscriptions().subscribe();
+  };
+
+  onClearSubscriptions = () => {
+    const confirmDialog: MatDialogRef<ConfirmComponent, ConfirmDialogData> =
+      this.dialog.open<ConfirmComponent, ConfirmDialogData>(ConfirmComponent, {
+        data: {
+          message: `Confirm clearing all subscriptions?`,
+          confirmCallback: () => {
+            this.applicationEndpoint.clearSubscriptions().subscribe(() => {
+              confirmDialog.close();
+            });
+          },
+        },
+      });
+  };
+
   onClearThreads = () => {
     const confirmDialog: MatDialogRef<ConfirmComponent, ConfirmDialogData> =
       this.dialog.open<ConfirmComponent, ConfirmDialogData>(ConfirmComponent, {
         data: {
-          message: `Confirm removal of threads${
-            this.selectedPosts().length > 1 ? 's' : ''
-          }`,
+          message: `Confirm clearing the Thread Library?`,
           confirmCallback: () =>
             this.applicationEndpoint.clearThreads().subscribe(() => {
               confirmDialog.close();

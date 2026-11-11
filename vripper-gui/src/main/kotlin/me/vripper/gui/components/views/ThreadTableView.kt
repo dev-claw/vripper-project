@@ -59,7 +59,7 @@ class ThreadTableView : View() {
                 padding = Insets(8.0)
                 spacing = 8.0
                 alignment = Pos.CENTER_LEFT
-                button("Clear threads", FontIcon.of(Feather.TRASH_2)) {
+                button("Clear library", FontIcon.of(Feather.TRASH_2)) {
                     action { clearThreads() }
                 }
                 spacer()
@@ -160,6 +160,90 @@ class ThreadTableView : View() {
                         }
                     }
                 }
+                column("Forum", ThreadModel::forumProperty) {
+                    isVisible = widgetsController.currentSettings.threadsColumnsModel.forumProperty.get()
+                    visibleProperty().onChange {
+                        widgetsController.currentSettings.threadsColumnsModel.forumProperty.set(
+                            it
+                        )
+                    }
+                    prefWidth = widgetsController.currentSettings.threadsColumnsWidthModel.forum
+                    coroutineScope.launch {
+                        widthProperty().asFlow().debounce(200).collect {
+                            widgetsController.currentSettings.threadsColumnsWidthModel.forum = it as Double
+                        }
+                    }
+                }
+                column("Starter", ThreadModel::starterProperty) {
+                    isVisible = widgetsController.currentSettings.threadsColumnsModel.starterProperty.get()
+                    visibleProperty().onChange {
+                        widgetsController.currentSettings.threadsColumnsModel.starterProperty.set(
+                            it
+                        )
+                    }
+                    prefWidth = widgetsController.currentSettings.threadsColumnsWidthModel.starter
+                    coroutineScope.launch {
+                        widthProperty().asFlow().debounce(200).collect {
+                            widgetsController.currentSettings.threadsColumnsWidthModel.starter = it as Double
+                        }
+                    }
+                }
+                column("Last post", ThreadModel::lastPostProperty) {
+                    isVisible = widgetsController.currentSettings.threadsColumnsModel.lastPostProperty.get()
+                    visibleProperty().onChange {
+                        widgetsController.currentSettings.threadsColumnsModel.lastPostProperty.set(
+                            it
+                        )
+                    }
+                    prefWidth = widgetsController.currentSettings.threadsColumnsWidthModel.lastPost
+                    coroutineScope.launch {
+                        widthProperty().asFlow().debounce(200).collect {
+                            widgetsController.currentSettings.threadsColumnsWidthModel.lastPost = it as Double
+                        }
+                    }
+                }
+                column("Last poster", ThreadModel::lastPosterProperty) {
+                    isVisible = widgetsController.currentSettings.threadsColumnsModel.lastPosterProperty.get()
+                    visibleProperty().onChange {
+                        widgetsController.currentSettings.threadsColumnsModel.lastPosterProperty.set(
+                            it
+                        )
+                    }
+                    prefWidth = widgetsController.currentSettings.threadsColumnsWidthModel.lastPoster
+                    coroutineScope.launch {
+                        widthProperty().asFlow().debounce(200).collect {
+                            widgetsController.currentSettings.threadsColumnsWidthModel.lastPoster = it as Double
+                        }
+                    }
+                }
+                column("Replies", ThreadModel::replyCountProperty) {
+                    isVisible = widgetsController.currentSettings.threadsColumnsModel.replyCountProperty.get()
+                    visibleProperty().onChange {
+                        widgetsController.currentSettings.threadsColumnsModel.replyCountProperty.set(
+                            it
+                        )
+                    }
+                    prefWidth = widgetsController.currentSettings.threadsColumnsWidthModel.replyCount
+                    coroutineScope.launch {
+                        widthProperty().asFlow().debounce(200).collect {
+                            widgetsController.currentSettings.threadsColumnsWidthModel.replyCount = it as Double
+                        }
+                    }
+                }
+                column("Views", ThreadModel::viewsProperty) {
+                    isVisible = widgetsController.currentSettings.threadsColumnsModel.viewsProperty.get()
+                    visibleProperty().onChange {
+                        widgetsController.currentSettings.threadsColumnsModel.viewsProperty.set(
+                            it
+                        )
+                    }
+                    prefWidth = widgetsController.currentSettings.threadsColumnsWidthModel.views
+                    coroutineScope.launch {
+                        widthProperty().asFlow().debounce(200).collect {
+                            widgetsController.currentSettings.threadsColumnsWidthModel.views = it as Double
+                        }
+                    }
+                }
             }
             tableView.maxHeight = Double.MAX_VALUE
             VBox.setVgrow(tableView, Priority.ALWAYS)
@@ -167,9 +251,9 @@ class ThreadTableView : View() {
 
         titleProperty.bind(filteredItems.sizeProperty.map {
             if (it.toLong() > 0) {
-                "Threads (${it.toLong()})"
+                "Thread Library (${it.toLong()})"
             } else {
-                "Threads"
+                "Thread Library"
             }
         })
         tableView.placeholder = loadingPlaceholder
@@ -191,6 +275,15 @@ class ThreadTableView : View() {
                         val threadModel = items.find { it.threadId == thread.threadId } ?: return@runLater
                         threadModel.total = thread.total
                         threadModel.title = thread.title
+                        threadModel.forum = thread.forum
+                        threadModel.starter = thread.starter
+                        threadModel.lastPost = thread.lastPost
+                        threadModel.lastPoster = thread.lastPoster
+                        threadModel.replyCount = thread.replyCount
+                        threadModel.views = thread.views
+                        threadModel.newestPostId = thread.newestPostId
+                        threadModel.sticky = thread.sticky
+                        threadModel.open = thread.open
                     }
                 }
             }
@@ -248,7 +341,7 @@ class ThreadTableView : View() {
         val query = searchInput.get().orEmpty().trim()
         val filter = quickFilterProperty.get() ?: ThreadQuickFilter.ALL
         emptyMessage.set(
-            if (query.isBlank() && filter == ThreadQuickFilter.ALL) "No threads yet" else "No matching threads"
+            if (query.isBlank() && filter == ThreadQuickFilter.ALL) "No threads in the library yet" else "No matching threads"
         )
         filteredItems.predicate = { thread ->
             matchesQuery(thread, query) && matchesQuickFilter(thread, filter)
@@ -259,6 +352,8 @@ class ThreadTableView : View() {
         query.isBlank() ||
                 thread.title.contains(query, ignoreCase = true) ||
                 thread.link.contains(query, ignoreCase = true) ||
+                thread.forum.contains(query, ignoreCase = true) ||
+                thread.starter.contains(query, ignoreCase = true) ||
                 thread.threadId.toString().contains(query)
 
     private fun matchesQuickFilter(thread: ThreadModel, filter: ThreadQuickFilter): Boolean =
@@ -289,11 +384,11 @@ class ThreadTableView : View() {
     private fun clearThreads() {
         confirm(
             "",
-            "Are you sure you want to clear all threads",
+            "Are you sure you want to clear the thread library?",
             ButtonType.YES,
             ButtonType.NO,
             owner = primaryStage,
-            title = "Clear threads"
+            title = "Clear thread library"
         ) {
             coroutineScope.launch {
                 threadController.clearAll()

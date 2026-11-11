@@ -142,6 +142,12 @@ internal class VGAuthService(
         return context
     }
 
+    fun isAuthenticated(): Boolean = synchronized(this) { authenticated }
+
+    fun cacheIdentity(): String = synchronized(this) {
+        if (authenticated) "user:$loggedUser" else "anonymous"
+    }
+
     fun createClickContext(): HttpClientContext {
         val context = HttpClientContext().apply { cookieStore = BasicCookieStore() }
         synchronized(vgCookies) {

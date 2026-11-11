@@ -40,6 +40,8 @@ export class ToolbarComponent {
   clearDownload = output<void>();
   clearLogs = output<void>();
   clearThreads = output<void>();
+  clearSubscriptions = output<void>();
+  refreshSubscriptions = output<void>();
   startDownload = output<void>();
   stopDownload = output<void>();
   settings = output<void>();
@@ -106,5 +108,13 @@ export class ToolbarComponent {
 
   clearThreadsClick() {
     this.clearThreads.emit();
+  }
+
+  clearSubscriptionsClick() {
+    this.clearSubscriptions.emit();
+  }
+
+  refreshSubscriptionsClick() {
+    this.refreshSubscriptions.emit();
   }
 }

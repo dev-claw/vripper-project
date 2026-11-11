@@ -81,6 +81,8 @@ class SettingsController : Controller() {
                         viperSettingsModel.host,
                         viperSettingsModel.requestLimit,
                         viperSettingsModel.fetchMetadata,
+                        viperSettingsModel.watchSubscriptions,
+                        viperSettingsModel.watchIntervalMinutes,
                     ),
                     systemSettings =
                         SystemSettings(

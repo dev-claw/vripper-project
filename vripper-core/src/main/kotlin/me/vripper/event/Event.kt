@@ -14,6 +14,17 @@ data class ThreadCreateEvent(val threadEntity: ThreadEntity)
 data class ThreadUpdateEvent(val threadEntity: ThreadEntity)
 data class ThreadDeleteEvent(val threadId: Long)
 class ThreadClearEvent
+data class SubscriptionCreateEvent(val subscriptionEntity: SubscriptionEntity)
+data class SubscriptionUpdateEvent(val subscriptionEntity: SubscriptionEntity)
+data class SubscriptionDeleteEvent(val threadId: Long)
+class SubscriptionClearEvent
+data class ThreadNewPostsEvent(
+    val threadId: Long,
+    val title: String,
+    val link: String,
+    val newPosts: Int,
+    val subscription: Boolean,
+)
 data class VGUserLoginEvent(val username: String)
 data class DownloadSpeedEvent(val downloadSpeed: DownloadSpeed)
 data class QueueStateEvent(val queueState: QueueState)

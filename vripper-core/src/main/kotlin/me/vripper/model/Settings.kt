@@ -38,6 +38,8 @@ data class ViperSettings(
     val host: String = "https://vipergirls.to",
     val requestLimit: Long = 2,
     val fetchMetadata: Boolean = false,
+    val watchSubscriptions: Boolean = false,
+    val watchIntervalMinutes: Int = 15,
 )
 
 @Serializable

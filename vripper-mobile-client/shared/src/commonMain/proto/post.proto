@@ -22,4 +22,8 @@ message Post {
   repeated string previews = 18;
   string postedBy = 19;
   repeated string resolvedNames = 20;
+  string author = 25;
+  int64 userId = 26;
+  string postDate = 27;
+  string edited = 28;
 }

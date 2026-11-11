@@ -3,7 +3,9 @@ package me.vripper.gui.services
 import io.grpc.ConnectivityState
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
+import io.grpc.Status as GrpcStatus
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import me.vripper.entities.ActionState
 import me.vripper.entities.CustomField
@@ -11,6 +13,7 @@ import me.vripper.entities.MetadataEntity
 import me.vripper.entities.PostActionEntity
 import me.vripper.entities.Status
 import me.vripper.entities.TaskEntity
+import me.vripper.event.ThreadNewPostsEvent
 import me.vripper.model.*
 import me.vripper.model.DownloadRequest
 import me.vripper.model.DownloadSpeed
@@ -172,6 +175,16 @@ internal class GrpcEndpointService : IGrpcEndpointService {
     override fun onClearThreads() =
         stub.onClearThreads(EmptyRequest.getDefaultInstance()).map { }
 
+    override fun onThreadNewPosts(): Flow<ThreadNewPostsEvent> =
+        stub.onThreadNewPosts(EmptyRequest.getDefaultInstance())
+            .map(::mapper)
+            .catch { throwable ->
+                if (GrpcStatus.fromThrowable(throwable).code == GrpcStatus.Code.UNIMPLEMENTED) {
+                    return@catch
+                }
+                throw throwable
+            }
+
     override suspend fun findAllThreads(): List<Thread> =
         stub.findAllThreads(EmptyRequest.getDefaultInstance()).threadsList.map(::mapper)
 
@@ -189,6 +202,33 @@ internal class GrpcEndpointService : IGrpcEndpointService {
 
     override suspend fun threadClear() {
         stub.threadClear(EmptyRequest.getDefaultInstance())
+    }
+
+    override fun onNewSubscription() =
+        stub.onNewSubscription(EmptyRequest.getDefaultInstance()).map { mapperSubscription(it) }
+
+    override fun onUpdateSubscription() =
+        stub.onUpdateSubscription(EmptyRequest.getDefaultInstance()).map { mapperSubscription(it) }
+
+    override fun onDeleteSubscription() =
+        stub.onDeleteSubscription(EmptyRequest.getDefaultInstance()).map { it.id }
+
+    override fun onClearSubscriptions() =
+        stub.onClearSubscriptions(EmptyRequest.getDefaultInstance()).map { }
+
+    override suspend fun findAllSubscriptions(): List<Subscription> =
+        stub.findAllSubscriptions(EmptyRequest.getDefaultInstance()).threadsList.map(::mapperSubscription)
+
+    override suspend fun subscriptionRemove(threadIdList: List<Long>) {
+        stub.subscriptionRemove(IdList.newBuilder().addAllIds(threadIdList).build())
+    }
+
+    override suspend fun subscriptionClear() {
+        stub.subscriptionClear(EmptyRequest.getDefaultInstance())
+    }
+
+    override suspend fun refreshSubscriptions() {
+        stub.refreshSubscriptions(EmptyRequest.getDefaultInstance())
     }
 
     override suspend fun grab(threadId: Long): List<PostSelection> =
@@ -316,6 +356,15 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             gcTimeMillis = info.gcTimeMillis,
         )
 
+    private fun mapper(notification: EndpointServiceOuterClass.ThreadNewPosts): ThreadNewPostsEvent =
+        ThreadNewPostsEvent(
+            threadId = notification.threadId,
+            title = notification.title,
+            link = notification.link,
+            newPosts = notification.newPosts,
+            subscription = notification.subscription,
+        )
+
     private fun mapper(queueState: EndpointServiceOuterClass.QueueState) =
         QueueState(queueState.running, queueState.remaining, queueState.rankList.map {
             Rank(it.postEntityId, it.rank)
@@ -330,6 +379,8 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             host = settings.viperSettings.host,
             requestLimit = settings.viperSettings.requestLimit,
             fetchMetadata = settings.viperSettings.fetchMetadata,
+            watchSubscriptions = settings.viperSettings.watchSubscriptions,
+            watchIntervalMinutes = settings.viperSettings.watchIntervalMinutes,
         ),
         downloadSettings = DownloadSettings(
             downloadPath = settings.downloadSettings.downloadPath,
@@ -387,6 +438,8 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             host = this@toProto.viperSettings.host
             requestLimit = this@toProto.viperSettings.requestLimit
             fetchMetadata = this@toProto.viperSettings.fetchMetadata
+            watchSubscriptions = this@toProto.viperSettings.watchSubscriptions
+            watchIntervalMinutes = this@toProto.viperSettings.watchIntervalMinutes
             build()
         }
 
@@ -479,6 +532,10 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             actionState = if (postEntity.actionState.isBlank()) ActionState.NONE else ActionState.valueOf(postEntity.actionState),
             actionError = postEntity.actionError,
             missingFields = postEntity.missingFieldsList.toList(),
+            author = postEntity.author,
+            userId = postEntity.userId,
+            postDate = postEntity.postDate,
+            edited = postEntity.edited,
         )
     }
 
@@ -555,6 +612,44 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             thread.link,
             thread.threadId,
             thread.total,
+            thread.forumId,
+            thread.forum,
+            thread.prefixId,
+            thread.starter,
+            thread.starterId,
+            thread.created,
+            thread.lastPost,
+            thread.lastPostId,
+            thread.lastPoster,
+            thread.replyCount,
+            thread.views,
+            thread.threadOpen,
+            thread.sticky,
+            thread.newestPostId,
+        )
+    }
+
+    private fun mapperSubscription(thread: ThreadOuterClass.Thread): Subscription {
+        return Subscription(
+            thread.id,
+            thread.title,
+            thread.link,
+            thread.threadId,
+            thread.total,
+            thread.forumId,
+            thread.forum,
+            thread.prefixId,
+            thread.starter,
+            thread.starterId,
+            thread.created,
+            thread.lastPost,
+            thread.lastPostId,
+            thread.lastPoster,
+            thread.replyCount,
+            thread.views,
+            thread.threadOpen,
+            thread.sticky,
+            thread.newestPostId,
         )
     }
 
@@ -569,7 +664,10 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             postSelection.url,
             postSelection.hosts,
             postSelection.forum,
-            postSelection.previewsList
+            postSelection.previewsList,
+            postSelection.author,
+            postSelection.postDate,
+            postSelection.edited,
         )
     }
 

@@ -29,6 +29,10 @@ export interface ViperSettings {
   password: string;
   thanks: boolean;
   host: string;
+  requestLimit: number;
+  fetchMetadata: boolean;
+  watchSubscriptions: boolean;
+  watchIntervalMinutes: number;
 }
 
 export interface SystemSettings {

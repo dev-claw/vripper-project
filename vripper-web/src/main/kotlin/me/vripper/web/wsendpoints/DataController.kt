@@ -48,4 +48,9 @@ class DataController : KoinComponent {
     fun queued(): List<Thread> {
         return runBlocking { appEndpointService.findAllThreads() }
     }
+
+    @SubscribeMapping("/subscriptions")
+    fun subscriptions(): List<Subscription> {
+        return runBlocking { appEndpointService.findAllSubscriptions() }
+    }
 }

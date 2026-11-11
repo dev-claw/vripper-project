@@ -59,6 +59,12 @@ object WidgetSettings {
         val title: Boolean = true,
         val link: Boolean = true,
         val count: Boolean = true,
+        val forum: Boolean = true,
+        val starter: Boolean = true,
+        val lastPost: Boolean = true,
+        val lastPoster: Boolean = true,
+        val replyCount: Boolean = true,
+        val views: Boolean = true,
     )
 
     @Serializable
@@ -66,6 +72,12 @@ object WidgetSettings {
         val title: Double = 350.0,
         val link: Double = 350.0,
         val count: Double = 100.0,
+        val forum: Double = 150.0,
+        val starter: Double = 150.0,
+        val lastPost: Double = 150.0,
+        val lastPoster: Double = 150.0,
+        val replyCount: Double = 100.0,
+        val views: Double = 100.0,
     )
 
     @Serializable
@@ -240,6 +252,12 @@ object WidgetSettings {
                         currentSettings.threadsColumnsModel.title,
                         currentSettings.threadsColumnsModel.link,
                         currentSettings.threadsColumnsModel.count,
+                        currentSettings.threadsColumnsModel.forum,
+                        currentSettings.threadsColumnsModel.starter,
+                        currentSettings.threadsColumnsModel.lastPost,
+                        currentSettings.threadsColumnsModel.lastPoster,
+                        currentSettings.threadsColumnsModel.replyCount,
+                        currentSettings.threadsColumnsModel.views,
                     ),
                     LogsTableColumns(
                         currentSettings.logsColumnsModel.time,
@@ -285,6 +303,12 @@ object WidgetSettings {
                         currentSettings.threadsColumnsWidthModel.title,
                         currentSettings.threadsColumnsWidthModel.link,
                         currentSettings.threadsColumnsWidthModel.count,
+                        currentSettings.threadsColumnsWidthModel.forum,
+                        currentSettings.threadsColumnsWidthModel.starter,
+                        currentSettings.threadsColumnsWidthModel.lastPost,
+                        currentSettings.threadsColumnsWidthModel.lastPoster,
+                        currentSettings.threadsColumnsWidthModel.replyCount,
+                        currentSettings.threadsColumnsWidthModel.views,
                     ),
                     ThreadSelectionTableColumnsWidth(
                         currentSettings.threadSelectionColumnsWidthModel.preview,

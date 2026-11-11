@@ -22,4 +22,8 @@ internal object PostTable : LongIdTable(name = "POST", columnName = "ID") {
     val rank = integer("RANK").default(0)
     val downloaded = long("DOWNLOADED")
     val size = long("SIZE")
+    val author = varchar("AUTHOR", 255).nullable()
+    val userId = long("USER_ID").nullable()
+    val postDate = varchar("POST_DATE", 32).nullable()
+    val edited = varchar("EDITED", 32).nullable()
 }

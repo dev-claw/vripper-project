@@ -7,4 +7,19 @@ message Thread {
   string link = 3;
   int64 threadId = 4;
   int32 total = 5;
+  int64 forumId = 6;
+  string forum = 7;
+  string prefixId = 8;
+  string starter = 9;
+  int64 starterId = 10;
+  string created = 11;
+  string lastPost = 12;
+  int64 lastPostId = 13;
+  string lastPoster = 14;
+  int32 replyCount = 15;
+  int32 views = 16;
+  bool threadOpen = 17;
+  bool sticky = 18;
+  int64 newestPostId = 19;
+  reserved 20, 21;
 }

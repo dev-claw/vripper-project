@@ -15,6 +15,20 @@ internal class ThreadRepositoryImpl : ThreadRepository {
             it[total] = threadEntity.total
             it[url] = threadEntity.link
             it[threadId] = threadEntity.threadId
+            it[forumId] = threadEntity.forumId
+            it[forum] = threadEntity.forum
+            it[prefixId] = threadEntity.prefixId
+            it[starter] = threadEntity.starter
+            it[starterId] = threadEntity.starterId
+            it[created] = threadEntity.created
+            it[lastPost] = threadEntity.lastPost
+            it[lastPostId] = threadEntity.lastPostId
+            it[lastPoster] = threadEntity.lastPoster
+            it[replyCount] = threadEntity.replyCount
+            it[views] = threadEntity.views
+            it[open] = threadEntity.open
+            it[sticky] = threadEntity.sticky
+            it[newestPostId] = threadEntity.newestPostId
         }.value
         return threadEntity.copy(id = id)
     }
@@ -23,6 +37,21 @@ internal class ThreadRepositoryImpl : ThreadRepository {
         ThreadTable.update({ ThreadTable.id eq threadEntity.id }) {
             it[title] = threadEntity.title
             it[total] = threadEntity.total
+            it[url] = threadEntity.link
+            it[forumId] = threadEntity.forumId
+            it[forum] = threadEntity.forum
+            it[prefixId] = threadEntity.prefixId
+            it[starter] = threadEntity.starter
+            it[starterId] = threadEntity.starterId
+            it[created] = threadEntity.created
+            it[lastPost] = threadEntity.lastPost
+            it[lastPostId] = threadEntity.lastPostId
+            it[lastPoster] = threadEntity.lastPoster
+            it[replyCount] = threadEntity.replyCount
+            it[views] = threadEntity.views
+            it[open] = threadEntity.open
+            it[sticky] = threadEntity.sticky
+            it[newestPostId] = threadEntity.newestPostId
         }
     }
 
@@ -61,11 +90,26 @@ internal class ThreadRepositoryImpl : ThreadRepository {
     }
 
     private fun transform(resultRow: ResultRow): ThreadEntity {
-        val id = resultRow[ThreadTable.id].value
-        val title = resultRow[ThreadTable.title]
-        val url = resultRow[ThreadTable.url]
-        val threadId = resultRow[ThreadTable.threadId]
-        val total = resultRow[ThreadTable.total]
-        return ThreadEntity(id, title, url, threadId, total)
+        return ThreadEntity(
+            id = resultRow[ThreadTable.id].value,
+            title = resultRow[ThreadTable.title],
+            link = resultRow[ThreadTable.url],
+            threadId = resultRow[ThreadTable.threadId],
+            total = resultRow[ThreadTable.total],
+            forumId = resultRow[ThreadTable.forumId] ?: -1,
+            forum = resultRow[ThreadTable.forum] ?: "",
+            prefixId = resultRow[ThreadTable.prefixId] ?: "",
+            starter = resultRow[ThreadTable.starter] ?: "",
+            starterId = resultRow[ThreadTable.starterId] ?: -1,
+            created = resultRow[ThreadTable.created] ?: "",
+            lastPost = resultRow[ThreadTable.lastPost] ?: "",
+            lastPostId = resultRow[ThreadTable.lastPostId] ?: -1,
+            lastPoster = resultRow[ThreadTable.lastPoster] ?: "",
+            replyCount = resultRow[ThreadTable.replyCount] ?: 0,
+            views = resultRow[ThreadTable.views] ?: 0,
+            open = resultRow[ThreadTable.open] ?: true,
+            sticky = resultRow[ThreadTable.sticky] ?: false,
+            newestPostId = resultRow[ThreadTable.newestPostId] ?: 0,
+        )
     }
 }

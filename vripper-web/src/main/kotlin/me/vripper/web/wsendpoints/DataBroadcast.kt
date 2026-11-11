@@ -1,6 +1,7 @@
 package me.vripper.web.wsendpoints
 
 import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.*
 import me.vripper.services.IAppEndpointService
 import org.koin.core.component.KoinComponent
@@ -85,6 +86,13 @@ class DataBroadcast(
         }
 
         coroutineScope.launch {
+            appEndpointService.onUpdateThread()
+                .collect {
+                    template.convertAndSend("/topic/threads", listOf(it))
+                }
+        }
+
+        coroutineScope.launch {
             appEndpointService.onDeleteThread()
                 .collect {
                     template.convertAndSend("/topic/threads/deleted", it)
@@ -95,6 +103,34 @@ class DataBroadcast(
             appEndpointService.onClearThreads()
                 .collect {
                     template.convertAndSend("/topic/threads/deletedAll", true)
+                }
+        }
+
+        coroutineScope.launch {
+            appEndpointService.onNewSubscription()
+                .collect {
+                    template.convertAndSend("/topic/subscriptions", listOf(it))
+                }
+        }
+
+        coroutineScope.launch {
+            appEndpointService.onUpdateSubscription()
+                .collect {
+                    template.convertAndSend("/topic/subscriptions", listOf(it))
+                }
+        }
+
+        coroutineScope.launch {
+            appEndpointService.onDeleteSubscription()
+                .collect {
+                    template.convertAndSend("/topic/subscriptions/deleted", it)
+                }
+        }
+
+        coroutineScope.launch {
+            appEndpointService.onClearSubscriptions()
+                .collect {
+                    template.convertAndSend("/topic/subscriptions/deletedAll", true)
                 }
         }
 
@@ -112,5 +148,10 @@ class DataBroadcast(
                 }
         }
 
+    }
+
+    @PreDestroy
+    fun shutdown() {
+        coroutineScope.cancel()
     }
 }

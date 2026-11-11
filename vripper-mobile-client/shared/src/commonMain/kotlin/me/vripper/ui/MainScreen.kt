@@ -38,7 +38,8 @@ private data class ViewerTarget(val images: List<Image>, val index: Int)
 
 private enum class MainTab(val label: String, val icon: ImageVector) {
     POSTS("Posts", VripperIcons.Posts),
-    THREADS("Threads", VripperIcons.Threads),
+    THREADS("Thread Library", VripperIcons.Threads),
+    SUBSCRIPTIONS("Subscriptions", VripperIcons.Threads),
     TASKS("Tasks", VripperIcons.Tasks),
     LOGS("Logs", VripperIcons.Logs),
     SETTINGS("Settings", VripperIcons.Settings),
@@ -53,6 +54,7 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val postsController = remember(session.api) { PostsController(session.api, scope) }
     val threadsController = remember(session.api) { ThreadsController(session.api, scope) }
+    val subscriptionsController = remember(session.api) { SubscriptionsController(session.api, scope) }
     val tasksController = remember(session.api) { TasksController(session.api, scope) }
     val logsController = remember(session.api) { LogsController(session.api, scope) }
     val settingsController = remember(session.api) { SettingsController(session.api, scope) }
@@ -132,6 +134,13 @@ fun MainScreen(
 
                 MainTab.THREADS -> ThreadsScreen(
                     controller = threadsController,
+                    labels = ThreadListLabels.library,
+                    onOpenPosts = { tab = MainTab.POSTS },
+                )
+
+                MainTab.SUBSCRIPTIONS -> ThreadsScreen(
+                    controller = subscriptionsController,
+                    labels = ThreadListLabels.subscriptions,
                     onOpenPosts = { tab = MainTab.POSTS },
                 )
 

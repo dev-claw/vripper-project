@@ -6,6 +6,7 @@ import javafx.beans.property.SimpleStringProperty
 object Shared {
     val postsSearchInput = SimpleStringProperty("")
     val threadsSearchInput = SimpleStringProperty("")
+    val subscriptionsSearchInput = SimpleStringProperty("")
     val tasksSearchInput = SimpleStringProperty("")
     val logsSearchInput = SimpleStringProperty("")
 

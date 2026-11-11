@@ -140,6 +140,40 @@ The use of proxies within VRipper is worthless, please stop using them **for now
 
 If your ISP is blocking access to `vipergirls.to` domain, consider using a VPN or [Cloudflare WARP](https://one.one.one.one/) to bypass the block.
 
+## Feed API
+
+VRipper uses the ViperGirls feed API v2 (`vr.php`) through the `viper.click` domain. The feed endpoint can be
+overridden with the `VRIPPER_FEED_URL` environment variable or the `-Dvripper.feed.url` system property.
+
+The v2 API provides thread and post metadata (author, post date, edit date, starter, reply/view counts, latest post
+information), gzip compression and ETag caching.
+
+### Thread Library and Subscriptions
+
+**Thread Library** holds multi-post threads added from links. If a link resolves to a single post, or to a thread at or
+below the configured auto-queue threshold, it is queued directly for download. Larger threads stay in the Thread
+Library so the user can choose which posts to grab.
+
+**Subscriptions** is a separate, authentication-only list of the user's ViperGirls subscriptions. It is never merged
+into the Thread Library. Subscribed threads can still be opened to grab individual posts.
+
+### Incremental refresh
+
+Thread Library refreshes use the persisted `newest_postid` with the API's `since` parameter, so only posts newer than
+the last known post are fetched. `since` does not catch posts approved later by a moderator or images added to old
+posts; a full refresh now and then catches those, and ETag makes it cheap. `dedupe=1` only deduplicates within one
+response, so VRipper keeps its own downloaded-post list across runs.
+
+All thread requests are paged: VRipper always sends `limit=500` and follows `pager.next_after` with `since` until
+`pager.more` is `0`. Pages are combined before metadata, auto-queue decisions, and post selection are evaluated, so
+large threads no longer depend on a single oversized response. Image deduplication is applied across the collected
+pages, not only within one API response.
+
+The watcher refreshes subscription metadata when a ViperGirls account is configured, and refreshes Thread Library
+metadata without authentication. It is refresh-only: it does not queue posts automatically. It uses the configured
+interval (5-1440 minutes), applies jitter and exponential backoff on failures, prevents overlapping refreshes, and
+persists its last run/result in `watcher-state.json` under the VRipper application data directory.
+
 ## Instructions to run from Jar file
 You need Java 21+, you can download from https://adoptium.net/
 

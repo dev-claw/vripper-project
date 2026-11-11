@@ -56,7 +56,7 @@ import { isDisplayed } from '../utils/utils';
 })
 export class ThreadTableComponent {
   dataSource = new ThreadDataSource(this.applicationEndpoint);
-  displayedColumns: string[] = ['title', 'link', 'total'];
+  displayedColumns: string[] = ['title', 'link', 'total', 'forum', 'starter', 'lastPost', 'lastPoster', 'replyCount', 'views'];
   selection = new SelectionModel<ThreadRow>(
     true,
     [],
@@ -243,7 +243,16 @@ class ThreadDataSource extends DataSource<Thread> {
                 thread.link,
                 thread.title,
                 thread.threadId,
-                thread.total
+                thread.total,
+                thread.forum,
+                thread.starter,
+                thread.lastPost,
+                thread.lastPoster,
+                thread.replyCount,
+                thread.views,
+                thread.newestPostId,
+                thread.sticky,
+                thread.open
               ),
             ]);
           } else {

@@ -43,6 +43,84 @@
     </td>
   </ng-container>
 
+  <ng-container
+    *ngIf="isDisplayed(columnsToDisplay(), 'forum')"
+    matColumnDef="forum">
+    <th *matHeaderCellDef mat-header-cell>Forum</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.forum"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.forum }}
+    </td>
+  </ng-container>
+
+  <ng-container
+    *ngIf="isDisplayed(columnsToDisplay(), 'starter')"
+    matColumnDef="starter">
+    <th *matHeaderCellDef mat-header-cell>Starter</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.starter"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.starter }}
+    </td>
+  </ng-container>
+
+  <ng-container
+    *ngIf="isDisplayed(columnsToDisplay(), 'lastPost')"
+    matColumnDef="lastPost">
+    <th *matHeaderCellDef mat-header-cell>Last post</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.lastPost"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.lastPost }}
+    </td>
+  </ng-container>
+
+  <ng-container
+    *ngIf="isDisplayed(columnsToDisplay(), 'lastPoster')"
+    matColumnDef="lastPoster">
+    <th *matHeaderCellDef mat-header-cell>Last poster</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.lastPoster"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.lastPoster }}
+    </td>
+  </ng-container>
+
+  <ng-container
+    *ngIf="isDisplayed(columnsToDisplay(), 'replyCount')"
+    matColumnDef="replyCount">
+    <th *matHeaderCellDef mat-header-cell>Replies</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.replyCount"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.replyCount }}
+    </td>
+  </ng-container>
+
+  <ng-container
+    *ngIf="isDisplayed(columnsToDisplay(), 'views')"
+    matColumnDef="views">
+    <th *matHeaderCellDef mat-header-cell>Views</th>
+    <td
+      *matCellDef="let element"
+      [title]="element.views"
+      class="truncate-cell"
+      mat-cell>
+      {{ element.views }}
+    </td>
+  </ng-container>
+
   <tr *matHeaderRowDef="columnsToDisplay()" mat-header-row></tr>
   <tr
     (click)="onClick(row)"

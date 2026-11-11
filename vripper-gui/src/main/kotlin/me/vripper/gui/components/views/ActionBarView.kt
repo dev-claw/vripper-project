@@ -182,6 +182,11 @@ class ActionBarView : View() {
                 "Search threads",
                 "Filter threads by title, URL or ID",
             )
+            "subscription-tab" -> SearchTarget(
+                Shared.subscriptionsSearchInput,
+                "Search subscriptions",
+                "Filter subscriptions by title, URL, forum, starter or ID",
+            )
             "task-tab" -> SearchTarget(
                 Shared.tasksSearchInput,
                 "Search tasks",

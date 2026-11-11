@@ -29,6 +29,9 @@ object ApplicationProperties {
     }
     const val DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0"
     val USER_AGENT: String
+    val VR_FEED_URL: String = System.getenv("VRIPPER_FEED_URL")?.takeIf { it.isNotBlank() }
+        ?: System.getProperty("vripper.feed.url")?.takeIf { it.isNotBlank() }
+        ?: "https://viper.click/vr.php"
 
     const val DEFAULT_IMX_SUBDOMAINS = "i.imx.to,i001.imx.to,i002.imx.to,i004.imx.to,i006.imx.to,i003.imx.to"
     val IMX_SUBDOMAINS: Set<String>

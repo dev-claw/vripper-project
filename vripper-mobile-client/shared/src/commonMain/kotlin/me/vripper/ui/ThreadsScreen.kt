@@ -44,10 +44,46 @@ import me.vripper.data.ForumThread
 import me.vripper.data.ThreadPostRef
 import me.vripper.data.ThreadSelection
 
+data class ThreadListLabels(
+    val title: String,
+    val countLabel: (Int) -> String,
+    val searchLabel: String,
+    val emptyMessage: String,
+    val removeTitle: String,
+    val removeMessage: (ForumThread) -> String,
+    val clearTitle: String,
+    val clearMessage: String,
+) {
+    companion object {
+        val library = ThreadListLabels(
+            title = "Thread Library",
+            countLabel = { "$it library threads" },
+            searchLabel = "Search thread library",
+            emptyMessage = "No threads in the library yet.\nAdd thread links from the Posts tab.",
+            removeTitle = "Remove thread",
+            removeMessage = { "Remove \"${it.title}\" from the Thread Library?" },
+            clearTitle = "Clear Thread Library",
+            clearMessage = "Remove all threads from the Thread Library on the server?",
+        )
+
+        val subscriptions = ThreadListLabels(
+            title = "Subscriptions",
+            countLabel = { "$it subscribed threads" },
+            searchLabel = "Search subscriptions",
+            emptyMessage = "No subscriptions yet.\nSubscribe to threads on ViperGirls and refresh.",
+            removeTitle = "Remove subscription",
+            removeMessage = { "Remove \"${it.title}\" from subscriptions?" },
+            clearTitle = "Clear subscriptions",
+            clearMessage = "Remove all cached subscriptions?",
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThreadsScreen(
-    controller: ThreadsController,
+    controller: ThreadListController,
+    labels: ThreadListLabels,
     onOpenPosts: () -> Unit,
 ) {
     val threads by controller.threads.collectAsState()
@@ -87,9 +123,9 @@ fun ThreadsScreen(
             colors = vripperTopBarColors(),
             title = {
                 Column {
-                    Text("Threads", style = MaterialTheme.typography.titleLarge)
+                    Text(labels.title, style = MaterialTheme.typography.titleLarge)
                     Text(
-                        text = "${threads.size} cached threads",
+                        text = labels.countLabel(threads.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -124,7 +160,7 @@ fun ThreadsScreen(
             OutlinedTextField(
                 value = controller.query,
                 onValueChange = controller::onQueryChange,
-                label = { Text("Search threads") },
+                label = { Text(labels.searchLabel) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -148,7 +184,7 @@ fun ThreadsScreen(
 
                 threads.isEmpty() -> {
                     EmptyState(
-                        message = "No cached threads yet.\nAdd thread links from the Posts tab.",
+                        message = labels.emptyMessage,
                         icon = VripperIcons.Threads,
                     )
                 }
@@ -184,8 +220,8 @@ fun ThreadsScreen(
 
     threadToRemove?.let { thread ->
         ConfirmDialog(
-            title = "Remove thread",
-            message = "Remove \"${thread.title}\" from the cached threads?",
+            title = labels.removeTitle,
+            message = labels.removeMessage(thread),
             confirmLabel = "Remove",
             onConfirm = { controller.remove(thread.threadId) },
             onDismiss = { threadToRemove = null },
@@ -194,8 +230,8 @@ fun ThreadsScreen(
 
     if (showClearConfirm) {
         ConfirmDialog(
-            title = "Clear threads",
-            message = "Remove all cached threads from the server?",
+            title = labels.clearTitle,
+            message = labels.clearMessage,
             confirmLabel = "Clear",
             onConfirm = controller::clear,
             onDismiss = { showClearConfirm = false },
@@ -229,6 +265,22 @@ private fun ThreadCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            val details = buildList {
+                if (thread.forum.isNotBlank()) add(thread.forum)
+                if (thread.starter.isNotBlank()) add("by ${thread.starter}")
+                if (thread.replyCount > 0) add("${thread.replyCount} replies")
+                if (thread.views > 0) add("${thread.views} views")
+                if (thread.lastPoster.isNotBlank()) add("last: ${thread.lastPoster}")
+            }
+            if (details.isNotEmpty()) {
+                Text(
+                    text = details.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             if (thread.link.isNotBlank()) {
                 Text(
                     text = thread.link,
@@ -252,7 +304,7 @@ private fun ThreadCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThreadPostsScreen(
-    controller: ThreadsController,
+    controller: ThreadListController,
     thread: ForumThread,
     onBack: () -> Unit,
     onDownloaded: () -> Unit,
@@ -468,6 +520,8 @@ private fun ThreadPostRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 val details = buildList {
+                    if (item.author.isNotBlank()) add(item.author)
+                    if (item.postDate.isNotBlank()) add(item.postDate)
                     if (item.hosts.isNotBlank()) add(item.hosts)
                     if (item.imageCount > 0) add("${item.imageCount} images")
                     if (item.forum.isNotBlank()) add(item.forum)

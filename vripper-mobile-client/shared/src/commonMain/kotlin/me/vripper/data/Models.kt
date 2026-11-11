@@ -96,6 +96,15 @@ data class ForumThread(
     val link: String,
     val threadId: Long,
     val total: Int,
+    val forum: String = "",
+    val starter: String = "",
+    val lastPost: String = "",
+    val lastPoster: String = "",
+    val replyCount: Int = 0,
+    val views: Int = 0,
+    val open: Boolean = true,
+    val sticky: Boolean = false,
+    val newestPostId: Long = 0,
 )
 
 data class ThreadSelection(
@@ -109,6 +118,9 @@ data class ThreadSelection(
     val hosts: String,
     val forum: String,
     val previews: List<String>,
+    val author: String = "",
+    val postDate: String = "",
+    val edited: String = "",
 )
 
 data class ThreadPostRef(
@@ -146,6 +158,8 @@ data class ViperSettings(
     val host: String = "",
     val requestLimit: Long = 0,
     val fetchMetadata: Boolean = false,
+    val watchSubscriptions: Boolean = false,
+    val watchIntervalMinutes: Int = 15,
 )
 
 data class DownloadSettings(
@@ -248,6 +262,15 @@ fun ProtoThread.toDomain(): ForumThread = ForumThread(
     link = link,
     threadId = threadId,
     total = total,
+    forum = forum,
+    starter = starter,
+    lastPost = lastPost,
+    lastPoster = lastPoster,
+    replyCount = replyCount,
+    views = views,
+    open = threadOpen,
+    sticky = sticky,
+    newestPostId = newestPostId,
 )
 
 fun ProtoPostSelection.toDomain(): ThreadSelection = ThreadSelection(
@@ -261,6 +284,9 @@ fun ProtoPostSelection.toDomain(): ThreadSelection = ThreadSelection(
     hosts = hosts,
     forum = forum,
     previews = previews,
+    author = author,
+    postDate = postDate,
+    edited = edited,
 )
 
 fun ProtoTask.toDomain(): DownloadTask = DownloadTask(
@@ -300,6 +326,8 @@ fun ProtoViperSettings.toDomain(): ViperSettings = ViperSettings(
     host = host,
     requestLimit = requestLimit,
     fetchMetadata = fetchMetadata,
+    watchSubscriptions = watchSubscriptions,
+    watchIntervalMinutes = watchIntervalMinutes,
 )
 
 fun ProtoDownloadSettings.toDomain(): DownloadSettings = DownloadSettings(
@@ -345,6 +373,8 @@ fun ViperSettings.toProto(): ProtoViperSettings = ProtoViperSettings(
     host = host,
     requestLimit = requestLimit,
     fetchMetadata = fetchMetadata,
+    watchSubscriptions = watchSubscriptions,
+    watchIntervalMinutes = watchIntervalMinutes,
 )
 
 fun DownloadSettings.toProto(): ProtoDownloadSettings = ProtoDownloadSettings(

@@ -199,6 +199,42 @@ class WidgetsController : Controller() {
         currentSettings.threadsColumnsWidthModel.countProperty.onChange {
             WidgetSettings.update(currentSettings)
         }
+        currentSettings.threadsColumnsModel.forumProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsModel.starterProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsModel.lastPostProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsModel.lastPosterProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsModel.replyCountProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsModel.viewsProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsWidthModel.forumProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsWidthModel.starterProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsWidthModel.lastPostProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsWidthModel.lastPosterProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsWidthModel.replyCountProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
+        currentSettings.threadsColumnsWidthModel.viewsProperty.onChange {
+            WidgetSettings.update(currentSettings)
+        }
         currentSettings.threadSelectionColumnsModel.previewProperty.onChange {
             WidgetSettings.update(currentSettings)
         }

@@ -7,6 +7,7 @@ import me.vripper.host.*
 import me.vripper.services.*
 import me.vripper.services.download.DownloadService
 import me.vripper.services.download.QueueManager
+import me.vripper.vgapi.FeedClient
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -36,6 +37,9 @@ val coreModule = module {
     single<ThreadRepository> {
         ThreadRepositoryImpl()
     }
+    single<SubscriptionRepository> {
+        SubscriptionRepositoryImpl()
+    }
     single<TaskRepository> {
         TaskRepositoryImpl()
     }
@@ -46,7 +50,7 @@ val coreModule = module {
         PostActionService(get(), get(), get(), get())
     }
     single<DataAccessService> {
-        DataAccessService(get(), get(), get(), get(), get(), get(), get())
+        DataAccessService(get(), get(), get(), get(), get(), get(), get(), get())
     }
     single<RetryPolicyService> {
         RetryPolicyService()
@@ -57,8 +61,14 @@ val coreModule = module {
     single<VGAuthService> {
         VGAuthService(get(), get(), get(), get())
     }
+    single<FeedClient> {
+        FeedClient(get(), get())
+    }
     single<ThreadCacheService> {
         ThreadCacheService(get())
+    }
+    single<WatcherService> {
+        WatcherService(get(), get(), get())
     }
     single<QueueManager> {
         QueueManager(get(), getAll(), get(), get(), get())

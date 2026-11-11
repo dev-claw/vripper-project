@@ -35,6 +35,10 @@ data class Post(
     val actionState: ActionState = ActionState.NONE,
     val actionError: String = "",
     val missingFields: List<String> = emptyList(),
+    val author: String = "",
+    val userId: Long = -1,
+    val postDate: String = "",
+    val edited: String = "",
 ) {
     fun getDownloadFolder() = Path(downloadDirectory, folderName).pathString
 }

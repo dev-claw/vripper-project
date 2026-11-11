@@ -10,5 +10,8 @@ data class PostSelection(
     val url: String,
     val hosts: String,
     val forum: String,
-    val previews: List<String>
+    val previews: List<String>,
+    val author: String = "",
+    val postDate: String = "",
+    val edited: String = "",
 )

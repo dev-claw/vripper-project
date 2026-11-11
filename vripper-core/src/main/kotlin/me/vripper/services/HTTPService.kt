@@ -20,13 +20,24 @@ internal class HTTPService {
     companion object {
         val cookieStore = BasicCookieStore()
     }
-    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var pcm: HttpClientConnectionManager = BasicHttpClientConnectionManager()
     private var rc: RequestConfig = RequestConfig.DEFAULT
     private var cc: ConnectionConfig = ConnectionConfig.DEFAULT
     private var connectionExpiryJob: Job? = null
     var client: CloseableHttpClient = HttpClients.createDefault()
+
+    fun start() {
+        if (coroutineScope.coroutineContext[Job]?.isActive != true) {
+            coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        }
+    }
+
+    fun stop() {
+        connectionExpiryJob?.cancel()
+        coroutineScope.cancel()
+    }
 
     fun buildConnectionPool() {
         pcm.close()

@@ -6,7 +6,9 @@ import kotlinx.coroutines.flow.map
 import me.vripper.entities.CustomField as EntityCustomField
 import me.vripper.entities.ImageEntity
 import me.vripper.entities.PostActionEntity
+import me.vripper.entities.SubscriptionEntity
 import me.vripper.entities.TaskEntity
+import me.vripper.event.ThreadNewPostsEvent
 import me.vripper.model.*
 import me.vripper.proto.*
 import me.vripper.proto.EndpointServiceOuterClass.DownloadSpeed
@@ -222,6 +224,10 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
         return appEndpointService.onClearThreads().map { EndpointServiceOuterClass.EmptyResponse.getDefaultInstance() }
     }
 
+    override fun onThreadNewPosts(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.ThreadNewPosts> {
+        return appEndpointService.onThreadNewPosts().map(::mapper)
+    }
+
     override suspend fun findAllThreads(request: EndpointServiceOuterClass.EmptyRequest): Threads {
         return Threads.newBuilder().addAllThreads(appEndpointService.findAllThreads().map { mapper(it) }).build()
     }
@@ -233,6 +239,36 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
 
     override suspend fun threadClear(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.EmptyResponse {
         appEndpointService.threadClear()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override fun onNewSubscription(request: EndpointServiceOuterClass.EmptyRequest): Flow<ThreadOuterClass.Thread> =
+        appEndpointService.onNewSubscription().map { mapper(it) }
+
+    override fun onUpdateSubscription(request: EndpointServiceOuterClass.EmptyRequest): Flow<ThreadOuterClass.Thread> =
+        appEndpointService.onUpdateSubscription().map { mapper(it) }
+
+    override fun onDeleteSubscription(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.Id> =
+        appEndpointService.onDeleteSubscription().map { EndpointServiceOuterClass.Id.newBuilder().setId(it).build() }
+
+    override fun onClearSubscriptions(request: EndpointServiceOuterClass.EmptyRequest): Flow<EndpointServiceOuterClass.EmptyResponse> =
+        appEndpointService.onClearSubscriptions().map { EndpointServiceOuterClass.EmptyResponse.getDefaultInstance() }
+
+    override suspend fun findAllSubscriptions(request: EndpointServiceOuterClass.EmptyRequest): Threads =
+        Threads.newBuilder().addAllThreads(appEndpointService.findAllSubscriptions().map { mapper(it) }).build()
+
+    override suspend fun subscriptionRemove(request: EndpointServiceOuterClass.IdList): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.subscriptionRemove(request.idsList)
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override suspend fun subscriptionClear(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.subscriptionClear()
+        return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
+    }
+
+    override suspend fun refreshSubscriptions(request: EndpointServiceOuterClass.EmptyRequest): EndpointServiceOuterClass.EmptyResponse {
+        appEndpointService.refreshSubscriptions()
         return EndpointServiceOuterClass.EmptyResponse.getDefaultInstance()
     }
 
@@ -283,6 +319,8 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     host = request.viperSettings.host,
                     requestLimit = request.viperSettings.requestLimit,
                     fetchMetadata = request.viperSettings.fetchMetadata,
+                    watchSubscriptions = request.viperSettings.watchSubscriptions,
+                    watchIntervalMinutes = request.viperSettings.watchIntervalMinutes,
                 ), systemSettings = SystemSettings(
                     tempPath = request.systemSettings.tempPath,
                     enableClipboardMonitoring = request.systemSettings.enableClipboardMonitoring,
@@ -489,6 +527,10 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             actionState = post.actionState.name
             actionError = post.actionError
             addAllMissingFields(post.missingFields)
+            author = post.author
+            userId = post.userId
+            postDate = post.postDate
+            edited = post.edited
 
             build()
         }
@@ -566,6 +608,17 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
         }
     }
 
+    private fun mapper(event: ThreadNewPostsEvent): EndpointServiceOuterClass.ThreadNewPosts {
+        return with(EndpointServiceOuterClass.ThreadNewPosts.newBuilder()) {
+            threadId = event.threadId
+            title = event.title
+            link = event.link
+            newPosts = event.newPosts
+            subscription = event.subscription
+            build()
+        }
+    }
+
     private fun mapper(thread: Thread): ThreadOuterClass.Thread {
         return with(ThreadOuterClass.Thread.newBuilder()) {
             id = thread.id
@@ -573,6 +626,45 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             link = thread.link
             threadId = thread.threadId
             total = thread.total
+            forumId = thread.forumId
+            forum = thread.forum
+            prefixId = thread.prefixId
+            starter = thread.starter
+            starterId = thread.starterId
+            created = thread.created
+            lastPost = thread.lastPost
+            lastPostId = thread.lastPostId
+            lastPoster = thread.lastPoster
+            replyCount = thread.replyCount
+            views = thread.views
+            threadOpen = thread.open
+            sticky = thread.sticky
+            newestPostId = thread.newestPostId
+            build()
+        }
+    }
+
+    private fun mapper(subscription: SubscriptionEntity): ThreadOuterClass.Thread {
+        return with(ThreadOuterClass.Thread.newBuilder()) {
+            id = subscription.id
+            title = subscription.title
+            link = subscription.link
+            threadId = subscription.threadId
+            total = subscription.total
+            forumId = subscription.forumId
+            forum = subscription.forum
+            prefixId = subscription.prefixId
+            starter = subscription.starter
+            starterId = subscription.starterId
+            created = subscription.created
+            lastPost = subscription.lastPost
+            lastPostId = subscription.lastPostId
+            lastPoster = subscription.lastPoster
+            replyCount = subscription.replyCount
+            views = subscription.views
+            threadOpen = subscription.open
+            sticky = subscription.sticky
+            newestPostId = subscription.newestPostId
             build()
         }
     }
@@ -589,6 +681,9 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             hosts = postSelection.hosts
             forum = postSelection.forum
             addAllPreviews(postSelection.previews)
+            author = postSelection.author
+            postDate = postSelection.postDate
+            edited = postSelection.edited
             build()
         }
     }

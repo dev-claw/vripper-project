@@ -39,8 +39,18 @@ class PostInfoView : View() {
                                     visibleWhen(postModel.urlProperty.isNotEmpty)
                                 }
                             }
+                            field("Author:") {
+                                label(postModel.authorProperty)
+                            }
                             field("Posted By:") {
                                 label(postModel.postedByProperty)
+                            }
+                            field("Posted On:") {
+                                label(postModel.postDateProperty)
+                            }
+                            field("Edited:") {
+                                label(postModel.editedProperty)
+                                visibleWhen(postModel.editedProperty.isNotEmpty)
                             }
                             field("Title:") {
                                 label(postModel.titleProperty)
@@ -95,6 +105,9 @@ class PostInfoView : View() {
                 this.previewList.clear()
                 this.altTitles.clear()
                 this.postedBy = ""
+                this.author = ""
+                this.postDate = ""
+                this.edited = ""
             }
             return
         }
@@ -123,6 +136,9 @@ class PostInfoView : View() {
                     this.previewList = model.previewList
                     this.altTitles = model.altTitles
                     this.postedBy = model.postedBy
+                    this.author = model.author
+                    this.postDate = model.postDate
+                    this.edited = model.edited
                 }
             }
         }

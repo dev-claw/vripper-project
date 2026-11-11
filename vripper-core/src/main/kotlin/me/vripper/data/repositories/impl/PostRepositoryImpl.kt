@@ -32,6 +32,10 @@ internal class PostRepositoryImpl :
             this[PostTable.addedAt] = post.addedOn
             this[PostTable.size] = post.size
             this[PostTable.downloaded] = post.downloaded
+            this[PostTable.author] = post.author
+            this[PostTable.userId] = post.userId
+            this[PostTable.postDate] = post.postDate
+            this[PostTable.edited] = post.edited
         }.map(::transform)
     }
 
@@ -82,6 +86,10 @@ internal class PostRepositoryImpl :
             it[downloaded] = postEntity.downloaded
             it[folderName] = postEntity.folderName
             it[outputPath] = postEntity.downloadDirectory
+            it[author] = postEntity.author
+            it[userId] = postEntity.userId
+            it[postDate] = postEntity.postDate
+            it[edited] = postEntity.edited
         }
     }
 
@@ -104,6 +112,10 @@ internal class PostRepositoryImpl :
             this[PostTable.size] = post.size
             this[PostTable.downloaded] = post.downloaded
             this[PostTable.addedAt] = post.addedOn
+            this[PostTable.author] = post.author
+            this[PostTable.userId] = post.userId
+            this[PostTable.postDate] = post.postDate
+            this[PostTable.edited] = post.edited
         }
     }
 
@@ -180,7 +192,11 @@ internal class PostRepositoryImpl :
             status,
             done,
             size,
-            downloaded
+            downloaded,
+            author = resultRow[PostTable.author] ?: "",
+            userId = resultRow[PostTable.userId] ?: -1,
+            postDate = resultRow[PostTable.postDate] ?: "",
+            edited = resultRow[PostTable.edited] ?: "",
         )
     }
 }
