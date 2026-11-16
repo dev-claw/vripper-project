@@ -11,7 +11,9 @@ class LogModel(
     loggerName: String,
     levelString: String,
     formattedMessage: String,
-    throwable: String
+    throwable: String,
+    val threadId: Long? = null,
+    val postId: Long? = null,
 ) {
     val timestampProperty = SimpleStringProperty(timestamp)
     var timestamp: String by timestampProperty

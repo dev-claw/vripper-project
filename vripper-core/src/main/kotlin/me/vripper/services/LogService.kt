@@ -5,6 +5,7 @@ import me.vripper.RingAppender
 import me.vripper.entities.LogEntryEntity
 import me.vripper.event.EventBus
 import me.vripper.event.LogCreateEvent
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.StackTraceElementUtils
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -20,8 +21,8 @@ class LogService(private val eventBus: EventBus) {
         }
         job = coroutineScope.launch {
             while (isActive) {
-                while (!RingAppender.Static.events.isEmpty()) {
-                    RingAppender.Static.events.poll()?.also { loggingEvent ->
+                while (!RingAppender.Static.isEmpty()) {
+                    RingAppender.Static.poll()?.also { loggingEvent ->
                         eventBus.publishEvent(
                             LogCreateEvent(
                                 LogEntryEntity(
@@ -36,7 +37,9 @@ class LogService(private val eventBus: EventBus) {
                                         StackTraceElementUtils.format(
                                             throwableProxy
                                         )
-                                    } ?: ""
+                                    } ?: "",
+                                    loggingEvent.mdcPropertyMap[LogContext.THREAD_ID]?.toLongOrNull(),
+                                    loggingEvent.mdcPropertyMap[LogContext.POST_ID]?.toLongOrNull(),
                                 )
                             )
                         )

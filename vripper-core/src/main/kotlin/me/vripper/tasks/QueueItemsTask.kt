@@ -9,6 +9,7 @@ import me.vripper.services.MetadataService
 import me.vripper.services.SettingsService
 import me.vripper.services.ThreadCacheService
 import me.vripper.services.download.DownloadService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.ViperLinks
 import me.vripper.vgapi.PostItem
@@ -49,46 +50,48 @@ internal class QueueItemsTask(private val items: List<PostIdentifier>) : KoinCom
             val failed = mutableListOf<Pair<Long, String>>()
             try {
                 for ((siteProxy, threadId, postId) in items) {
-                    val link = ViperLinks.postUrl(siteProxy, threadId, postId)
+                    LogContext.with(threadId = threadId, postId = postId) {
+                        val link = ViperLinks.postUrl(siteProxy, threadId, postId)
 
-                    if (dataAccessService.existsPostId(postId)) {
-                        log.info("Post $postId already loaded")
-                        alreadyLoaded.add(postId)
-                        continue
-                    }
-
-                    val threadItem = try {
-                        threadCacheService.getIfPresent(siteProxy, threadId)
-                            ?: PostLookupAPIParser(siteProxy, threadId, postId).parse()
-                    } catch (e: Exception) {
-                        log.error("Failed to load $link", e)
-                        failed.add(postId to "Failed to load $link: ${e.message ?: e.toString()}")
-                        continue
-                    }
-
-                    when {
-                        threadItem == null -> {
-                            log.error("Failed to load $link")
-                            failed.add(postId to "Failed to load $link")
+                        if (dataAccessService.existsPostId(postId)) {
+                            log.info("Post $postId already loaded")
+                            alreadyLoaded.add(postId)
+                            return@with
                         }
 
-                        threadItem.error.isNotBlank() -> {
-                            log.error("Error loading $link: ${threadItem.error}")
-                            failed.add(postId to "Error loading $link: ${threadItem.error}")
+                        val threadItem = try {
+                            threadCacheService.getIfPresent(siteProxy, threadId)
+                                ?: PostLookupAPIParser(siteProxy, threadId, postId).parse()
+                        } catch (e: Exception) {
+                            log.error("Failed to load $link", e)
+                            failed.add(postId to "Failed to load $link: ${e.message ?: e.toString()}")
+                            return@with
                         }
 
-                        threadItem.postItemList.isEmpty() -> {
-                            log.error("Nothing found for $link")
-                            failed.add(postId to "Nothing found for $link")
-                        }
+                        when {
+                            threadItem == null -> {
+                                log.error("Failed to load $link")
+                                failed.add(postId to "Failed to load $link")
+                            }
 
-                        else -> {
-                            val postItem = threadItem.postItemList.firstOrNull { it.postId == postId }
-                            if (postItem == null) {
-                                log.error("Unable to load $link")
-                                failed.add(postId to "Unable to load $link")
-                            } else {
-                                toProcess.add(postItem)
+                            threadItem.error.isNotBlank() -> {
+                                log.error("Error loading $link: ${threadItem.error}")
+                                failed.add(postId to "Error loading $link: ${threadItem.error}")
+                            }
+
+                            threadItem.postItemList.isEmpty() -> {
+                                log.error("Nothing found for $link")
+                                failed.add(postId to "Nothing found for $link")
+                            }
+
+                            else -> {
+                                val postItem = threadItem.postItemList.firstOrNull { it.postId == postId }
+                                if (postItem == null) {
+                                    log.error("Unable to load $link")
+                                    failed.add(postId to "Unable to load $link")
+                                } else {
+                                    toProcess.add(postItem)
+                                }
                             }
                         }
                     }

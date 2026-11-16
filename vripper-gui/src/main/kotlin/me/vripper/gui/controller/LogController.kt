@@ -32,6 +32,8 @@ class LogController : Controller() {
             it.levelString,
             it.formattedMessage,
             it.throwable,
+            it.threadId,
+            it.postId,
         )
     }
 

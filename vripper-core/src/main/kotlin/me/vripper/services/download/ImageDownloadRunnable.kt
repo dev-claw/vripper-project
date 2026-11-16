@@ -14,6 +14,7 @@ import me.vripper.services.DataAccessService
 import me.vripper.services.HTTPService
 import me.vripper.services.VGAuthService
 import me.vripper.utilities.ApplicationProperties
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils.getExtension
 import me.vripper.utilities.PathUtils.getFileNameWithoutExtension
@@ -113,6 +114,7 @@ internal class ImageDownloadRunnable(
             dataAccessService.updateImage(context.imageEntity)
             synchronized(context.imageEntity.postEntityId.toString().intern()) {
                 val post = dataAccessService.findPostByEntityId(context.imageEntity.postEntityId)
+                LogContext.set(threadId = post.vgThreadId, postId = post.vgPostId)
                 if (post.status != Status.DOWNLOADING) {
                     post.status = Status.DOWNLOADING
                     dataAccessService.updatePost(post)
@@ -197,6 +199,7 @@ internal class ImageDownloadRunnable(
             }
             download()
         } finally {
+            LogContext.clear()
             context.completed = true
             context.clear()
             if (context.stopped && context.imageEntity.downloaded != context.imageEntity.size) {

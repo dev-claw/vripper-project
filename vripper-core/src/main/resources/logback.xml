@@ -5,15 +5,14 @@
 
     <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36}%replace( [threadId=%X{threadId}]){' \[threadId=\]', ''}%replace( [postId=%X{postId}]){' \[postId=\]', ''} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <appender class="ch.qos.logback.core.rolling.RollingFileAppender"
               name="FILE">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
-            </Pattern>
+            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36}%replace( [threadId=%X{threadId}]){' \[threadId=\]', ''}%replace( [postId=%X{postId}]){' \[postId=\]', ''} - %msg%n</Pattern>
         </encoder>
         <file>${VRIPPER_DIR}/vripper.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -26,14 +25,23 @@
     <appender name="RING" class="me.vripper.RingAppender"/>
 
     <appender name="ASYNC-STDOUT" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
         <appender-ref ref="STDOUT"/>
     </appender>
 
     <appender name="ASYNC-FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
         <appender-ref ref="FILE"/>
     </appender>
 
     <appender name="ASYNC-RING" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
         <appender-ref ref="RING"/>
     </appender>
 

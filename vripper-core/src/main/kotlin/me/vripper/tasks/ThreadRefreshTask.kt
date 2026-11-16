@@ -4,6 +4,7 @@ import me.vripper.event.EventBus
 import me.vripper.event.ThreadNewPostsEvent
 import me.vripper.services.DataAccessService
 import me.vripper.services.ThreadCacheService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.extractBaseUrl
 import org.koin.core.component.KoinComponent
@@ -33,32 +34,34 @@ internal class ThreadRefreshTask : KoinComponent, ITask {
         try {
             val threads = dataAccessService.findAllThreadsAsync()
             threads.forEach { thread ->
-                try {
-                    val siteProxy = thread.link.extractBaseUrl()
-                    val refresh = threadCacheService.loadMetadata(
-                        thread.threadId,
-                        siteProxy,
-                        thread.newestPostId,
-                    )
-                    if (refresh.error.isNotBlank()) {
-                        failed.add(thread.threadId to refresh.error)
-                    } else {
-                        updated.add(thread.threadId)
-                        if (thread.newestPostId > 0 && refresh.newestPostId > thread.newestPostId) {
-                            EventBus.publishEvent(
-                                ThreadNewPostsEvent(
-                                    threadId = thread.threadId,
-                                    title = refresh.title.ifBlank { thread.title },
-                                    link = thread.link,
-                                    newPosts = (refresh.replyCount + 1 - thread.total).coerceAtLeast(1),
-                                    subscription = false,
+                LogContext.with(threadId = thread.threadId) {
+                    try {
+                        val siteProxy = thread.link.extractBaseUrl()
+                        val refresh = threadCacheService.loadMetadata(
+                            thread.threadId,
+                            siteProxy,
+                            thread.newestPostId,
+                        )
+                        if (refresh.error.isNotBlank()) {
+                            failed.add(thread.threadId to refresh.error)
+                        } else {
+                            updated.add(thread.threadId)
+                            if (thread.newestPostId > 0 && refresh.newestPostId > thread.newestPostId) {
+                                EventBus.publishEvent(
+                                    ThreadNewPostsEvent(
+                                        threadId = thread.threadId,
+                                        title = refresh.title.ifBlank { thread.title },
+                                        link = thread.link,
+                                        newPosts = (refresh.replyCount + 1 - thread.total).coerceAtLeast(1),
+                                        subscription = false,
+                                    )
                                 )
-                            )
+                            }
                         }
+                    } catch (e: Exception) {
+                        log.error("Error when refreshing thread ${thread.threadId}", e)
+                        failed.add(thread.threadId to (e.message ?: e.toString()))
                     }
-                } catch (e: Exception) {
-                    log.error("Error when refreshing thread ${thread.threadId}", e)
-                    failed.add(thread.threadId to (e.message ?: e.toString()))
                 }
             }
             status = if (failed.isNotEmpty()) TaskStatus.WARNING else TaskStatus.SUCCESS

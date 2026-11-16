@@ -6,6 +6,7 @@ import me.vripper.exception.DownloadException
 import me.vripper.services.HTTPService
 import me.vripper.services.VGAuthService
 import me.vripper.utilities.ApplicationProperties
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
 import org.apache.hc.client5.http.classic.methods.HttpGet
@@ -27,7 +28,14 @@ internal class FeedClient(
         cache.invalidateAll()
     }
 
-    fun get(parameters: Map<String, String>): FeedResponse {
+    fun get(
+        parameters: Map<String, String>,
+        threadId: Long? = null,
+        postId: Long? = null,
+    ): FeedResponse = LogContext.withMdc(
+        threadId = threadId ?: parameters["threadid"]?.toLongOrNull(),
+        postId = postId ?: parameters["postid"]?.toLongOrNull(),
+    ) {
         val requestParameters = DEFAULT_PARAMETERS + parameters
         val key = cacheKey(requestParameters)
         val cached = cache.getIfPresent(key)
@@ -42,7 +50,7 @@ internal class FeedClient(
         }
         log.info("{}", request)
         RequestLimit.getPermit(1)
-        return httpService.client.execute(request, vgAuthService.createClickContext()) { response ->
+        httpService.client.execute(request, vgAuthService.createClickContext()) { response ->
             val etag = response.getFirstHeader("ETag")?.value
             val userHash = response.getFirstHeader("X-User-Hash")?.value
             val apiVersion = response.getFirstHeader("X-Api-Version")?.value

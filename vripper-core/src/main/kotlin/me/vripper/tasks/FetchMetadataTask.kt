@@ -9,6 +9,7 @@ import me.vripper.services.HTTPService
 import me.vripper.services.SettingsService
 import me.vripper.services.VGAuthService
 import me.vripper.utilities.HtmlUtils
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
 import me.vripper.utilities.ViperLinks
@@ -47,13 +48,16 @@ internal class FetchMetadataTask(
 
     override fun getStatus() = status
 
-    override suspend fun run() {
+    override suspend fun run() = LogContext.with(
+        threadId = postEntity.vgThreadId,
+        postId = postEntity.vgPostId,
+    ) {
         status = TaskStatus.RUNNING
         if (!settingsService.settings.viperSettings.fetchMetadata) {
             log.debug("Fetching metadata is disabled")
             status = TaskStatus.WARNING
             result = "Fetching metadata is disabled"
-            return
+            return@with
         }
         try {
             val httpGet = HttpGet(

@@ -588,6 +588,8 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             logEntry.levelString,
             logEntry.formattedMessage,
             logEntry.throwable,
+            logEntry.threadId.takeIf { it > 0 },
+            logEntry.postId.takeIf { it > 0 },
         )
     }
 

@@ -4,6 +4,7 @@ import me.vripper.entities.PostEntity
 import me.vripper.exception.VripperException
 import me.vripper.services.HTTPService
 import me.vripper.services.SettingsService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.RequestLimit
 import org.apache.hc.client5.http.classic.methods.HttpPost
@@ -36,17 +37,20 @@ internal class LeaveThanksTask(
 
     override fun getStatus() = status
 
-    override suspend fun run() {
+    override suspend fun run() = LogContext.with(
+        threadId = postEntity.vgThreadId,
+        postId = postEntity.vgPostId,
+    ) {
         status = TaskStatus.RUNNING
         if (!settingsService.settings.viperSettings.login || !authenticated) {
             status = TaskStatus.WARNING
             result = "Skipped: not authenticated with ViperGirls"
-            return
+            return@with
         }
         if (!settingsService.settings.viperSettings.thanks) {
             status = TaskStatus.WARNING
             result = "Skipped: leaving thanks is disabled"
-            return
+            return@with
         }
         try {
             val postThanks = HttpPost("${settingsService.settings.viperSettings.host}/post_thanks.php").also {

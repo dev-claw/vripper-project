@@ -10,6 +10,7 @@ import me.vripper.model.ThreadIdentifier
 import me.vripper.services.DataAccessService
 import me.vripper.services.TaskService
 import me.vripper.services.ThreadCacheService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.ViperLinks
 import org.koin.core.component.KoinComponent
@@ -48,6 +49,7 @@ internal class ThreadLookupTask(
             uniqueThreadIdentifiers.forEach { threadIdentifier ->
                 currentCoroutineContext().ensureActive()
                 val link = ViperLinks.threadUrl(threadIdentifier.siteProxy, threadIdentifier.threadId)
+                LogContext.with(threadId = threadIdentifier.threadId) {
                 try {
                     val existingThread = dataAccessService.findThreadByThreadId(threadIdentifier.threadId).orElse(null)
                     if (existingThread != null) {
@@ -90,7 +92,7 @@ internal class ThreadLookupTask(
                                 }
                             }
                         }
-                        return@forEach
+                        return@with
                     }
                     val threadLookupResult =
                         threadCacheService.loadThenCache(threadIdentifier.threadId, threadIdentifier.siteProxy)
@@ -147,6 +149,7 @@ internal class ThreadLookupTask(
                 } catch (e: Exception) {
                     log.error("Error when processing $link", e)
                     failed.add(threadIdentifier.threadId to "Error when processing $link: ${e.message ?: e.toString()}")
+                }
                 }
             }
 

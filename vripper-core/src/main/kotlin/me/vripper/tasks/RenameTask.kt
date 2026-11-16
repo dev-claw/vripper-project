@@ -1,6 +1,7 @@
 package me.vripper.tasks
 
 import me.vripper.services.DataAccessService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils
 import org.koin.core.component.KoinComponent
@@ -39,16 +40,21 @@ internal class RenameTask(
                     return
                 }
                 dataAccessService.findPostByEntityId(postEntityId).let { post ->
-                    if (Path(post.downloadDirectory, post.folderName).exists()) {
-                        PathUtils.rename(
-                            dataAccessService.findImagesByPostEntityId(postEntityId),
-                            post.downloadDirectory,
-                            post.folderName,
-                            newName
-                        )
+                    LogContext.set(threadId = post.vgThreadId, postId = post.vgPostId)
+                    try {
+                        if (Path(post.downloadDirectory, post.folderName).exists()) {
+                            PathUtils.rename(
+                                dataAccessService.findImagesByPostEntityId(postEntityId),
+                                post.downloadDirectory,
+                                post.folderName,
+                                newName
+                            )
+                        }
+                        post.folderName = PathUtils.sanitize(newName)
+                        dataAccessService.updatePost(post)
+                    } finally {
+                        LogContext.clear()
                     }
-                    post.folderName = PathUtils.sanitize(newName)
-                    dataAccessService.updatePost(post)
                 }
                 status = TaskStatus.SUCCESS
                 result = "Renamed post #$postEntityId to \"$newName\""

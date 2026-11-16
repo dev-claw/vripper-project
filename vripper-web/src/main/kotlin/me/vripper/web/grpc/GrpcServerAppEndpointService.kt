@@ -589,6 +589,8 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             levelString = log.levelString
             formattedMessage = log.formattedMessage
             throwable = log.throwable
+            log.threadId?.let { threadId = it }
+            log.postId?.let { postId = it }
             build()
         }
     }

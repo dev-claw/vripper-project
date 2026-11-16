@@ -36,6 +36,10 @@
             <artifactId>kotlinx-coroutines-core-jvm</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-slf4j</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.jetbrains.exposed</groupId>
             <artifactId>exposed-jdbc</artifactId>
         </dependency>

@@ -9,4 +9,6 @@ message Log {
   string levelString = 5;
   string formattedMessage = 6;
   string throwable = 7;
+  int64 threadId = 8;
+  int64 postId = 9;
 }

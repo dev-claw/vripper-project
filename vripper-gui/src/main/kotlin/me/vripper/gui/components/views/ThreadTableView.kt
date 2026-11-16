@@ -20,9 +20,7 @@ import kotlinx.coroutines.javafx.asFlow
 import kotlinx.coroutines.launch
 import me.vripper.gui.components.EmptyState
 import me.vripper.gui.components.Shared
-import me.vripper.gui.components.ThreadQuickFilter
 import me.vripper.gui.components.fragments.ThreadSelectionTableFragment
-import me.vripper.gui.components.quickFilterPills
 import me.vripper.gui.controller.ThreadController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
@@ -40,7 +38,6 @@ class ThreadTableView : View() {
     private val mainView: MainView by inject()
     private val tableView: TableView<ThreadModel>
     private val searchInput = Shared.threadsSearchInput
-    private val quickFilterProperty = Shared.threadQuickFilter
     private val items: ObservableList<ThreadModel> = FXCollections.observableArrayList()
     private val filteredItems = SortedFilteredList(items)
     private val loadingPlaceholder = Label("Loading")
@@ -52,7 +49,6 @@ class ThreadTableView : View() {
 
     init {
         searchInput.addListener { _, _, _ -> applyThreadFilter() }
-        quickFilterProperty.addListener { _, _, _ -> applyThreadFilter() }
         applyThreadFilter()
         with(root) {
             hbox {
@@ -62,14 +58,6 @@ class ThreadTableView : View() {
                 button("Clear library", FontIcon.of(Feather.TRASH_2)) {
                     action { clearThreads() }
                 }
-                spacer()
-                add(
-                    quickFilterPills(
-                        "Posts",
-                        ThreadQuickFilter.entries.map { it to it.label },
-                        quickFilterProperty.get(),
-                    ) { quickFilterProperty.set(it) }
-                )
             }
             tableView = tableview(filteredItems) {
                 isTableMenuButtonVisible = true
@@ -339,12 +327,11 @@ class ThreadTableView : View() {
 
     private fun applyThreadFilter() {
         val query = searchInput.get().orEmpty().trim()
-        val filter = quickFilterProperty.get() ?: ThreadQuickFilter.ALL
         emptyMessage.set(
-            if (query.isBlank() && filter == ThreadQuickFilter.ALL) "No threads in the library yet" else "No matching threads"
+            if (query.isBlank()) "No threads in the library yet" else "No matching threads"
         )
         filteredItems.predicate = { thread ->
-            matchesQuery(thread, query) && matchesQuickFilter(thread, filter)
+            matchesQuery(thread, query)
         }
     }
 
@@ -355,13 +342,6 @@ class ThreadTableView : View() {
                 thread.forum.contains(query, ignoreCase = true) ||
                 thread.starter.contains(query, ignoreCase = true) ||
                 thread.threadId.toString().contains(query)
-
-    private fun matchesQuickFilter(thread: ThreadModel, filter: ThreadQuickFilter): Boolean =
-        when (filter) {
-            ThreadQuickFilter.ALL -> true
-            ThreadQuickFilter.WITH_POSTS -> thread.total > 0
-            ThreadQuickFilter.EMPTY -> thread.total == 0
-        }
 
     private fun isCurrentTab(): Boolean = mainView.root.selectionModel.selectedItem.id == "thread-tab"
 

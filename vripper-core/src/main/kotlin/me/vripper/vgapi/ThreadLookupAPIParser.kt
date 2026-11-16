@@ -5,6 +5,7 @@ import dev.failsafe.function.CheckedSupplier
 import me.vripper.exception.PostParseException
 import me.vripper.services.RetryPolicyService
 import me.vripper.services.TaskService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -22,10 +23,10 @@ internal class ThreadLookupAPIParser(
     private val taskService: TaskService by inject()
 
     @Throws(PostParseException::class)
-    fun parse(): ThreadItem {
+    fun parse(): ThreadItem = LogContext.withMdc(threadId = threadId) {
         log.debug("Parsing thread {}", threadId)
         taskService.increment()
-        return try {
+        try {
             parsePages()
         } catch (e: Exception) {
             throw PostParseException(e)
@@ -35,10 +36,10 @@ internal class ThreadLookupAPIParser(
     }
 
     @Throws(PostParseException::class)
-    fun parseMetadata(): ThreadItem {
+    fun parseMetadata(): ThreadItem = LogContext.withMdc(threadId = threadId) {
         log.debug("Parsing thread {} metadata", threadId)
         taskService.increment()
-        return try {
+        try {
             parsePage(since, mutableSetOf(), METADATA_LIMIT)
         } catch (e: Exception) {
             throw PostParseException(e)
@@ -68,7 +69,7 @@ internal class ThreadLookupAPIParser(
             log.error("Failed to process thread {} page since {}", threadId, since, it.exception)
         }.get(CheckedSupplier {
             val handler = ThreadLookupAPIResponseHandler(siteProxy, seenMainLinks, threadId)
-            val feedResponse = feedClient.get(parameters)
+            val feedResponse = feedClient.get(parameters, threadId = threadId)
             ByteArrayInputStream(feedResponse.body).use {
                 factory.newSAXParser().parse(it, handler)
             }

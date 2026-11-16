@@ -1,7 +1,9 @@
 package me.vripper.tasks
 
+import me.vripper.entities.PostEntity
 import me.vripper.services.DataAccessService
 import me.vripper.services.PostActionService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -29,24 +31,34 @@ internal class PostActionTask(
 
     override suspend fun run() {
         status = TaskStatus.RUNNING
+        var post: PostEntity? = null
         try {
             if (!dataAccessService.exists(postEntityId)) {
                 status = TaskStatus.WARNING
                 result = "Post #$postEntityId no longer exists"
                 return
             }
-            postActionService.execute(postEntityId)
-            val action = dataAccessService.findPostAction(postEntityId)
-            result = action?.lastError?.takeIf { it.isNotBlank() } ?: "Automation completed for post #$postEntityId"
-            status = when (action?.state) {
-                me.vripper.entities.ActionState.FAILED -> TaskStatus.FAILURE
-                me.vripper.entities.ActionState.AWAITING_REVIEW -> TaskStatus.WARNING
-                else -> TaskStatus.SUCCESS
+            val currentPost = dataAccessService.findPostByEntityId(postEntityId)
+            post = currentPost
+            LogContext.with(threadId = currentPost.vgThreadId, postId = currentPost.vgPostId) {
+                postActionService.execute(postEntityId)
+                val action = dataAccessService.findPostAction(postEntityId)
+                result = action?.lastError?.takeIf { it.isNotBlank() } ?: "Automation completed for post #$postEntityId"
+                status = when (action?.state) {
+                    me.vripper.entities.ActionState.FAILED -> TaskStatus.FAILURE
+                    me.vripper.entities.ActionState.AWAITING_REVIEW -> TaskStatus.WARNING
+                    else -> TaskStatus.SUCCESS
+                }
             }
         } catch (e: Exception) {
-            status = TaskStatus.FAILURE
-            result = "Automation failed for post #$postEntityId: ${e.message ?: e.toString()}"
-            log.error("Automation failed for post #$postEntityId", e)
+            post?.let { LogContext.set(threadId = it.vgThreadId, postId = it.vgPostId) }
+            try {
+                status = TaskStatus.FAILURE
+                result = "Automation failed for post #$postEntityId: ${e.message ?: e.toString()}"
+                log.error("Automation failed for post #$postEntityId", e)
+            } finally {
+                LogContext.clear()
+            }
         }
     }
 }

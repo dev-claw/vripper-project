@@ -5,6 +5,7 @@ import me.vripper.event.EventBus
 import me.vripper.event.ThreadNewPostsEvent
 import me.vripper.services.DataAccessService
 import me.vripper.services.SettingsService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.ViperLinks
 import me.vripper.vgapi.SubscriptionsAPIParser
@@ -47,68 +48,72 @@ internal class SubscriptionsTask : KoinComponent, ITask {
             val existingByThreadId = dataAccessService.findAllSubscriptionsAsync()
                 .associateBy { it.threadId }
             incoming.forEach { threadItem ->
-                try {
-                    val existing = existingByThreadId[threadItem.threadId]
-                    val subscription = SubscriptionEntity(
-                        id = existing?.id ?: -1,
-                        title = threadItem.title,
-                        link = ViperLinks.threadUrl(siteProxy, threadItem.threadId),
-                        threadId = threadItem.threadId,
-                        total = threadItem.replyCount + 1,
-                        forumId = threadItem.forumId,
-                        forum = threadItem.forum,
-                        prefixId = threadItem.prefixId,
-                        starter = threadItem.starter,
-                        starterId = threadItem.starterId,
-                        created = threadItem.created,
-                        lastPost = threadItem.lastPost,
-                        lastPostId = threadItem.lastPostId,
-                        lastPoster = threadItem.lastPoster,
-                        replyCount = threadItem.replyCount,
-                        views = threadItem.views,
-                        open = threadItem.open,
-                        sticky = threadItem.sticky,
-                        newestPostId = threadItem.newestPostId,
-                    )
-                    when {
-                        existing == null -> {
-                            dataAccessService.saveSubscriptionAsync(subscription)
-                            imported.add(threadItem.threadId)
-                        }
-
-                        existing != subscription -> {
-                            dataAccessService.updateSubscriptionAsync(subscription)
-                            updated.add(threadItem.threadId)
-                        }
-                    }
-                    if (existing != null &&
-                        existing.newestPostId > 0 &&
-                        threadItem.newestPostId > existing.newestPostId
-                    ) {
-                        EventBus.publishEvent(
-                            ThreadNewPostsEvent(
-                                threadId = threadItem.threadId,
-                                title = threadItem.title.ifBlank { existing.title },
-                                link = subscription.link,
-                                newPosts = (threadItem.replyCount + 1 - existing.total).coerceAtLeast(1),
-                                subscription = true,
-                            )
+                LogContext.with(threadId = threadItem.threadId) {
+                    try {
+                        val existing = existingByThreadId[threadItem.threadId]
+                        val subscription = SubscriptionEntity(
+                            id = existing?.id ?: -1,
+                            title = threadItem.title,
+                            link = ViperLinks.threadUrl(siteProxy, threadItem.threadId),
+                            threadId = threadItem.threadId,
+                            total = threadItem.replyCount + 1,
+                            forumId = threadItem.forumId,
+                            forum = threadItem.forum,
+                            prefixId = threadItem.prefixId,
+                            starter = threadItem.starter,
+                            starterId = threadItem.starterId,
+                            created = threadItem.created,
+                            lastPost = threadItem.lastPost,
+                            lastPostId = threadItem.lastPostId,
+                            lastPoster = threadItem.lastPoster,
+                            replyCount = threadItem.replyCount,
+                            views = threadItem.views,
+                            open = threadItem.open,
+                            sticky = threadItem.sticky,
+                            newestPostId = threadItem.newestPostId,
                         )
+                        when {
+                            existing == null -> {
+                                dataAccessService.saveSubscriptionAsync(subscription)
+                                imported.add(threadItem.threadId)
+                            }
+
+                            existing != subscription -> {
+                                dataAccessService.updateSubscriptionAsync(subscription)
+                                updated.add(threadItem.threadId)
+                            }
+                        }
+                        if (existing != null &&
+                            existing.newestPostId > 0 &&
+                            threadItem.newestPostId > existing.newestPostId
+                        ) {
+                            EventBus.publishEvent(
+                                ThreadNewPostsEvent(
+                                    threadId = threadItem.threadId,
+                                    title = threadItem.title.ifBlank { existing.title },
+                                    link = subscription.link,
+                                    newPosts = (threadItem.replyCount + 1 - existing.total).coerceAtLeast(1),
+                                    subscription = true,
+                                )
+                            )
+                        }
+                    } catch (e: Exception) {
+                        log.error("Error when refreshing subscribed thread ${threadItem.threadId}", e)
+                        failed.add(threadItem.threadId to (e.message ?: e.toString()))
                     }
-                } catch (e: Exception) {
-                    log.error("Error when refreshing subscribed thread ${threadItem.threadId}", e)
-                    failed.add(threadItem.threadId to (e.message ?: e.toString()))
                 }
             }
 
             val fetchedThreadIds = incoming.map { it.threadId }.toSet()
             existingByThreadId.keys.filterNot { it in fetchedThreadIds }.forEach { threadId ->
-                try {
-                    dataAccessService.removeSubscriptionAsync(threadId)
-                    removed.add(threadId)
-                } catch (e: Exception) {
-                    log.error("Error when removing subscribed thread $threadId", e)
-                    failed.add(threadId to (e.message ?: e.toString()))
+                LogContext.with(threadId = threadId) {
+                    try {
+                        dataAccessService.removeSubscriptionAsync(threadId)
+                        removed.add(threadId)
+                    } catch (e: Exception) {
+                        log.error("Error when removing subscribed thread $threadId", e)
+                        failed.add(threadId to (e.message ?: e.toString()))
+                    }
                 }
             }
 

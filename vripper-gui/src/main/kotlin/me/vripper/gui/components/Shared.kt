@@ -9,8 +9,8 @@ object Shared {
     val subscriptionsSearchInput = SimpleStringProperty("")
     val tasksSearchInput = SimpleStringProperty("")
     val logsSearchInput = SimpleStringProperty("")
-
-    val threadQuickFilter = SimpleObjectProperty(ThreadQuickFilter.ALL)
+    val logsThreadIdInput = SimpleStringProperty("")
+    val logsPostIdInput = SimpleStringProperty("")
     val taskQuickFilter = SimpleObjectProperty(TaskQuickFilter.ALL)
     val taskGroupMode = SimpleObjectProperty(TaskGroupMode.NONE)
     val logQuickFilter = SimpleObjectProperty(LogQuickFilter.ALL)

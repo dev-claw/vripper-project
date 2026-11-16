@@ -5,6 +5,7 @@ import me.vripper.model.ThreadIdentifier
 import me.vripper.services.IPostCommandEndpoint
 import me.vripper.services.SettingsService
 import me.vripper.services.TaskService
+import me.vripper.utilities.LogContext
 import me.vripper.utilities.LoggerDelegate
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -46,7 +47,6 @@ internal class ScanLinksTask(
                 .filter { it.isNotEmpty() }
             val proxies = settingsService.getProxies()
             for (link in urlList) {
-                log.debug("Scanning: $link")
                 val matchingProxy = proxies.find { link.startsWith(it) }
                 if (matchingProxy == null) {
                     invalid.add(link)
@@ -60,10 +60,13 @@ internal class ScanLinksTask(
                 if (m.find()) {
                     threadId = m.group(1).toLong()
                     postId = m.group(4)?.toLong()
-                    if (postId == null) {
-                        threadFound.add(ThreadIdentifier(matchingProxy, threadId))
-                    } else {
-                        postsFound.add(PostIdentifier(matchingProxy, threadId, postId))
+                    LogContext.with(threadId = threadId, postId = postId) {
+                        log.debug("Scanning: $link")
+                        if (postId == null) {
+                            threadFound.add(ThreadIdentifier(matchingProxy, threadId))
+                        } else {
+                            postsFound.add(PostIdentifier(matchingProxy, threadId, postId))
+                        }
                     }
                 } else {
                     log.error("Invalid link $link, link is missing the threadId")

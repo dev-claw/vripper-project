@@ -11,4 +11,6 @@ data class LogEntryEntity(
     val levelString: String,
     val formattedMessage: String,
     val throwable: String,
+    val threadId: Long? = null,
+    val postId: Long? = null,
 )
