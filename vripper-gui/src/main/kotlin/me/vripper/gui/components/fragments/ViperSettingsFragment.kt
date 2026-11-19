@@ -27,6 +27,7 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
         viperSettingsModel.fetchMetadata = viperSettings.fetchMetadata
         viperSettingsModel.watchSubscriptions = viperSettings.watchSubscriptions
         viperSettingsModel.watchIntervalMinutes = viperSettings.watchIntervalMinutes
+        viperSettingsModel.watchThreads = viperSettings.watchThreads
         proxies.addAll(runBlocking { settingsController.getProxies() })
         with(root) {
             form {
@@ -54,7 +55,12 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
                             viperSettingsModel.loginProperty.bind(selectedProperty())
                         })
                     }
-                    field("Watch subscriptions and Thread Library") {
+                    field("Watch Thread Library") {
+                        checkbox {
+                            bind(viperSettingsModel.watchThreadsProperty)
+                        }
+                    }
+                    field("Watch subscriptions") {
                         checkbox {
                             bind(viperSettingsModel.watchSubscriptionsProperty)
                         }

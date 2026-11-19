@@ -40,6 +40,7 @@ data class ViperSettings(
     val fetchMetadata: Boolean = false,
     val watchSubscriptions: Boolean = false,
     val watchIntervalMinutes: Int = 15,
+    val watchThreads: Boolean = false,
 )
 
 @Serializable

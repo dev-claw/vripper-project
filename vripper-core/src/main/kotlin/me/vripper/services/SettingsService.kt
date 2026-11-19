@@ -1,9 +1,9 @@
 package me.vripper.services
 
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import kotlinx.serialization.json.jsonObject
 import me.vripper.event.EventBus
 import me.vripper.event.SettingsUpdateEvent
 import me.vripper.exception.ValidationException
@@ -98,7 +98,17 @@ class SettingsService(private val eventBus: EventBus) {
     private fun restore() {
         try {
             if (configPath.toFile().exists()) {
-                settings = json.decodeFromString(configPath.readText())
+                val rawSettings = configPath.readText()
+                val config = json.parseToJsonElement(rawSettings)
+                settings = json.decodeFromString(rawSettings)
+                val viperConfig = config.jsonObject["viperSettings"]?.jsonObject
+                if (viperConfig != null && !viperConfig.containsKey("watchThreads")) {
+                    settings = settings.copy(
+                        viperSettings = settings.viperSettings.copy(
+                            watchThreads = settings.viperSettings.watchSubscriptions
+                        )
+                    )
+                }
             }
         } catch (e: Exception) {
             log.error("Failed to restore user settings", e)
@@ -194,11 +204,11 @@ class SettingsService(private val eventBus: EventBus) {
             )
         }
 
-        if (settings.viperSettings.watchSubscriptions &&
+        if ((settings.viperSettings.watchSubscriptions || settings.viperSettings.watchThreads) &&
             (settings.viperSettings.watchIntervalMinutes !in 5..1440)
         ) {
             throw ValidationException(
-                "Invalid subscription watcher interval, values must be in [5,1440] minutes"
+                "Invalid watcher interval, values must be in [5,1440] minutes"
             )
         }
 

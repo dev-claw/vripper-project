@@ -401,7 +401,14 @@ private fun ViperSection(
             },
         )
         SettingsSwitch(
-            label = "Watch subscriptions and Thread Library",
+            label = "Watch Thread Library",
+            checked = settings.viper.watchThreads,
+            onCheckedChange = { value ->
+                update { it.copy(viper = it.viper.copy(watchThreads = value)) }
+            },
+        )
+        SettingsSwitch(
+            label = "Watch subscriptions",
             checked = settings.viper.watchSubscriptions,
             onCheckedChange = { value ->
                 update { it.copy(viper = it.viper.copy(watchSubscriptions = value)) }

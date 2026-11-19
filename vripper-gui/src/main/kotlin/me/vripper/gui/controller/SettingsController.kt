@@ -83,6 +83,7 @@ class SettingsController : Controller() {
                         viperSettingsModel.fetchMetadata,
                         viperSettingsModel.watchSubscriptions,
                         viperSettingsModel.watchIntervalMinutes,
+                        viperSettingsModel.watchThreads,
                     ),
                     systemSettings =
                         SystemSettings(

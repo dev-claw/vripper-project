@@ -4,6 +4,7 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import me.vripper.model.ViperSettings
+import me.vripper.tasks.ITask
 import me.vripper.tasks.SubscriptionsTask
 import me.vripper.tasks.TaskStatus
 import me.vripper.tasks.ThreadRefreshTask
@@ -57,7 +58,7 @@ internal class WatcherService(
     private suspend fun loop() {
         while (currentCoroutineContext().isActive) {
             val settings = settingsService.settings.viperSettings
-            if (!isEnabled(settings)) {
+            if (!hasRunnableWatcherTasks(settings, vgAuthService.isAuthenticated())) {
                 delay(IDLE_POLL_MILLIS.milliseconds)
                 continue
             }
@@ -79,24 +80,22 @@ internal class WatcherService(
                 }
             }
 
-            if (!isEnabled(settingsService.settings.viperSettings)) {
+            if (!hasRunnableWatcherTasks(settingsService.settings.viperSettings, vgAuthService.isAuthenticated())) {
                 continue
             }
-            runRefresh()
+            runRefresh(settingsService.settings.viperSettings)
         }
     }
 
-    private suspend fun runRefresh() {
+    private suspend fun runRefresh(settings: ViperSettings) {
         if (!refreshInFlight.compareAndSet(false, true)) {
             return
         }
         val taskJobs = mutableListOf<Job>()
         try {
-            val tasks = buildList {
-                if (vgAuthService.isAuthenticated()) {
-                    add(SubscriptionsTask())
-                }
-                add(ThreadRefreshTask())
+            val tasks = watcherTasks(settings, vgAuthService.isAuthenticated())
+            if (tasks.isEmpty()) {
+                return
             }
             val results = tasks.map { task ->
                 val job = taskService.submit(task)
@@ -138,10 +137,6 @@ internal class WatcherService(
         } finally {
             refreshInFlight.set(false)
         }
-    }
-
-    private fun isEnabled(settings: ViperSettings): Boolean {
-        return settings.watchSubscriptions
     }
 
     private fun loadState(): WatcherState {
@@ -191,6 +186,19 @@ internal class WatcherService(
         private const val MAX_BACKOFF_MILLIS = 6 * 60 * 60 * 1000L
         private const val MAX_ERROR_LENGTH = 1_000
         private const val STOP_TIMEOUT_MILLIS = 5_000L
+
+        internal fun watcherTasks(settings: ViperSettings, authenticated: Boolean): List<ITask> = buildList {
+            if (settings.watchSubscriptions && authenticated) {
+                add(SubscriptionsTask())
+            }
+            if (settings.watchThreads) {
+                add(ThreadRefreshTask())
+            }
+        }
+
+        internal fun hasRunnableWatcherTasks(settings: ViperSettings, authenticated: Boolean): Boolean {
+            return settings.watchThreads || (settings.watchSubscriptions && authenticated)
+        }
 
         internal fun watcherNextDelayMs(lastCheckedEpochMs: Long, intervalMs: Long, nowMs: Long): Long {
             if (lastCheckedEpochMs <= 0) {

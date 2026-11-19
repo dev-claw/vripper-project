@@ -321,6 +321,7 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     fetchMetadata = request.viperSettings.fetchMetadata,
                     watchSubscriptions = request.viperSettings.watchSubscriptions,
                     watchIntervalMinutes = request.viperSettings.watchIntervalMinutes,
+                    watchThreads = request.viperSettings.watchThreads,
                 ), systemSettings = SystemSettings(
                     tempPath = request.systemSettings.tempPath,
                     enableClipboardMonitoring = request.systemSettings.enableClipboardMonitoring,

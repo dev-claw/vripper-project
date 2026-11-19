@@ -34,4 +34,7 @@ class ViperSettingsModel {
 
     val watchIntervalMinutesProperty = SimpleIntegerProperty()
     var watchIntervalMinutes: Int by watchIntervalMinutesProperty
+
+    val watchThreadsProperty = SimpleBooleanProperty()
+    var watchThreads: Boolean by watchThreadsProperty
 }

@@ -381,6 +381,7 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             fetchMetadata = settings.viperSettings.fetchMetadata,
             watchSubscriptions = settings.viperSettings.watchSubscriptions,
             watchIntervalMinutes = settings.viperSettings.watchIntervalMinutes,
+            watchThreads = settings.viperSettings.watchThreads,
         ),
         downloadSettings = DownloadSettings(
             downloadPath = settings.downloadSettings.downloadPath,
@@ -440,6 +441,7 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             fetchMetadata = this@toProto.viperSettings.fetchMetadata
             watchSubscriptions = this@toProto.viperSettings.watchSubscriptions
             watchIntervalMinutes = this@toProto.viperSettings.watchIntervalMinutes
+            watchThreads = this@toProto.viperSettings.watchThreads
             build()
         }
 

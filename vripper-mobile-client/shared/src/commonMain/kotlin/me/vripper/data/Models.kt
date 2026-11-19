@@ -160,6 +160,7 @@ data class ViperSettings(
     val fetchMetadata: Boolean = false,
     val watchSubscriptions: Boolean = false,
     val watchIntervalMinutes: Int = 15,
+    val watchThreads: Boolean = false,
 )
 
 data class DownloadSettings(
@@ -328,6 +329,7 @@ fun ProtoViperSettings.toDomain(): ViperSettings = ViperSettings(
     fetchMetadata = fetchMetadata,
     watchSubscriptions = watchSubscriptions,
     watchIntervalMinutes = watchIntervalMinutes,
+    watchThreads = watchThreads,
 )
 
 fun ProtoDownloadSettings.toDomain(): DownloadSettings = DownloadSettings(
@@ -375,6 +377,7 @@ fun ViperSettings.toProto(): ProtoViperSettings = ProtoViperSettings(
     fetchMetadata = fetchMetadata,
     watchSubscriptions = watchSubscriptions,
     watchIntervalMinutes = watchIntervalMinutes,
+    watchThreads = watchThreads,
 )
 
 fun DownloadSettings.toProto(): ProtoDownloadSettings = ProtoDownloadSettings(

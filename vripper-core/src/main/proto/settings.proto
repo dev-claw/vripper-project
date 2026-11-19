@@ -11,6 +11,7 @@ message ViperSettings {
   bool fetchMetadata = 7;
   bool watchSubscriptions = 8;
   int32 watchIntervalMinutes = 9;
+  bool watchThreads = 10;
 }
 
 message DownloadSettings {
