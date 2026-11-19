@@ -13,7 +13,7 @@ internal object HtmlUtils {
     fun clean(htmlContent: InputStream): Document {
         return try {
             htmlContent.use { stream ->
-                val clean = HtmlCleaner().clean(htmlContent)
+                val clean = HtmlCleaner().clean(stream)
                 DomSerializer(CleanerProperties()).createDOM(clean)
             }
         } catch (e: Exception) {

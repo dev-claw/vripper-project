@@ -10,6 +10,7 @@ import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.XpathUtils
 import org.apache.hc.client5.http.classic.methods.HttpPost
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity
+import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.apache.hc.core5.http.message.BasicNameValuePair
 
 
@@ -50,12 +51,19 @@ internal class ImxHost : Host("imx", listOf("imx.to"), 8) {
                 it.entity = UrlEncodedFormEntity(listOf(BasicNameValuePair("imgContinue", value)))
             }.also { context.requests.add(it) }
             log.debug("Requesting {}", httpPost)
-            val doc = httpService.client.execute(
+            val stringResponse = httpService.client.execute(
                 httpPost, context.httpContext
             ) { response ->
-                log.debug("Cleaning response for {}", httpPost)
-                HtmlUtils.clean(response.entity.content)
+                if(response.code / 100 != 2) {
+                    log.warn("$httpPost retured ${response.code}: ${response.reasonPhrase}")
+                    ""
+                } else {
+                    log.debug("Cleaning response for {}", httpPost)
+                    EntityUtils.toString(response.entity)
+                }
             }
+
+            val doc = HtmlUtils.clean(stringResponse)
 
             log.debug("Looking for xpath expression $TITLE_XPATH in $pageUrl")
             val imgNode = XpathUtils.getAsNode(doc, TITLE_XPATH)
@@ -123,6 +131,6 @@ internal class ImxHost : Host("imx", listOf("imx.to"), 8) {
 
     companion object {
         private const val CONTINUE_BUTTON_XPATH = "//*[@name='imgContinue']"
-        private const val TITLE_XPATH = "//div[contains(@class,'img-title')]"
+        private const val TITLE_XPATH = "//*[contains(@class,'img-title')]"
     }
 }
