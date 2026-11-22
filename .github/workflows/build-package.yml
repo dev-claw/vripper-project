@@ -62,17 +62,40 @@ jobs:
           set -euo pipefail
           mvn -N -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file pom.xml
           mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file vripper-core/pom.xml
-          mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file vripper-gui/pom.xml
           mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file vripper-web-ui/pom.xml
           mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" install --file vripper-web/pom.xml
-          mv "vripper-gui/target/vripper-gui-${REVISION}-jar-with-dependencies.jar" "vripper-gui/target/vripper-noarch-gui${JAR_SUFFIX}.jar"
+
+          # Each GUI jar must only contain the natives for one platform. The
+          # platform-* profiles select the matching JavaFX/bytedeco classifiers
+          # and strip foreign natives from JNA, sqlite-jdbc and grpc-netty.
+          for platform in linux-x86_64 windows-x86_64 macos-x86_64 macos-aarch64; do
+            mvn -B -q -Drevision="${REVISION}" -Dapp-version="${APP_VERSION}" \
+              -Pplatform-${platform} package --file vripper-gui/pom.xml
+            out="vripper-gui/target/vripper-gui-${platform}${JAR_SUFFIX}.jar"
+            mv "vripper-gui/target/vripper-gui-${REVISION}-jar-with-dependencies.jar" "${out}"
+
+            case "${platform}" in
+              linux-*)   foreign='\.(dll|dylib|jnilib)$' ;;
+              windows-*) foreign='\.(so|dylib|jnilib)$' ;;
+              macos-*)   foreign='\.(dll|so)$' ;;
+            esac
+            if jar tf "${out}" | grep -Eq "${foreign}"; then
+              echo "Found foreign native libraries in ${out}" >&2
+              exit 1
+            fi
+          done
+
           mv "vripper-web/target/vripper-web-${REVISION}.jar" "vripper-web/target/vripper-noarch-web${JAR_SUFFIX}.jar"
 
-      - name: Upload GUI jar
+      - name: Upload GUI jars
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.artifact_prefix }}-gui-jar
-          path: vripper-gui/target/vripper-noarch-gui${{ inputs.jar_suffix }}.jar
+          path: |
+            vripper-gui/target/vripper-gui-linux-x86_64${{ inputs.jar_suffix }}.jar
+            vripper-gui/target/vripper-gui-windows-x86_64${{ inputs.jar_suffix }}.jar
+            vripper-gui/target/vripper-gui-macos-x86_64${{ inputs.jar_suffix }}.jar
+            vripper-gui/target/vripper-gui-macos-aarch64${{ inputs.jar_suffix }}.jar
           retention-days: 1
           compression-level: 0
 
@@ -116,21 +139,25 @@ jobs:
           - os: ubuntu-latest
             target: linux
             platform: linux
+            gui_platform: linux-x86_64
             arch_suffix: ''
             portable_path: VRipper
           - os: windows-latest
             target: windows
             platform: windows
+            gui_platform: windows-x86_64
             arch_suffix: ''
             portable_path: VRipper
           - os: macos-15-intel
             target: macos-intel
             platform: macos
+            gui_platform: macos-x86_64
             arch_suffix: .x86_64
             portable_path: VRipper.app
           - os: macos-latest
             target: macos-arm
             platform: macos
+            gui_platform: macos-aarch64
             arch_suffix: .arm64
             portable_path: VRipper.app
     runs-on: ${{ matrix.os }}
@@ -155,7 +182,12 @@ jobs:
 
       - name: Prepare packaging
         shell: bash
-        run: cp "jar-download/vripper-noarch-gui${{ inputs.jar_suffix }}.jar" jpackage/jar/vripper-gui.jar
+        env:
+          JAR_SUFFIX: ${{ inputs.jar_suffix }}
+          GUI_PLATFORM: ${{ matrix.gui_platform }}
+        run: |
+          set -euo pipefail
+          cp "jar-download/vripper-gui-${GUI_PLATFORM}${JAR_SUFFIX}.jar" jpackage/jar/vripper-gui.jar
 
       - if: matrix.target == 'linux'
         name: Package for Linux
@@ -214,6 +246,16 @@ jobs:
           # The shaded jar must contain the native libraries for this target.
           jar tf jar/vripper-gui.jar | grep -F "org/bytedeco/leptonica/macosx-${arch}/libleptonica" >/dev/null
           jar tf jar/vripper-gui.jar | grep -F "org/sqlite/native/Mac/${sqlite_arch}/libsqlitejdbc.dylib" >/dev/null
+
+          # The JavaFX rendering natives are CPU-specific. If the wrong
+          # classifier is packaged the JVM fails to dlopen them with an
+          # "incompatible architecture" error, so verify every slice here.
+          dylib_dir="$(mktemp -d)"
+          unzip -q -o jar/vripper-gui.jar '*.dylib' '*.jnilib' -d "${dylib_dir}"
+          while IFS= read -r lib; do
+            lipo -archs "${lib}" | grep -F "${arch}" >/dev/null
+          done < <(find "${dylib_dir}" -type f \( -name '*.dylib' -o -name '*.jnilib' \))
+          rm -rf "${dylib_dir}"
 
           for app in "dist/VRipper.app" "dist-installer/VRipper.app"; do
             plist="${app}/Contents/Info.plist"
