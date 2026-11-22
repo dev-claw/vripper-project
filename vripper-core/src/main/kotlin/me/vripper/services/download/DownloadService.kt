@@ -9,8 +9,8 @@ import me.vripper.services.DataAccessService
 import me.vripper.services.SettingsService
 import me.vripper.services.download.SharedLock.downloadManagerCondition
 import me.vripper.services.download.SharedLock.downloadManagerLock
+import me.vripper.utilities.DatabaseManager
 import me.vripper.utilities.LoggerDelegate
-import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.concurrent.withLock
 import kotlin.math.min
 
@@ -109,7 +109,7 @@ internal class DownloadService(
                 }
             }
 
-            transaction {
+            DatabaseManager.writeTransaction {
                 dataAccessService.updatePosts(
                     toProcess.keys.toList()
                 )

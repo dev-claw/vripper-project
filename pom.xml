@@ -38,6 +38,7 @@
         <java.grpc.version>1.68.1</java.grpc.version>
         <protobuf.version>3.25.5</protobuf.version>
         <sqlite-jdbc.version>3.47.0.0</sqlite-jdbc.version>
+        <hikari.version>6.3.0</hikari.version>
         <bucket4j_jdk17-core.version>8.14.0</bucket4j_jdk17-core.version>
     </properties>
     <build>
@@ -141,6 +142,11 @@
                 <groupId>org.xerial</groupId>
                 <artifactId>sqlite-jdbc</artifactId>
                 <version>${sqlite-jdbc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>${hikari.version}</version>
             </dependency>
             <dependency>
                 <artifactId>htmlcleaner</artifactId>

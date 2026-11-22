@@ -12,6 +12,7 @@ import me.vripper.entities.TaskEntity
 import me.vripper.event.*
 import me.vripper.tasks.ITask
 import me.vripper.tasks.TaskStatus
+import me.vripper.utilities.DatabaseManager
 import me.vripper.utilities.LoggerDelegate
 import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -92,7 +93,7 @@ internal class TaskService(
             taskCategory = task.getCategory(),
             description = task.getDescription(),
         )
-        val saved = transaction { taskRepository.save(taskEntity) }
+        val saved = DatabaseManager.writeTransaction { taskRepository.save(taskEntity) }
         log.debug("[{}] Publishing event: TaskCreateEvent for task {}", System.currentTimeMillis(), saved.id)
         eventBus.publishEvent(TaskCreateEvent(saved))
         return saved
@@ -113,7 +114,7 @@ internal class TaskService(
             result = result,
             updatedAt = LocalDateTime.now(),
         )
-        transaction { taskRepository.update(updated) }
+        DatabaseManager.writeTransaction { taskRepository.update(updated) }
         log.debug("[{}] Publishing event: TaskUpdateEvent for task {}", System.currentTimeMillis(), taskId)
         eventBus.publishEvent(TaskUpdateEvent(updated))
     }
@@ -131,19 +132,19 @@ internal class TaskService(
     }
 
     fun clear() {
-        transaction { taskRepository.deleteAll() }
+        DatabaseManager.writeTransaction { taskRepository.deleteAll() }
         log.debug("[{}] Publishing event: TaskClearEvent", System.currentTimeMillis())
         eventBus.publishEvent(TaskClearEvent())
     }
 
     suspend fun clearAsync() {
-        dbQuery { taskRepository.deleteAll() }
+        DatabaseManager.writeTransactionAsync { taskRepository.deleteAll() }
         log.debug("[{}] Publishing event: TaskClearEvent", System.currentTimeMillis())
         eventBus.publishEvent(TaskClearEvent())
     }
 
     suspend fun dismissAsync(taskId: Long) {
-        dbQuery { taskRepository.deleteById(taskId) }
+        DatabaseManager.writeTransactionAsync { taskRepository.deleteById(taskId) }
         log.debug("[{}] Publishing event: TaskDismissEvent for task {}", System.currentTimeMillis(), taskId)
         eventBus.publishEvent(TaskDismissEvent(taskId))
     }

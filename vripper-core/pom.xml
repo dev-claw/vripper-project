@@ -60,6 +60,10 @@
             <artifactId>sqlite-jdbc</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+        </dependency>
+        <dependency>
             <artifactId>httpclient5</artifactId>
             <groupId>org.apache.httpcomponents.client5</groupId>
         </dependency>

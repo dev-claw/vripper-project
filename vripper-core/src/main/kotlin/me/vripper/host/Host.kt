@@ -10,6 +10,7 @@ import me.vripper.services.DataAccessService
 import me.vripper.services.DownloadSpeedService
 import me.vripper.services.HTTPService
 import me.vripper.services.download.ImageDownloadRunnable.Context
+import me.vripper.utilities.DatabaseManager
 import me.vripper.utilities.HtmlUtils
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils.getFileNameWithoutExtension
@@ -17,7 +18,6 @@ import org.apache.hc.client5.http.classic.methods.HttpGet
 import org.apache.hc.client5.http.classic.methods.HttpHead
 import org.apache.hc.core5.http.ClassicHttpResponse
 import org.apache.hc.core5.http.Header
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.w3c.dom.Document
@@ -105,7 +105,7 @@ internal abstract class Host(
                 }
                 context.imageEntity.size = response.entity.contentLength
                 post.size += size
-                transaction {
+                DatabaseManager.writeTransaction {
                     dataAccessService.updateImage(context.imageEntity)
                     dataAccessService.updatePost(post)
                 }

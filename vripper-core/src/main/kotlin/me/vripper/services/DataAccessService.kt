@@ -15,6 +15,7 @@ import me.vripper.data.repositories.ThreadRepository
 import me.vripper.entities.*
 import me.vripper.event.*
 import me.vripper.model.ErrorCount
+import me.vripper.utilities.DatabaseManager
 import me.vripper.utilities.LoggerDelegate
 import me.vripper.utilities.PathUtils
 import me.vripper.utilities.PathUtils.sanitize
@@ -61,8 +62,14 @@ internal class DataAccessService(
     private suspend fun <T> dbQuery(block: suspend Transaction.() -> T): T =
         newSuspendedTransaction(Dispatchers.IO) { block() }
 
+    private fun <T> writeTransaction(block: Transaction.() -> T): T =
+        DatabaseManager.writeTransaction(block)
+
+    private suspend fun <T> writeTransactionAsync(block: Transaction.() -> T): T =
+        DatabaseManager.writeTransactionAsync(block)
+
     fun saveAndNotify(postEntity: PostEntity, images: List<ImageEntity>): PostEntity {
-        val savedPost = transaction {
+        val savedPost = writeTransaction {
             val savedPost = postRepository.save(listOf(postEntity)).first()
             imageRepository.save(images.map { it.copy(postEntityId = savedPost.id) })
             savedPost
@@ -72,7 +79,7 @@ internal class DataAccessService(
     }
 
     suspend fun saveAndNotifyAsync(postEntity: PostEntity, images: List<ImageEntity>): PostEntity {
-        val savedPost = dbQuery {
+        val savedPost = writeTransactionAsync {
             val savedPost = postRepository.save(listOf(postEntity)).first()
             imageRepository.save(images.map { it.copy(postEntityId = savedPost.id) })
             savedPost
@@ -82,7 +89,7 @@ internal class DataAccessService(
     }
 
     fun updatePosts(postEntities: List<PostEntity>) {
-        transaction { postRepository.update(postEntities) }
+        writeTransaction { postRepository.update(postEntities) }
         postEntities.forEach { postEntity ->
             postEntityIdCache.put(postEntity.id, postEntity)
         }
@@ -91,7 +98,7 @@ internal class DataAccessService(
     }
 
     suspend fun updatePostsAsync(postEntities: List<PostEntity>) {
-        dbQuery { postRepository.update(postEntities) }
+        writeTransactionAsync { postRepository.update(postEntities) }
         postEntities.forEach { postEntity ->
             postEntityIdCache.put(postEntity.id, postEntity)
         }
@@ -100,69 +107,69 @@ internal class DataAccessService(
     }
 
     fun updatePost(postEntity: PostEntity) {
-        transaction { postRepository.update(postEntity) }
+        writeTransaction { postRepository.update(postEntity) }
         postEntityIdCache.put(postEntity.id, postEntity)
         log.debug("[{}] Publishing event: PostUpdateEvent for post {}", System.currentTimeMillis(), postEntity.id)
         eventBus.publishEvent(PostUpdateEvent(listOf(postEntity)))
     }
 
     suspend fun updatePostAsync(postEntity: PostEntity) {
-        dbQuery { postRepository.update(postEntity) }
+        writeTransactionAsync { postRepository.update(postEntity) }
         postEntityIdCache.put(postEntity.id, postEntity)
         log.debug("[{}] Publishing event: PostUpdateEvent for post {}", System.currentTimeMillis(), postEntity.id)
         eventBus.publishEvent(PostUpdateEvent(listOf(postEntity)))
     }
 
     fun save(threadEntity: ThreadEntity) {
-        val savedThread = transaction { threadRepository.save(threadEntity) }
+        val savedThread = writeTransaction { threadRepository.save(threadEntity) }
         log.debug("[{}] Publishing event: ThreadCreateEvent for thread {}", System.currentTimeMillis(), savedThread.id)
         eventBus.publishEvent(ThreadCreateEvent(savedThread))
     }
 
     suspend fun saveThreadAsync(threadEntity: ThreadEntity) {
-        val savedThread = dbQuery { threadRepository.save(threadEntity) }
+        val savedThread = writeTransactionAsync { threadRepository.save(threadEntity) }
         log.debug("[{}] Publishing event: ThreadCreateEvent for thread {}", System.currentTimeMillis(), savedThread.id)
         eventBus.publishEvent(ThreadCreateEvent(savedThread))
     }
 
     fun update(threadEntity: ThreadEntity) {
-        transaction { threadRepository.update(threadEntity) }
+        writeTransaction { threadRepository.update(threadEntity) }
         log.debug("[{}] Publishing event: ThreadUpdateEvent for thread {}", System.currentTimeMillis(), threadEntity.id)
         eventBus.publishEvent(ThreadUpdateEvent(threadEntity))
     }
 
     fun saveSubscription(subscriptionEntity: SubscriptionEntity) {
-        val saved = transaction { subscriptionRepository.save(subscriptionEntity) }
+        val saved = writeTransaction { subscriptionRepository.save(subscriptionEntity) }
         log.debug("[{}] Publishing event: SubscriptionCreateEvent for thread {}", System.currentTimeMillis(), saved.threadId)
         eventBus.publishEvent(SubscriptionCreateEvent(saved))
     }
 
     suspend fun saveSubscriptionAsync(subscriptionEntity: SubscriptionEntity) {
-        val saved = dbQuery { subscriptionRepository.save(subscriptionEntity) }
+        val saved = writeTransactionAsync { subscriptionRepository.save(subscriptionEntity) }
         log.debug("[{}] Publishing event: SubscriptionCreateEvent for thread {}", System.currentTimeMillis(), saved.threadId)
         eventBus.publishEvent(SubscriptionCreateEvent(saved))
     }
 
     fun updateSubscription(subscriptionEntity: SubscriptionEntity) {
-        transaction { subscriptionRepository.update(subscriptionEntity) }
+        writeTransaction { subscriptionRepository.update(subscriptionEntity) }
         log.debug("[{}] Publishing event: SubscriptionUpdateEvent for thread {}", System.currentTimeMillis(), subscriptionEntity.threadId)
         eventBus.publishEvent(SubscriptionUpdateEvent(subscriptionEntity))
     }
 
     suspend fun updateSubscriptionAsync(subscriptionEntity: SubscriptionEntity) {
-        dbQuery { subscriptionRepository.update(subscriptionEntity) }
+        writeTransactionAsync { subscriptionRepository.update(subscriptionEntity) }
         log.debug("[{}] Publishing event: SubscriptionUpdateEvent for thread {}", System.currentTimeMillis(), subscriptionEntity.threadId)
         eventBus.publishEvent(SubscriptionUpdateEvent(subscriptionEntity))
     }
 
     suspend fun removeSubscriptionAsync(threadId: Long) {
-        dbQuery { subscriptionRepository.deleteByThreadId(threadId) }
+        writeTransactionAsync { subscriptionRepository.deleteByThreadId(threadId) }
         log.debug("[{}] Publishing event: SubscriptionDeleteEvent for thread {}", System.currentTimeMillis(), threadId)
         eventBus.publishEvent(SubscriptionDeleteEvent(threadId))
     }
 
     suspend fun clearSubscriptionsAsync() {
-        dbQuery { subscriptionRepository.deleteAll() }
+        writeTransactionAsync { subscriptionRepository.deleteAll() }
         log.debug("[{}] Publishing event: SubscriptionClearEvent", System.currentTimeMillis())
         eventBus.publishEvent(SubscriptionClearEvent())
     }
@@ -176,20 +183,20 @@ internal class DataAccessService(
     }
 
     fun updateImages(imageEntities: List<ImageEntity>) {
-        transaction { imageRepository.update(imageEntities) }
+        writeTransaction { imageRepository.update(imageEntities) }
         log.debug("[{}] Publishing event: ImageEvent for {} images", System.currentTimeMillis(), imageEntities.size)
         eventBus.publishEvent(ImageEvent(imageEntities))
     }
 
     suspend fun updateImagesAsync(imageEntities: List<ImageEntity>) {
-        dbQuery { imageRepository.update(imageEntities) }
+        writeTransactionAsync { imageRepository.update(imageEntities) }
         log.debug("[{}] Publishing event: ImageEvent for {} images", System.currentTimeMillis(), imageEntities.size)
         eventBus.publishEvent(ImageEvent(imageEntities))
     }
 
     fun updateImage(imageEntity: ImageEntity, persist: Boolean = true) {
         if (persist) {
-            transaction {
+            writeTransaction {
                 imageRepository.update(imageEntity)
             }
         }
@@ -199,7 +206,7 @@ internal class DataAccessService(
 
     suspend fun updateImageAsync(imageEntity: ImageEntity, persist: Boolean = true) {
         if (persist) {
-            dbQuery { imageRepository.update(imageEntity) }
+            writeTransactionAsync { imageRepository.update(imageEntity) }
         }
         log.debug("[{}] Publishing event: ImageEvent for image {}", System.currentTimeMillis(), imageEntity.id)
         eventBus.publishEvent(ImageEvent(listOf(imageEntity)))
@@ -233,7 +240,7 @@ internal class DataAccessService(
         val imagesByVgPostId = posts.entries.associate { (postEntity, images) ->
             postEntity.vgPostId to images
         }
-        val savedPosts = transaction {
+        val savedPosts = writeTransaction {
             val savedPosts = postRepository.save(posts.keys.toList())
             savedPosts.forEach { postEntity ->
                 imagesByVgPostId[postEntity.vgPostId]?.let { images ->
@@ -252,7 +259,7 @@ internal class DataAccessService(
             val imagesByVgPostId = posts.entries.associate { (postEntity, images) ->
                 postEntity.vgPostId to images
             }
-            dbQuery {
+            writeTransactionAsync {
                 val savedPosts = postRepository.save(posts.keys.toList())
                 savedPosts.forEach { postEntity ->
                     imagesByVgPostId[postEntity.vgPostId]?.let { images ->
@@ -334,7 +341,7 @@ internal class DataAccessService(
     }
 
     private fun remove(postEntityIds: List<Long>) {
-        transaction {
+        writeTransaction {
             postActionRepository.deleteAllByPostIds(postEntityIds)
             metadataRepository.deleteAllByPostEntityId(postEntityIds)
             imageRepository.deleteAllByPostEntityId(postEntityIds)
@@ -348,7 +355,7 @@ internal class DataAccessService(
     }
 
     private suspend fun removeAsync(postEntityIds: List<Long>) {
-        dbQuery {
+        writeTransactionAsync {
             postActionRepository.deleteAllByPostIds(postEntityIds)
             metadataRepository.deleteAllByPostEntityId(postEntityIds)
             imageRepository.deleteAllByPostEntityId(postEntityIds)
@@ -362,13 +369,13 @@ internal class DataAccessService(
     }
 
     fun removeThread(threadId: Long) {
-        transaction { threadRepository.deleteByThreadId(threadId) }
+        writeTransaction { threadRepository.deleteByThreadId(threadId) }
         log.debug("[{}] Publishing event: ThreadDeleteEvent for thread {}", System.currentTimeMillis(), threadId)
         eventBus.publishEvent(ThreadDeleteEvent(threadId))
     }
 
     suspend fun removeThreadAsync(threadId: Long) {
-        dbQuery { threadRepository.deleteByThreadId(threadId) }
+        writeTransactionAsync { threadRepository.deleteByThreadId(threadId) }
         log.debug("[{}] Publishing event: ThreadDeleteEvent for thread {}", System.currentTimeMillis(), threadId)
         eventBus.publishEvent(ThreadDeleteEvent(threadId))
     }
@@ -406,23 +413,23 @@ internal class DataAccessService(
     }
 
     fun stopImagesByPostEntityIdAndIsNotCompleted(postEntityId: Long) {
-        transaction { imageRepository.stopByPostEntityIdAndIsNotCompleted(postEntityId) }
+        writeTransaction { imageRepository.stopByPostEntityIdAndIsNotCompleted(postEntityId) }
     }
 
     suspend fun stopImagesByPostEntityIdAndIsNotCompletedAsync(postEntityId: Long) {
-        dbQuery { imageRepository.stopByPostEntityIdAndIsNotCompleted(postEntityId) }
+        writeTransactionAsync { imageRepository.stopByPostEntityIdAndIsNotCompleted(postEntityId) }
     }
 
     fun stopImagesByPostEntityIdAndIsNotCompleted() {
-        transaction { imageRepository.stopByPostEntityIdAndIsNotCompleted() }
+        writeTransaction { imageRepository.stopByPostEntityIdAndIsNotCompleted() }
     }
 
     suspend fun stopImagesByPostEntityIdAndIsNotCompletedAsync() {
-        dbQuery { imageRepository.stopByPostEntityIdAndIsNotCompleted() }
+        writeTransactionAsync { imageRepository.stopByPostEntityIdAndIsNotCompleted() }
     }
 
     fun saveMetadata(metadataEntity: MetadataEntity) {
-        transaction { metadataRepository.save(metadataEntity) }
+        writeTransaction { metadataRepository.save(metadataEntity) }
         log.debug(
             "[{}] Publishing event: MetadataUpdateEvent for post {}",
             System.currentTimeMillis(),
@@ -432,7 +439,7 @@ internal class DataAccessService(
     }
 
     suspend fun saveMetadataAsync(metadataEntity: MetadataEntity) {
-        dbQuery { metadataRepository.save(metadataEntity) }
+        writeTransactionAsync { metadataRepository.save(metadataEntity) }
         log.debug(
             "[{}] Publishing event: MetadataUpdateEvent for post {}",
             System.currentTimeMillis(),
@@ -442,23 +449,23 @@ internal class DataAccessService(
     }
 
     fun clearQueueLinks() {
-        transaction { threadRepository.deleteAll() }
+        writeTransaction { threadRepository.deleteAll() }
         log.debug("[{}] Publishing event: ThreadClearEvent", System.currentTimeMillis())
         eventBus.publishEvent(ThreadClearEvent())
     }
 
     suspend fun clearQueueLinksAsync() {
-        dbQuery { threadRepository.deleteAll() }
+        writeTransactionAsync { threadRepository.deleteAll() }
         log.debug("[{}] Publishing event: ThreadClearEvent", System.currentTimeMillis())
         eventBus.publishEvent(ThreadClearEvent())
     }
 
     fun setDownloadingToStopped() {
-        transaction { postRepository.setDownloadingToStopped() }
+        writeTransaction { postRepository.setDownloadingToStopped() }
     }
 
     suspend fun setDownloadingToStoppedAsync() {
-        dbQuery { postRepository.setDownloadingToStopped() }
+        writeTransactionAsync { postRepository.setDownloadingToStopped() }
     }
 
     fun findAllPosts(): List<PostEntity> {
@@ -569,7 +576,7 @@ internal class DataAccessService(
     }
 
     fun updateCustomFields(postEntityId: Long, customFields: List<CustomField>): MetadataEntity {
-        val metadata = transaction {
+        val metadata = writeTransaction {
             val existing = metadataRepository.findByPostEntityId(postEntityId).orElse(null)
             val data = existing?.data?.copy(customFields = customFields)
                 ?: MetadataEntity.Data("", emptyList(), customFields)
@@ -596,16 +603,16 @@ internal class DataAccessService(
     }
 
     fun savePostAction(postAction: PostActionEntity): PostActionEntity {
-        return transaction { postActionRepository.save(postAction) }
+        return writeTransaction { postActionRepository.save(postAction) }
     }
 
     fun updatePostAction(postAction: PostActionEntity): PostActionEntity {
         val updated = postAction.copy(updatedAt = java.time.LocalDateTime.now())
-        transaction { postActionRepository.update(updated) }
+        writeTransaction { postActionRepository.update(updated) }
         return updated
     }
 
     fun deletePostAction(postEntityId: Long) {
-        transaction { postActionRepository.deleteByPostId(postEntityId) }
+        writeTransaction { postActionRepository.deleteByPostId(postEntityId) }
     }
 }
