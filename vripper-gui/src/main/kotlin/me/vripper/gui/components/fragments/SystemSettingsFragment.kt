@@ -6,7 +6,7 @@ import javafx.scene.control.Spinner
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.settings.SystemSettingsModel
 import me.vripper.model.SystemSettings
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class SystemSettingsFragment : Fragment("System Settings") {
 

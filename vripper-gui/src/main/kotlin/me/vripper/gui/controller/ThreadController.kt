@@ -11,7 +11,7 @@ import me.vripper.gui.utils.ChannelFlowBuilder
 import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.model.ThreadPostId
 import org.koin.core.component.KoinComponent
-import tornadofx.Controller
+import me.vripper.gui.fx.Controller
 
 class ThreadController : KoinComponent, Controller() {
 

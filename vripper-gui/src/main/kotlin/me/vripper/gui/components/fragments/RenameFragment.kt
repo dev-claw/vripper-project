@@ -1,5 +1,7 @@
 package me.vripper.gui.components.fragments
 
+import javafx.geometry.Insets
+
 import atlantafx.base.theme.Styles
 import javafx.beans.property.SimpleStringProperty
 import javafx.geometry.Pos
@@ -8,7 +10,7 @@ import kotlinx.coroutines.*
 import me.vripper.gui.controller.PostController
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class RenameFragment : Fragment("Rename download post") {
 
@@ -25,13 +27,14 @@ class RenameFragment : Fragment("Rename download post") {
     }
 
     override val root = vbox(alignment = Pos.CENTER_RIGHT) {
-        padding = insets(all = 5)
+        padding = Insets(5.0, 5.0, 5.0, 5.0)
         spacing = 5.0
         form {
             fieldset {
                 field("Name") {
                     comboBox = combobox(textInputProperty, altTitles.ifEmpty { listOf(name) }) {
-                        useMaxSize = true
+                        maxWidth = Double.MAX_VALUE
+                        maxHeight = Double.MAX_VALUE
                         isEditable = true
                     }
                 }

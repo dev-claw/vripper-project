@@ -12,7 +12,7 @@ import me.vripper.gui.controller.ImageController
 import me.vripper.gui.controller.PostController
 import me.vripper.gui.model.ImageModel
 import me.vripper.gui.model.PostModel
-import tornadofx.runLater
+import me.vripper.gui.fx.runLater
 
 /**
  * Shared state for a single post workspace: the post itself and its images,

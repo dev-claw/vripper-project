@@ -3,7 +3,7 @@ package me.vripper.gui.components.fragments
 import javafx.scene.control.Spinner
 import me.vripper.gui.model.settings.ConnectionSettingsModel
 import me.vripper.model.ConnectionSettings
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class ConnectionSettingsFragment : Fragment("Connection Settings") {
 

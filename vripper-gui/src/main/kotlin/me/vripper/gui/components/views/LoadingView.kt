@@ -1,5 +1,7 @@
 package me.vripper.gui.components.views
 
+import javafx.geometry.Insets
+
 import javafx.beans.property.SimpleStringProperty
 import javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS
 import javafx.scene.effect.DropShadow
@@ -24,7 +26,7 @@ import me.vripper.listeners.AppManager
 import me.vripper.utilities.DatabaseManager
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class LoadingView : View("VRipper") {
 
@@ -129,30 +131,28 @@ class LoadingView : View("VRipper") {
         }
 
         with(root) {
-            padding = insets(all = 5)
-            top {
-                menubar {
-                    menu("File") {
-                        item("Change session", KeyCodeCombination(KeyCode.S, KeyCombination.SHIFT_DOWN)) {
-                            graphic = FontIcon.of(Feather.LINK_2)
-                            action {
-                                find<SessionFragment>().openModal()?.apply {
-                                    minWidth = 100.0
-                                    minHeight = 100.0
-                                }
-                            }
-                        }
-                        separator()
-                        item("Exit", KeyCodeCombination(KeyCode.X, KeyCombination.CONTROL_DOWN)).apply {
-                            graphic = FontIcon.of(Feather.X_SQUARE)
-                            action {
-                                VripperGuiApplication.APP_INSTANCE.stop()
+            padding = Insets(5.0, 5.0, 5.0, 5.0)
+            top = menubar {
+                menu("File") {
+                    item("Change session", KeyCodeCombination(KeyCode.S, KeyCombination.SHIFT_DOWN)) {
+                        graphic = FontIcon.of(Feather.LINK_2)
+                        action {
+                            find<SessionFragment>().openModal()?.apply {
+                                minWidth = 100.0
+                                minHeight = 100.0
                             }
                         }
                     }
-                }.visibleWhen { message.isNotEmpty }
-            }
-            center {
+                    separator()
+                    item("Exit", KeyCodeCombination(KeyCode.X, KeyCombination.CONTROL_DOWN)).apply {
+                        graphic = FontIcon.of(Feather.X_SQUARE)
+                        action {
+                            VripperGuiApplication.APP_INSTANCE.stop()
+                        }
+                    }
+                }
+            }.apply { visibleWhen { message.isNotEmpty } }
+            center = stackpane {
                 progressindicator {
                     progress = INDETERMINATE_PROGRESS
                 }.visibleWhen { message.isEmpty }

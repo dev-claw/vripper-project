@@ -17,7 +17,7 @@ import me.vripper.model.QueueState
 import me.vripper.services.IPostCommandEndpoint
 import me.vripper.services.download.MovePosition
 import me.vripper.utilities.formatSI
-import tornadofx.Controller
+import me.vripper.gui.fx.Controller
 import java.time.format.DateTimeFormatter
 
 class PostController : Controller() {

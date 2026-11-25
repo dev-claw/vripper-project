@@ -6,7 +6,7 @@ import me.vripper.gui.components.gridTileSizeSelector
 import me.vripper.gui.components.views.PostsGridView
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.settings.PostsSettingsModel
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class PostsSettingsFragment : Fragment("Posts") {
 

@@ -16,7 +16,7 @@ import me.vripper.gui.utils.openLink
 import me.vripper.utilities.ApplicationProperties
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class MenuBarView : View() {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

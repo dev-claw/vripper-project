@@ -25,7 +25,7 @@ import me.vripper.utilities.ApplicationProperties
 import me.vripper.utilities.formatSI
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 import java.lang.management.ManagementFactory
 import java.nio.file.Files
 import java.nio.file.Path
@@ -109,7 +109,7 @@ class DiagnosticsFragment : Fragment("Diagnostics") {
 
     override fun onBeforeShow() {
         super.onBeforeShow()
-        // Size the stage before TornadoFX centers it on the owner. Resizing
+        // Size the stage before openModal() centers it on the owner. Resizing
         // after openModal() returns leaves the original top-left in place.
         currentStage?.apply {
             minWidth = 600.0
@@ -140,7 +140,7 @@ class DiagnosticsFragment : Fragment("Diagnostics") {
     }
 
     /**
-     * TornadoFX centers on the scene (content) size; use the stage size so the
+     * openModal() centers on the scene (content) size; use the stage size so the
      * whole window is centered on the owner, decorations included.
      */
     private fun centerOnOwner() {

@@ -42,10 +42,9 @@ import me.vripper.gui.utils.parseStatus
 import me.vripper.gui.utils.showPreviewOnHover
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.addClass
-import tornadofx.onChange
-import tornadofx.onDoubleClick
-import tornadofx.runLater
+import me.vripper.gui.fx.addClass
+import me.vripper.gui.fx.onChange
+import me.vripper.gui.fx.runLater
 import java.io.ByteArrayInputStream
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
@@ -424,7 +423,7 @@ internal class PostWorkspacePane(
         view.maxHeight = Double.MAX_VALUE
         view.setRowFactory {
             val row = TableRow<ImageModel>()
-            row.onDoubleClick { row.item?.let { activateModel(it) } }
+            row.setOnMouseClicked { event -> if (event.clickCount == 2) row.item?.let { activateModel(it) } }
             row
         }
         view.columns.add(

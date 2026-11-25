@@ -1,11 +1,13 @@
 package me.vripper.gui.components.fragments
 
+import javafx.geometry.Insets
+
 import javafx.beans.property.SimpleStringProperty
 import javafx.geometry.Pos
 import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import me.vripper.gui.model.LogModel
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class LogMessageFragment : Fragment("Log message") {
 
@@ -25,7 +27,7 @@ class LogMessageFragment : Fragment("Log message") {
     })
 
     override val root = vbox(alignment = Pos.CENTER_RIGHT) {
-        padding = insets(all = 5)
+        padding = Insets(5.0, 5.0, 5.0, 5.0)
         spacing = 5.0
         textarea {
             isEditable = false

@@ -8,7 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import tornadofx.runLater
+import me.vripper.gui.fx.runLater
 
 /**
  * Owns the deep-zoom state machine: when the user zooms past the resolution of

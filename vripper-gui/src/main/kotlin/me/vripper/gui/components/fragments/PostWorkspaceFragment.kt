@@ -34,9 +34,9 @@ import me.vripper.gui.utils.WidgetSettings
 import me.vripper.utilities.LoggerDelegate
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.FX
-import tornadofx.Fragment
-import tornadofx.runLater
+import me.vripper.gui.fx.FX
+import me.vripper.gui.fx.Fragment
+import me.vripper.gui.fx.runLater
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -76,7 +76,7 @@ class PostWorkspaceFragment : Fragment("Image Viewer") {
 
     // Window size/position persistence and restore.
     private val windowGeometry = WindowGeometryController(
-        primaryStage = { FX.getPrimaryStage(scope) },
+        primaryStage = { FX.primaryStage },
         settings = { widgetsController.currentSettings.workspaceSettingsModel },
         persist = { WidgetSettings.update(widgetsController.currentSettings) }
     )

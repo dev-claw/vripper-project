@@ -118,7 +118,7 @@ internal class WindowGeometryController(
     /**
      * The window is opened without an owner so it can be minimized
      * independently (JavaFX does not allow iconifying owned stages), which also
-     * means TornadoFX no longer centers it over the main window. Center it
+     * means the window helper no longer centers it over the main window. Center it
      * ourselves when no saved position is available.
      */
     private fun centerOnMainWindow(target: Stage) {

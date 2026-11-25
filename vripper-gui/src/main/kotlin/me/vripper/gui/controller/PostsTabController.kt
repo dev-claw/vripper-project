@@ -25,7 +25,7 @@ import me.vripper.model.QueueState
 import me.vripper.services.download.MovePosition
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 enum class PostQuickFilter(val label: String) {
     ALL("All"),
@@ -114,7 +114,7 @@ class PostsTabController : Controller() {
         if (request != null) {
             request()
         } else {
-            items.sortedItems.comparator?.let { comparator -> items.sortedItems.sortWith(comparator) }
+            items.sortedItems.comparator?.let { comparator -> FXCollections.sort(items.sortedItems, comparator) }
         }
     }
 
@@ -176,7 +176,7 @@ class PostsTabController : Controller() {
             "Confirm removal of ${ids.size} post${if (ids.size > 1) "s" else ""}?",
             ButtonType.YES,
             ButtonType.NO,
-            owner = FX.getPrimaryStage(scope),
+            owner = FX.primaryStage,
             title = "Remove posts"
         ) {
             coroutineScope.launch {
@@ -401,7 +401,7 @@ class PostsTabController : Controller() {
             coroutineScope.launch {
                 flow.collect { posts ->
                     runLater {
-                        items.addAll(posts)
+                        items.items.addAll(posts)
                         requestSort()
                     }
                 }
@@ -415,7 +415,7 @@ class PostsTabController : Controller() {
                         val postModelList = postController.findAllPosts()
                         val queueState = postController.getQueueState()
                         runLater {
-                            items.addAll(postModelList)
+                            items.items.addAll(postModelList)
                             requestSort()
                             placeholderState = PostsPlaceholderState.EMPTY
                             updateQueueState(queueState)
@@ -424,13 +424,13 @@ class PostsTabController : Controller() {
 
                     GuiEventBus.ChangingSession -> runLater {
                         placeholderState = PostsPlaceholderState.LOADING
-                        items.clear()
+                        items.items.clear()
                         selectedPosts.clear()
                         activePost = null
                     }
 
                     is GuiEventBus.RemoteError -> runLater {
-                        items.clear()
+                        items.items.clear()
                         selectedPosts.clear()
                         activePost = null
                         placeholderState = PostsPlaceholderState.CONNECTION_FAILURE

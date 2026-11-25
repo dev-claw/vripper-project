@@ -1,5 +1,7 @@
 package me.vripper.gui.components.views
 
+import javafx.beans.binding.Bindings
+
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
 import javafx.beans.property.SimpleBooleanProperty
@@ -42,7 +44,7 @@ import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.LogModel
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 import java.util.function.Predicate
 
 class LogTableView : View() {
@@ -124,7 +126,7 @@ class LogTableView : View() {
         postIdInput.addListener { _, _, _ -> applyLogFilter() }
         quickFilterProperty.addListener { _, _, _ -> applyLogFilter() }
         applyLogFilter()
-        titleProperty.bind(filteredItems.sizeProperty.map {
+        titleProperty.bind(Bindings.size(filteredItems).map {
             if (it.toLong() > 0) {
                 "Log (${it.toLong()})"
             } else {

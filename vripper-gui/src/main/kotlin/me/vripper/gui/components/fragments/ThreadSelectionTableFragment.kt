@@ -1,5 +1,7 @@
 package me.vripper.gui.components.fragments
 
+import javafx.beans.binding.Bindings
+
 import atlantafx.base.theme.Styles
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.ObservableList
@@ -22,7 +24,7 @@ import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openLink
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class ThreadSelectionTableFragment : Fragment("Thread") {
 
@@ -43,7 +45,7 @@ class ThreadSelectionTableFragment : Fragment("Thread") {
         coroutineScope.launch {
             val list = async { threadController.grab(threadId) }.await()
             runLater {
-                items.addAll(list)
+                items.items.addAll(list)
             }
         }
     }
@@ -202,20 +204,18 @@ class ThreadSelectionTableFragment : Fragment("Thread") {
                 }
             }
             borderpane {
-                right {
-                    padding = insets(top = 0, right = 5, bottom = 5, left = 5)
-                    button("Download") {
-                        graphic = FontIcon.of(Feather.DOWNLOAD)
-                        addClass(Styles.ACCENT)
-                        isDefaultButton = true
-                        tooltip("Download selected posts")
-                        enableWhen { tableView.selectionModel.selectedItems.sizeProperty.greaterThan(0) }
-                        action {
-                            coroutineScope.launch {
-                                async { threadController.download(tableView.selectionModel.selectedItems) }.await()
-                                runLater {
-                                    close()
-                                }
+                padding = Insets(0.0, 5.0, 5.0, 5.0)
+                right = button("Download") {
+                    graphic = FontIcon.of(Feather.DOWNLOAD)
+                    addClass(Styles.ACCENT)
+                    isDefaultButton = true
+                    tooltip("Download selected posts")
+                    enableWhen { Bindings.size(tableView.selectionModel.selectedItems).greaterThan(0) }
+                    action {
+                        coroutineScope.launch {
+                            async { threadController.download(tableView.selectionModel.selectedItems) }.await()
+                            runLater {
+                                close()
                             }
                         }
                     }

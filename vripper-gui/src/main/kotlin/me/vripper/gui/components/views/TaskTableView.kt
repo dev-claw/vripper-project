@@ -34,7 +34,7 @@ import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import org.kordamp.ikonli.material2.Material2OutlinedAL
 import org.kordamp.ikonli.material2.Material2OutlinedMZ
-import tornadofx.*
+import me.vripper.gui.fx.*
 import java.util.function.Predicate
 import javafx.util.StringConverter
 
@@ -106,7 +106,7 @@ class TaskTableView : View() {
         quickFilterProperty.addListener { _, _, _ -> applyTaskFilter() }
         groupModeProperty.addListener { _, _, _ -> refresh() }
         applyTaskFilter()
-        titleProperty.bind(filteredItems.sizeProperty.map {
+        titleProperty.bind(Bindings.size(filteredItems).map {
             if (it.toLong() > 0) {
                 "Tasks (${it.toLong()})"
             } else {

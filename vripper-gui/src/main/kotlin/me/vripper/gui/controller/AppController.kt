@@ -3,7 +3,7 @@ package me.vripper.gui.controller
 import me.vripper.gui.utils.AppEndpointManager.currentAppEndpointService
 import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.services.IPostCommandEndpoint
-import tornadofx.Controller
+import me.vripper.gui.fx.Controller
 
 class AppController : Controller() {
     suspend fun scan(postLinks: String) {

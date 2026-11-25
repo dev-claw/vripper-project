@@ -1,8 +1,8 @@
 package me.vripper.gui.model.settings
 
 import javafx.beans.property.SimpleIntegerProperty
-import tornadofx.getValue
-import tornadofx.setValue
+import me.vripper.gui.fx.getValue
+import me.vripper.gui.fx.setValue
 
 class ConnectionSettingsModel {
     val maxThreadsProperty = SimpleIntegerProperty()

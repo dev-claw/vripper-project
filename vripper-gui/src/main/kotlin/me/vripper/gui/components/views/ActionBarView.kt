@@ -1,5 +1,7 @@
 package me.vripper.gui.components.views
 
+import javafx.geometry.Insets
+
 import atlantafx.base.theme.Styles
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
@@ -25,7 +27,7 @@ import me.vripper.gui.controller.PostsTabController
 import me.vripper.gui.controller.SettingsController
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class ActionBarView : View() {
     private val downloadActiveProperty = SimpleBooleanProperty(true)
@@ -45,7 +47,7 @@ class ActionBarView : View() {
     init {
         with(root) {
             this.id = "action_toolbar"
-            padding = insets(top = 5, right = 0, bottom = 5, left = 5)
+            padding = Insets(5.0, 0.0, 5.0, 5.0)
 
             add(buildBrand())
             separator(Orientation.VERTICAL)

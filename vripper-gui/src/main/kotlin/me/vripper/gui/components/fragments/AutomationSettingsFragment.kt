@@ -11,7 +11,7 @@ import me.vripper.model.AutomationPlaceholders
 import me.vripper.model.AutomationSettings
 import me.vripper.model.TriggerAction
 import me.vripper.model.WebhookMethod
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class AutomationSettingsFragment : Fragment("Automation Settings") {
 

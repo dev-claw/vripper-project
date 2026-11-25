@@ -5,8 +5,8 @@ import javafx.beans.property.SimpleListProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
-import tornadofx.getValue
-import tornadofx.setValue
+import me.vripper.gui.fx.getValue
+import me.vripper.gui.fx.setValue
 
 class ThreadSelectionModel(
     index: Int,

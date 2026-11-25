@@ -6,7 +6,7 @@ import javafx.scene.control.Label
 import javafx.scene.control.ToggleButton
 import javafx.scene.control.ToggleGroup
 import javafx.scene.layout.HBox
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 fun <T> quickFilterPills(
     label: String,

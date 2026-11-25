@@ -8,7 +8,7 @@ import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
 import me.vripper.gui.utils.ChannelFlowBuilder
 import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.model.LogEntry
-import tornadofx.Controller
+import me.vripper.gui.fx.Controller
 
 class LogController : Controller() {
 

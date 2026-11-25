@@ -3,8 +3,8 @@ package me.vripper.gui.controller
 import me.vripper.gui.model.WidgetsViewModel
 import me.vripper.gui.utils.WidgetSettings
 import me.vripper.gui.utils.WidgetSettings.loadSettings
-import tornadofx.Controller
-import tornadofx.onChange
+import me.vripper.gui.fx.Controller
+import me.vripper.gui.fx.onChange
 
 class WidgetsController : Controller() {
 

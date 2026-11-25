@@ -10,7 +10,7 @@ import me.vripper.utilities.LoggerDelegate
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
-import tornadofx.runLater
+import me.vripper.gui.fx.runLater
 
 object ClipboardManager : KoinComponent {
     private val logger by LoggerDelegate()

@@ -107,15 +107,8 @@
             </exclusions>
         </dependency>
         <dependency>
-            <artifactId>tornadofx</artifactId>
-            <groupId>no.tornado</groupId>
-            <version>1.7.20</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jetbrains.kotlin</groupId>
-                    <artifactId>kotlin-stdlib-jdk8</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
         </dependency>
         <dependency>
             <groupId>io.github.mkpaz</groupId>

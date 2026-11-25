@@ -17,7 +17,7 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.AppThemeManager
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 import java.util.Locale
 import kotlin.math.roundToInt
 

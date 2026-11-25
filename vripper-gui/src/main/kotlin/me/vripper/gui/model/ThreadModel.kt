@@ -4,8 +4,8 @@ import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.beans.property.SimpleLongProperty
 import javafx.beans.property.SimpleStringProperty
-import tornadofx.getValue
-import tornadofx.setValue
+import me.vripper.gui.fx.getValue
+import me.vripper.gui.fx.setValue
 
 class ThreadModel(
     title: String,

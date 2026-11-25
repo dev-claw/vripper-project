@@ -8,8 +8,8 @@ import kotlinx.coroutines.*
 import me.vripper.gui.event.GuiEventBus
 import org.kordamp.ikonli.javafx.FontIcon
 import org.kordamp.ikonli.material2.Material2OutlinedAL
-import tornadofx.View
-import tornadofx.runLater
+import me.vripper.gui.fx.View
+import me.vripper.gui.fx.runLater
 
 class RemoteErrorBanner : View() {
 

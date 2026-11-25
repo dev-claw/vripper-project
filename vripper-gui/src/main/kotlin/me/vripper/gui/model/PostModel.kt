@@ -4,8 +4,8 @@ import javafx.beans.property.*
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import me.vripper.entities.CustomField
-import tornadofx.getValue
-import tornadofx.setValue
+import me.vripper.gui.fx.getValue
+import me.vripper.gui.fx.setValue
 
 class PostModel(
     var id: Long,

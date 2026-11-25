@@ -1,5 +1,7 @@
 package me.vripper.gui.components.fragments
 
+import javafx.geometry.Insets
+
 import atlantafx.base.theme.Styles
 import javafx.beans.property.SimpleStringProperty
 import javafx.geometry.Pos
@@ -8,7 +10,7 @@ import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import kotlinx.coroutines.*
 import me.vripper.gui.controller.PostController
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class AddLinksFragment : Fragment("Add thread links") {
 
@@ -18,7 +20,7 @@ class AddLinksFragment : Fragment("Add thread links") {
     lateinit var input: TextArea
 
     override val root = vbox(alignment = Pos.CENTER_RIGHT) {
-        padding = insets(all = 5)
+        padding = Insets(5.0, 5.0, 5.0, 5.0)
         spacing = 5.0
         input = textarea {
             VBox.setVgrow(this, Priority.ALWAYS)

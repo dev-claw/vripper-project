@@ -1,5 +1,7 @@
 package me.vripper.gui.components.fragments
 
+import javafx.geometry.Insets
+
 import atlantafx.base.theme.Styles
 import atlantafx.base.util.IntegerStringConverter
 import javafx.geometry.Pos
@@ -13,7 +15,7 @@ import me.vripper.gui.components.views.LoadingView
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.utils.AppEndpointManager
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class SessionFragment : Fragment("Change Session") {
 
@@ -21,7 +23,7 @@ class SessionFragment : Fragment("Change Session") {
     private val toggleGroup = ToggleGroup()
     override val root = VBox().apply {
         alignment = Pos.CENTER
-        padding = insets(all = 5)
+        padding = Insets(5.0, 5.0, 5.0, 5.0)
         spacing = 5.0
     }
 
@@ -56,34 +58,32 @@ class SessionFragment : Fragment("Change Session") {
                 }
             }
             borderpane {
-                right {
-                    padding = insets(all = 5.0)
-                    button("Ok") {
-                        enableWhen { toggleGroup.selectedToggleProperty().isNotNull }
-                        addClass(Styles.ACCENT)
-                        isDefaultButton = true
-                        action {
-                            AppEndpointManager.set(GuiEventBus.ChangingSession)
-                            GuiEventBus.tryPublishEvent(GuiEventBus.ChangingSession)
-                            val selectedToggle = toggleGroup.selectedToggle
-                            runLater {
-                                find<AppView>().replaceWith(find<LoadingView>())
-                            }
-                            runLater {
-                                when ((selectedToggle as RadioButton).id) {
-                                    "localSession" -> {
-                                        widgetsController.currentSettings.localSession = true
-                                    }
-
-                                    "remoteSession" -> {
-                                        widgetsController.currentSettings.localSession = false
-                                    }
-
-                                    else -> VripperGuiApplication.APP_INSTANCE.stop()
+                padding = Insets(5.0, 5.0, 5.0, 5.0)
+                right = button("Ok") {
+                    enableWhen { toggleGroup.selectedToggleProperty().isNotNull }
+                    addClass(Styles.ACCENT)
+                    isDefaultButton = true
+                    action {
+                        AppEndpointManager.set(GuiEventBus.ChangingSession)
+                        GuiEventBus.tryPublishEvent(GuiEventBus.ChangingSession)
+                        val selectedToggle = toggleGroup.selectedToggle
+                        runLater {
+                            find<AppView>().replaceWith(find<LoadingView>())
+                        }
+                        runLater {
+                            when ((selectedToggle as RadioButton).id) {
+                                "localSession" -> {
+                                    widgetsController.currentSettings.localSession = true
                                 }
-                                GuiEventBus.tryPublishEvent(GuiEventBus.ApplicationInitialized(emptyList()))
-                                close()
+
+                                "remoteSession" -> {
+                                    widgetsController.currentSettings.localSession = false
+                                }
+
+                                else -> VripperGuiApplication.APP_INSTANCE.stop()
                             }
+                            GuiEventBus.tryPublishEvent(GuiEventBus.ApplicationInitialized(emptyList()))
+                            close()
                         }
                     }
                 }

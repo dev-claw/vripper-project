@@ -21,7 +21,7 @@ import me.vripper.gui.event.GuiEventBus
 import me.vripper.utilities.formatSI
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class StatusBarView : View("Status bar") {
 
@@ -214,94 +214,90 @@ class StatusBarView : View("Status bar") {
         addClass(Styles.BORDER_SUBTLE)
         style = "-fx-border-width: 1 0 0 0;"
 
-        left {
+        left = hbox {
+            spacing = 12.0
+            alignment = Pos.CENTER_LEFT
+
             hbox {
-                spacing = 12.0
+                spacing = 6.0
                 alignment = Pos.CENTER_LEFT
-
-                hbox {
-                    spacing = 6.0
-                    alignment = Pos.CENTER_LEFT
-                    visibleWhen { widgetsController.currentSettings.localSessionProperty.not() }
-                    managedProperty().bind(visibleProperty())
-                    add(connectionIcon)
-                    label(remoteText) {
-                        addClass(Styles.TEXT_SMALL, Styles.TEXT_MUTED)
-                        minWidth = 0.0
-                        maxWidth = 520.0
-                        textOverrun = OverrunStyle.ELLIPSIS
-                    }
+                visibleWhen { widgetsController.currentSettings.localSessionProperty.not() }
+                managedProperty().bind(visibleProperty())
+                add(connectionIcon)
+                label(remoteText) {
+                    addClass(Styles.TEXT_SMALL, Styles.TEXT_MUTED)
+                    minWidth = 0.0
+                    maxWidth = 520.0
+                    textOverrun = OverrunStyle.ELLIPSIS
                 }
+            }
 
-                hbox {
-                    spacing = 6.0
-                    alignment = Pos.CENTER_LEFT
-                    visibleWhen(loggedUser.isNotBlank())
-                    managedProperty().bind(visibleProperty())
-                    add(FontIcon.of(Feather.USER).apply {
-                        styleClass.addAll("vripper-icon-statusbar", Styles.TEXT_MUTED)
-                    })
-                    label(loggedUser.map { "Logged in as $it" }) {
-                        addClass(Styles.TEXT_SMALL, Styles.TEXT_MUTED)
-                        minWidth = 0.0
-                        maxWidth = 260.0
-                        textOverrun = OverrunStyle.ELLIPSIS
-                    }
+            hbox {
+                spacing = 6.0
+                alignment = Pos.CENTER_LEFT
+                visibleWhen(loggedUser.isNotBlank())
+                managedProperty().bind(visibleProperty())
+                add(FontIcon.of(Feather.USER).apply {
+                    styleClass.addAll("vripper-icon-statusbar", Styles.TEXT_MUTED)
+                })
+                label(loggedUser.map { "Logged in as $it" }) {
+                    addClass(Styles.TEXT_SMALL, Styles.TEXT_MUTED)
+                    minWidth = 0.0
+                    maxWidth = 260.0
+                    textOverrun = OverrunStyle.ELLIPSIS
                 }
             }
         }
 
-        right {
+        right = hbox {
+            spacing = 14.0
+            alignment = Pos.CENTER_RIGHT
+
             hbox {
-                spacing = 14.0
-                alignment = Pos.CENTER_RIGHT
-
-                hbox {
-                    spacing = 7.0
-                    alignment = Pos.CENTER_LEFT
-                    visibleWhen(showRunningTask)
+                spacing = 7.0
+                alignment = Pos.CENTER_LEFT
+                visibleWhen(showRunningTask)
+                managedProperty().bind(visibleProperty())
+                add(ProgressBar().apply {
+                    progress = ProgressBar.INDETERMINATE_PROGRESS
+                    prefWidth = 64.0
+                    maxWidth = 64.0
+                    isFocusTraversable = false
+                    addClass(Styles.SMALL)
+                    visibleWhen(tasksRunning)
                     managedProperty().bind(visibleProperty())
-                    add(ProgressBar().apply {
-                        progress = ProgressBar.INDETERMINATE_PROGRESS
-                        prefWidth = 64.0
-                        maxWidth = 64.0
-                        isFocusTraversable = false
-                        addClass(Styles.SMALL)
-                        visibleWhen(tasksRunning)
-                        managedProperty().bind(visibleProperty())
-                    })
-                    add(FontIcon.of(Feather.ACTIVITY).apply {
-                        styleClass.addAll("vripper-icon-statusbar", Styles.ACCENT)
-                    })
-                    label(runningTaskName) {
-                        addClass(Styles.TEXT_SMALL, Styles.TEXT_BOLD)
-                        minWidth = 0.0
-                        maxWidth = 320.0
-                        textOverrun = OverrunStyle.ELLIPSIS
-                        tooltip = Tooltip().apply {
-                            textProperty().bind(runningTaskDetail)
-                        }
+                })
+                add(FontIcon.of(Feather.ACTIVITY).apply {
+                    styleClass.addAll("vripper-icon-statusbar", Styles.ACCENT)
+                })
+                label(runningTaskName) {
+                    addClass(Styles.TEXT_SMALL, Styles.TEXT_BOLD)
+                    minWidth = 0.0
+                    maxWidth = 320.0
+                    textOverrun = OverrunStyle.ELLIPSIS
+                    tooltip = Tooltip().apply {
+                        textProperty().bind(runningTaskDetail)
                     }
                 }
+            }
 
-                hbox {
-                    spacing = 5.0
-                    alignment = Pos.CENTER_LEFT
-                    add(FontIcon.of(Feather.DOWNLOAD).apply {
-                        styleClass.addAll("vripper-icon-statusbar", Styles.TEXT_MUTED)
-                    })
-                    label(downloadSpeed.map { "$it/s" }) {
-                        addClass(Styles.TEXT_SMALL)
-                    }
+            hbox {
+                spacing = 5.0
+                alignment = Pos.CENTER_LEFT
+                add(FontIcon.of(Feather.DOWNLOAD).apply {
+                    styleClass.addAll("vripper-icon-statusbar", Styles.TEXT_MUTED)
+                })
+                label(downloadSpeed.map { "$it/s" }) {
+                    addClass(Styles.TEXT_SMALL)
                 }
+            }
 
-                hbox {
-                    spacing = 10.0
-                    alignment = Pos.CENTER_RIGHT
-                    add(statChip(Feather.ARROW_DOWN, "Downloading", running))
-                    add(statChip(Feather.CLOCK, "Pending", pending))
-                    add(statChip(Feather.ALERT_CIRCLE, "Error", error, alert = true))
-                }
+            hbox {
+                spacing = 10.0
+                alignment = Pos.CENTER_RIGHT
+                add(statChip(Feather.ARROW_DOWN, "Downloading", running))
+                add(statChip(Feather.CLOCK, "Pending", pending))
+                add(statChip(Feather.ALERT_CIRCLE, "Error", error, alert = true))
             }
         }
     }

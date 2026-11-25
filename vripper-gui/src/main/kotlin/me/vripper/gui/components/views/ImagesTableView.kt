@@ -25,7 +25,7 @@ import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.openLink
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class ImagesTableView : View("Photos") {
 
@@ -45,8 +45,8 @@ class ImagesTableView : View("Photos") {
                 addClass(Styles.DENSE, Tweaks.EDGE_TO_EDGE)
                 setRowFactory {
                     val tableRow = TableRow<ImageModel>()
-                    tableRow.onDoubleClick {
-                        tableRow.item?.let { openViewer(it) }
+                    tableRow.setOnMouseClicked { event ->
+                        if (event.clickCount == 2) tableRow.item?.let { openViewer(it) }
                     }
                     val urlItem = MenuItem("Open link").apply {
                         setOnAction {

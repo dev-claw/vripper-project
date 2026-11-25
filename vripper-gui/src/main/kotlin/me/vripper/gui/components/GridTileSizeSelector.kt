@@ -7,8 +7,8 @@ import javafx.scene.control.Label
 import javafx.scene.control.Slider
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
-import tornadofx.addClass
-import tornadofx.onChange
+import me.vripper.gui.fx.addClass
+import me.vripper.gui.fx.onChange
 
 fun gridTileSizeSelector(property: DoubleProperty, min: Double, max: Double): Region {
     val current = property.get().coerceIn(min, max)

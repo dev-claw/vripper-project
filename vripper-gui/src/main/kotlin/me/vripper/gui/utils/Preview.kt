@@ -9,9 +9,7 @@ import javafx.stage.Popup
 import javafx.stage.Stage
 import kotlinx.coroutines.*
 import me.vripper.gui.model.PostModel
-import tornadofx.clear
-import tornadofx.runLater
-import tornadofx.sortWith
+import me.vripper.gui.fx.runLater
 import java.io.ByteArrayInputStream
 
 class Preview(val owner: Stage) {
@@ -55,7 +53,7 @@ class Preview(val owner: Stage) {
             jobs.clear()
         }
         previewPopup.hide()
-        hBox.clear()
+        hBox.children.clear()
     }
 
     fun destroy() {

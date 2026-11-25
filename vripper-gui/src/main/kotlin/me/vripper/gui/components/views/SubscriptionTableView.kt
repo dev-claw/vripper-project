@@ -1,5 +1,7 @@
 package me.vripper.gui.components.views
 
+import javafx.beans.binding.Bindings
+
 import atlantafx.base.theme.Styles
 import atlantafx.base.theme.Tweaks
 import javafx.beans.property.SimpleStringProperty
@@ -25,7 +27,7 @@ import me.vripper.gui.model.ThreadModel
 import me.vripper.gui.utils.openLink
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class SubscriptionTableView : View("Subscriptions") {
 
@@ -103,7 +105,7 @@ class SubscriptionTableView : View("Subscriptions") {
             VBox.setVgrow(tableView, Priority.ALWAYS)
         }
 
-        titleProperty.bind(filteredItems.sizeProperty.map {
+        titleProperty.bind(Bindings.size(filteredItems).map {
             if (it.toLong() > 0) "Subscriptions (${it.toLong()})" else "Subscriptions"
         })
         tableView.placeholder = loadingPlaceholder

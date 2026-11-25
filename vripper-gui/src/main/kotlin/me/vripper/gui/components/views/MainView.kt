@@ -4,10 +4,10 @@ import javafx.scene.control.TabPane
 import javafx.scene.layout.Priority
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.View
-import tornadofx.tab
-import tornadofx.tabpane
-import tornadofx.vgrow
+import me.vripper.gui.fx.View
+import me.vripper.gui.fx.tab
+import me.vripper.gui.fx.tabpane
+import me.vripper.gui.fx.vgrow
 
 class MainView : View("Center view") {
 

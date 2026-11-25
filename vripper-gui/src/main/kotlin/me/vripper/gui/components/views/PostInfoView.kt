@@ -12,7 +12,7 @@ import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.displayStatusLabel
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class PostInfoView : View() {
     private val postController: PostController by inject()

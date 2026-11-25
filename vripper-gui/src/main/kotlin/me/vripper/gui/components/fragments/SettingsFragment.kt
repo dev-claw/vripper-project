@@ -26,7 +26,7 @@ import me.vripper.model.SystemSettings
 import me.vripper.model.ViperSettings
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 
 class SettingsFragment : Fragment("Settings") {
@@ -140,7 +140,7 @@ class SettingsFragment : Fragment("Settings") {
 
     private fun buildFooter(): Region = hbox {
         alignment = Pos.CENTER_RIGHT
-        padding = insets(12.0, 18.0, 12.0, 18.0)
+        padding = Insets(12.0, 18.0, 12.0, 18.0)
         addClass(Styles.BORDER_MUTED)
         style = "-fx-border-width: 1 0 0 0;"
 

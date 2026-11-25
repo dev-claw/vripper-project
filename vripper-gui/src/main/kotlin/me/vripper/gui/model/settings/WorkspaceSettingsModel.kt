@@ -3,8 +3,8 @@ package me.vripper.gui.model.settings
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.beans.property.SimpleStringProperty
-import tornadofx.getValue
-import tornadofx.setValue
+import me.vripper.gui.fx.getValue
+import me.vripper.gui.fx.setValue
 
 class WorkspaceSettingsModel {
     val browseLayoutProperty = SimpleStringProperty()

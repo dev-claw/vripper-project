@@ -7,7 +7,7 @@ import kotlinx.coroutines.runBlocking
 import me.vripper.gui.controller.SettingsController
 import me.vripper.gui.model.settings.ViperSettingsModel
 import me.vripper.model.ViperSettings
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class ViperSettingsFragment : Fragment("Viper Settings") {
 

@@ -7,7 +7,7 @@ import me.vripper.gui.components.gridTileSizeSelector
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.settings.ImageViewerSettingsModel
 import me.vripper.gui.model.settings.WorkspaceSettingsModel
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class ViewersSettingsFragment : Fragment("Viewers") {
 

@@ -28,7 +28,7 @@ import me.vripper.gui.utils.Preview
 import me.vripper.gui.utils.displayActionState
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class PostsTableView : View("Posts") {
@@ -60,8 +60,8 @@ class PostsTableView : View("Posts") {
                 selectionModel.selectionMode = SelectionMode.MULTIPLE
                 setRowFactory {
                     val tableRow = TableRow<PostModel>()
-                    tableRow.onDoubleClick {
-                        tableRow.item?.let { postsController.openOverview(it) }
+                    tableRow.setOnMouseClicked { event ->
+                        if (event.clickCount == 2) tableRow.item?.let { postsController.openOverview(it) }
                     }
                     tableRow.addEventFilter(MouseEvent.MOUSE_PRESSED) { event ->
                         if (event.button == MouseButton.SECONDARY &&

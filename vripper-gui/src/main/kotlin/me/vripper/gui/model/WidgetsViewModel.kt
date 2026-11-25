@@ -19,8 +19,8 @@ import me.vripper.gui.utils.WidgetSettings.ThreadSelectionTableColumnsWidth
 import me.vripper.gui.utils.WidgetSettings.ThreadsTableColumns
 import me.vripper.gui.utils.WidgetSettings.ThreadsTableColumnsWidth
 import me.vripper.gui.utils.WidgetSettings.WorkspaceSettings
-import tornadofx.getValue
-import tornadofx.setValue
+import me.vripper.gui.fx.getValue
+import me.vripper.gui.fx.setValue
 
 class WidgetsViewModel(
     localSession: Boolean,

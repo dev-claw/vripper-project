@@ -20,7 +20,7 @@ import me.vripper.gui.components.fragments.ThreadSelectionTableFragment
 import me.vripper.gui.controller.ThreadController
 import org.kordamp.ikonli.javafx.FontIcon
 import org.kordamp.ikonli.material2.Material2OutlinedMZ
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class NotificationHost : View() {
 

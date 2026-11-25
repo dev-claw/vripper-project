@@ -1,5 +1,7 @@
 package me.vripper.gui.components.views
 
+import javafx.beans.binding.Bindings
+
 import javafx.geometry.Insets
 import javafx.geometry.Orientation
 import javafx.geometry.Pos
@@ -19,7 +21,7 @@ import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.WidgetSettings
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class PostsView : View() {
 
@@ -68,10 +70,10 @@ class PostsView : View() {
                 setDividerPositions(settings.infoPanelDividerPosition)
             }
             orientation = Orientation.VERTICAL
-            vboxConstraints { vGrow = Priority.ALWAYS }
+            VBox.setVgrow(this, Priority.ALWAYS)
         }
 
-        titleProperty.bind(postsController.items.sizeProperty.map {
+        titleProperty.bind(Bindings.size(postsController.items).map {
             if (it.toLong() > 0) "Download (${it.toLong()})" else "Download"
         })
 

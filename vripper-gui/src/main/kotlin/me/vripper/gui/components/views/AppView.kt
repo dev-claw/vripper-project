@@ -10,10 +10,10 @@ import me.vripper.gui.controller.AppController
 import me.vripper.gui.controller.MainController
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.AppThemeManager
-import tornadofx.View
-import tornadofx.onChange
-import tornadofx.stackpane
-import tornadofx.vbox
+import me.vripper.gui.fx.View
+import me.vripper.gui.fx.onChange
+import me.vripper.gui.fx.stackpane
+import me.vripper.gui.fx.vbox
 import java.net.URI
 
 class AppView : View() {

@@ -1,8 +1,8 @@
 package me.vripper.gui.model
 
 import javafx.beans.property.SimpleStringProperty
-import tornadofx.getValue
-import tornadofx.setValue
+import me.vripper.gui.fx.getValue
+import me.vripper.gui.fx.setValue
 
 class LogModel(
     val sequence: Long,

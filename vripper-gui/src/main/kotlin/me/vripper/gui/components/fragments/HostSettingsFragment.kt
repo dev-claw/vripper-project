@@ -6,7 +6,7 @@ import me.vripper.gui.model.settings.HostSettingsModel
 import me.vripper.model.HostName
 import me.vripper.model.HostSettingKey
 import me.vripper.model.SettingType
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class HostSettingsFragment : Fragment("Host Settings") {
 

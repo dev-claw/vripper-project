@@ -26,8 +26,8 @@ import me.vripper.gui.utils.displayActionState
 import me.vripper.gui.utils.showPostPreviewOnHover
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.View
-import tornadofx.runLater
+import me.vripper.gui.fx.View
+import me.vripper.gui.fx.runLater
 import java.io.ByteArrayInputStream
 import kotlin.math.max
 

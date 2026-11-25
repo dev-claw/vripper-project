@@ -9,7 +9,7 @@ import me.vripper.gui.utils.AppEndpointManager.remoteAppEndpointService
 import me.vripper.gui.utils.ChannelFlowBuilder
 import me.vripper.gui.utils.GuiErrorReporter
 import org.koin.core.component.KoinComponent
-import tornadofx.Controller
+import me.vripper.gui.fx.Controller
 
 class SubscriptionController : KoinComponent, Controller() {
 

@@ -2,11 +2,10 @@ package me.vripper.gui.components.fragments
 
 import javafx.geometry.Insets
 import javafx.scene.control.TabPane
-import javafx.scene.text.FontWeight
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.utils.openLink
 import me.vripper.utilities.ApplicationProperties
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class AboutFragment : Fragment("About") {
 
@@ -24,10 +23,7 @@ class AboutFragment : Fragment("About") {
                     imageview("icons/64x64.png")
                     vbox(spacing = 5.0) {
                         text("VRipper ${ApplicationProperties.VERSION}") {
-                            style {
-                                fontWeight = FontWeight.BOLD
-                                fontSize = Dimension(18.0, Dimension.LinearUnits.px)
-                            }
+                            style = "-fx-font-size: 18px; -fx-font-weight: bold;"
                         }
                         text("Developed by dev-claw and VRipper working group")
                         hbox(spacing = 5.0) {

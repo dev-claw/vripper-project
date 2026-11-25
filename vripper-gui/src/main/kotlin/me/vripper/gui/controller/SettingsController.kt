@@ -4,7 +4,7 @@ import me.vripper.gui.model.settings.*
 import me.vripper.gui.utils.AppEndpointManager
 import me.vripper.gui.utils.GuiErrorReporter
 import me.vripper.model.*
-import tornadofx.Controller
+import me.vripper.gui.fx.Controller
 
 class SettingsController : Controller() {
 

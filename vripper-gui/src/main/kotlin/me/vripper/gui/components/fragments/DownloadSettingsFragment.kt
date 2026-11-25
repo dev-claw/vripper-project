@@ -5,7 +5,7 @@ import javafx.scene.control.Spinner
 import me.vripper.gui.controller.WidgetsController
 import me.vripper.gui.model.settings.DownloadSettingsModel
 import me.vripper.model.DownloadSettings
-import tornadofx.*
+import me.vripper.gui.fx.*
 
 class DownloadSettingsFragment : Fragment("Download Settings") {
 

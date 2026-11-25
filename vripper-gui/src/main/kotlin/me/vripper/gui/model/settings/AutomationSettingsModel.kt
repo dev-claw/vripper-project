@@ -6,8 +6,8 @@ import javafx.beans.property.SimpleStringProperty
 import me.vripper.model.AutomationMode
 import me.vripper.model.TriggerAction
 import me.vripper.model.WebhookMethod
-import tornadofx.getValue
-import tornadofx.setValue
+import me.vripper.gui.fx.getValue
+import me.vripper.gui.fx.setValue
 
 class AutomationSettingsModel {
     val enabledProperty = SimpleBooleanProperty()

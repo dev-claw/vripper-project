@@ -42,10 +42,10 @@ import me.vripper.gui.utils.parseStatus
 import me.vripper.gui.utils.showPostPreviewOnHover
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
-import tornadofx.View
-import tornadofx.listview
-import tornadofx.runLater
-import tornadofx.vbox
+import me.vripper.gui.fx.View
+import me.vripper.gui.fx.listview
+import me.vripper.gui.fx.runLater
+import me.vripper.gui.fx.vbox
 import java.io.ByteArrayInputStream
 import kotlin.math.max
 
