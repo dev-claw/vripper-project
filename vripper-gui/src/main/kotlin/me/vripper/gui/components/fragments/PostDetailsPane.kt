@@ -11,16 +11,14 @@ import javafx.scene.control.ScrollPane
 import javafx.scene.control.Separator
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
-import javafx.scene.layout.ColumnConstraints
-import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
-import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import me.vripper.entities.CustomField
 import me.vripper.gui.controller.PostController
+import me.vripper.gui.fx.FormGrid
 import me.vripper.gui.model.PostModel
 import me.vripper.gui.utils.displayActionState
 import me.vripper.gui.utils.displayStatusLabel
@@ -60,49 +58,30 @@ class PostDetailsPane(
     private val retryButton = Button("Retry action", FontIcon.of(Feather.REFRESH_CW))
     private val skipButton = Button("Skip action", FontIcon.of(Feather.SKIP_FORWARD))
 
-    private val detailsGrid = GridPane().apply {
+    private val detailsGrid = FormGrid().apply {
         padding = Insets(6.0, 12.0, 12.0, 12.0)
-        hgap = 14.0
-        vgap = 8.0
-        addRow(1, fieldLabel("Post Link:"), link)
-        addRow(2, fieldLabel("Posted By:"), postedBy)
-        addRow(3, fieldLabel("Title:"), title)
-        addRow(4, fieldLabel("More titles:"), altTitles)
-        addRow(5, fieldLabel("Status:"), status)
-        addRow(6, fieldLabel("Path:"), path)
-        addRow(7, fieldLabel("Total:"), total)
-        addRow(8, fieldLabel("Hosts:"), hosts)
-        addRow(9, fieldLabel("Added On:"), addedOn)
-        add(fieldLabel("Downloads:"), 0, 0)
-        add(HBox(6.0, startButton, stopButton).apply { alignment = Pos.CENTER_LEFT }, 1, 0)
-        columnConstraints.addAll(
-            ColumnConstraints().apply { minWidth = Region.USE_PREF_SIZE },
-            ColumnConstraints().apply {
-                minWidth = 0.0
-                hgrow = Priority.ALWAYS
-            },
+        addRow(
+            fieldLabel("Downloads:"),
+            HBox(6.0, startButton, stopButton).apply { alignment = Pos.CENTER_LEFT },
         )
+        addRow(fieldLabel("Post Link:"), link)
+        addRow(fieldLabel("Posted By:"), postedBy)
+        addRow(fieldLabel("Title:"), title)
+        addRow(fieldLabel("More titles:"), altTitles)
+        addRow(fieldLabel("Status:"), status)
+        addRow(fieldLabel("Path:"), path)
+        addRow(fieldLabel("Total:"), total)
+        addRow(fieldLabel("Hosts:"), hosts)
+        addRow(fieldLabel("Added On:"), addedOn)
     }
 
-    private val automationGrid = GridPane().apply {
+    private val automationGrid = FormGrid().apply {
         padding = Insets(6.0, 12.0, 12.0, 12.0)
-        hgap = 14.0
-        vgap = 8.0
-        addRow(0, fieldLabel("Automation:"), automation)
-        addRow(1, fieldLabel("Missing fields:"), missingFields)
-        addRow(2, fieldLabel("Action error:"), actionError)
-        add(fieldLabel("Custom fields:"), 0, 3)
-        add(customFieldsEditor, 1, 3)
-        add(HBox(6.0, saveFieldsButton, runButton, retryButton, skipButton), 1, 4)
-        columnConstraints.addAll(
-            ColumnConstraints().apply { minWidth = Region.USE_PREF_SIZE },
-            ColumnConstraints().apply {
-                minWidth = 0.0
-                hgrow = Priority.ALWAYS
-            },
-        )
-        GridPane.setHgrow(customFieldsEditor, Priority.ALWAYS)
-        GridPane.setFillWidth(customFieldsEditor, true)
+        addRow(fieldLabel("Automation:"), automation)
+        addRow(fieldLabel("Missing fields:"), missingFields)
+        addRow(fieldLabel("Action error:"), actionError)
+        addRow(fieldLabel("Custom fields:"), customFieldsEditor)
+        addRow(null, HBox(6.0, saveFieldsButton, runButton, retryButton, skipButton))
     }
 
     val root: Region = ScrollPane(
@@ -262,10 +241,4 @@ class PostDetailsPane(
         style = "-fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0;"
     }
 
-    private fun GridPane.addRow(row: Int, name: Label, value: TextField) {
-        add(name, 0, row)
-        add(value, 1, row)
-        GridPane.setHgrow(value, Priority.ALWAYS)
-        GridPane.setFillWidth(value, true)
-    }
 }

@@ -265,6 +265,7 @@ fun EventTarget.addChildIfPossible(node: Node) {
         is SplitPane -> items.add(node)
         is ToolBar -> items.add(node)
         is Field -> inputContainer.addChildIfPossible(node)
+        is Fieldset -> addContent(node)
         is Pane -> if (!children.contains(node)) children.add(node)
     }
 }

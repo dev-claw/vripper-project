@@ -363,8 +363,8 @@ it to the parent.
 
 ## Forms
 
-`Form`, `Fieldset`, and `Field` provide a small settings-form structure without
-introducing a form model:
+`Form`, `Fieldset`, `Field`, and `FormGrid` provide a small settings-form
+structure without introducing a form model:
 
 ```kotlin
 form {
@@ -379,10 +379,19 @@ form {
 }
 ```
 
-- `Form` is a `VBox` with 12 px spacing.
-- `Fieldset` is a `VBox` with 8 px spacing and an optional title label.
-- `Field` is an `HBox` with `labelContainer` and `inputContainer`; the input
-  container grows.
+- `FormGrid` is a two-column `GridPane` where column 0 is sized to the widest
+  label and column 1 grows. This is the JavaFX equivalent of a CSS grid form
+  with `grid-template-columns: max-content 1fr`; every value starts at the same
+  horizontal position. Use `addRow(label, value)` or `addSpanningRow(node)` for
+  hand-built forms.
+- `Fieldset` extends `FormGrid` and adds an optional title row. Fields are
+  placed in the shared grid automatically, so all `field(...)` values in the
+  same fieldset are aligned. Nested fieldsets inherit the outer label-column
+  width, keeping their values aligned with the parent section.
+- `Field` is a logical `HBox` row with `labelContainer` and `inputContainer`.
+  When added to a `Fieldset`, its two containers become the aligned grid cells;
+  its `visible`/`managed` properties still control the whole row.
+- `Form` is a `VBox` with 12 px spacing for stacking fieldsets.
 
 These classes are used heavily by the settings screens. Replacing them with
 hand-built `HBox`/`VBox` code would duplicate alignment/growth logic in dozens
