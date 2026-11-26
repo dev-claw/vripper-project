@@ -108,11 +108,13 @@ internal class ImageDownloadRunnable(
     val context = Context(imageEntity, settings)
 
     fun download() {
+        if (context.stopped) return
         try {
             context.imageEntity.status = Status.DOWNLOADING
             context.imageEntity.downloaded = 0
             dataAccessService.updateImage(context.imageEntity)
             synchronized(context.imageEntity.postEntityId.toString().intern()) {
+                if (context.stopped) return
                 val post = dataAccessService.findPostByEntityId(context.imageEntity.postEntityId)
                 LogContext.set(threadId = post.vgThreadId, postId = post.vgPostId)
                 if (post.status != Status.DOWNLOADING) {
@@ -192,6 +194,7 @@ internal class ImageDownloadRunnable(
     }
 
     override fun run() {
+        context.completed = false
         try {
             context.init()
             if (context.stopped) {

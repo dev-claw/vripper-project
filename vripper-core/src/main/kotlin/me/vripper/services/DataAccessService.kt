@@ -94,7 +94,7 @@ internal class DataAccessService(
             postEntityIdCache.put(postEntity.id, postEntity)
         }
         log.debug("[{}] Publishing event: PostUpdateEvent for {} posts", System.currentTimeMillis(), postEntities.size)
-        eventBus.publishEvent(PostUpdateEvent(postEntities))
+        eventBus.publishEvent(PostUpdateEvent(postEntities.map { it.copy() }))
     }
 
     suspend fun updatePostsAsync(postEntities: List<PostEntity>) {
@@ -103,21 +103,21 @@ internal class DataAccessService(
             postEntityIdCache.put(postEntity.id, postEntity)
         }
         log.debug("[{}] Publishing event: PostUpdateEvent for {} posts", System.currentTimeMillis(), postEntities.size)
-        eventBus.publishEvent(PostUpdateEvent(postEntities))
+        eventBus.publishEvent(PostUpdateEvent(postEntities.map { it.copy() }))
     }
 
     fun updatePost(postEntity: PostEntity) {
         writeTransaction { postRepository.update(postEntity) }
         postEntityIdCache.put(postEntity.id, postEntity)
         log.debug("[{}] Publishing event: PostUpdateEvent for post {}", System.currentTimeMillis(), postEntity.id)
-        eventBus.publishEvent(PostUpdateEvent(listOf(postEntity)))
+        eventBus.publishEvent(PostUpdateEvent(listOf(postEntity.copy())))
     }
 
     suspend fun updatePostAsync(postEntity: PostEntity) {
         writeTransactionAsync { postRepository.update(postEntity) }
         postEntityIdCache.put(postEntity.id, postEntity)
         log.debug("[{}] Publishing event: PostUpdateEvent for post {}", System.currentTimeMillis(), postEntity.id)
-        eventBus.publishEvent(PostUpdateEvent(listOf(postEntity)))
+        eventBus.publishEvent(PostUpdateEvent(listOf(postEntity.copy())))
     }
 
     fun save(threadEntity: ThreadEntity) {

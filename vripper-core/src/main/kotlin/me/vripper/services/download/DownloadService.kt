@@ -93,7 +93,7 @@ internal class DownloadService(
                 if (images.isEmpty()) {
                     continue
                 }
-                if (queueManager.isPending(post.id)) {
+                if (queueManager.isPending(post.id) || queueManager.isRunning(post.id)) {
                     continue
                 }
                 toProcess[post] = images
