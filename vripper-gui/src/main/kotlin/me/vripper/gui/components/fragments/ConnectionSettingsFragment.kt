@@ -15,7 +15,7 @@ class ConnectionSettingsFragment : Fragment("Connection Settings") {
     init {
         with(root) {
             form {
-                fieldset {
+                fieldset("Concurrency") {
                     field("Concurrent downloads per host") {
                         add(Spinner<Int>(1, 4, connectionSettings.maxConcurrentPerHost).apply {
                             connectionSettingsModel.maxThreadsProperty.bind(valueProperty())
@@ -30,6 +30,8 @@ class ConnectionSettingsFragment : Fragment("Connection Settings") {
                             atlantafx.base.util.IntegerStringConverter.createFor(this)
                         })
                     }
+                }
+                fieldset("Reliability") {
                     field("Connection timeout (s)") {
                         add(Spinner<Int>(1, 300, connectionSettings.timeout).apply {
                             connectionSettingsModel.timeoutProperty.bind(valueProperty())

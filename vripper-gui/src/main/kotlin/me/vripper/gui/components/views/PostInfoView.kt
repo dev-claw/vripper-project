@@ -1,6 +1,7 @@
 package me.vripper.gui.components.views
 
 import javafx.collections.FXCollections
+import javafx.geometry.Insets
 import javafx.scene.control.TabPane
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,8 +38,9 @@ class PostInfoView : View() {
             tabClosingPolicy = TabPane.TabClosingPolicy.UNAVAILABLE
             tab("General") {
                 graphic = FontIcon(Feather.INFO)
-                scrollpane {
+                scrollpane(fitToWidth = true) {
                     form {
+                        padding = Insets(12.0)
                         fieldset {
                             field("Post Link:") {
                                 textfield(postModel.urlProperty) {

@@ -25,7 +25,7 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
         downloadSettingsModel.appendPostId = downloadSettings.appendPostId
         with(root) {
             form {
-                fieldset {
+                fieldset("Storage") {
                     field("Download Path") {
                         textfield(downloadSettingsModel.downloadPathProperty) {
                             editableWhen(widgetsController.currentSettings.localSessionProperty.not())
@@ -40,6 +40,8 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
                             }
                         }
                     }
+                }
+                fieldset("Behavior") {
                     field("Auto start downloads") {
                         checkbox {
                             bind(downloadSettingsModel.autoStartProperty)
@@ -52,6 +54,13 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
                             IntegerStringConverter.createFor(this)
                         })
                     }
+                    field("Clear Finished") {
+                        checkbox {
+                            bind(downloadSettingsModel.clearCompletedProperty)
+                        }
+                    }
+                }
+                fieldset("Organization") {
                     field("Organize by category") {
                         checkbox {
                             bind(downloadSettingsModel.forumSubfolderProperty)
@@ -70,11 +79,6 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
                     field("Append post id to download folder") {
                         checkbox {
                             bind(downloadSettingsModel.appendPostIdProperty)
-                        }
-                    }
-                    field("Clear Finished") {
-                        checkbox {
-                            bind(downloadSettingsModel.clearCompletedProperty)
                         }
                     }
                 }

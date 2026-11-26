@@ -31,7 +31,7 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
         proxies.addAll(runBlocking { settingsController.getProxies() })
         with(root) {
             form {
-                fieldset {
+                fieldset("Connection") {
                     field("Viper domain") {
                         combobox(viperSettingsModel.hostProperty, proxies)
                     }
@@ -49,12 +49,30 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
                             bind(viperSettingsModel.fetchMetadataProperty)
                         }
                     }
+                }
+                fieldset("Account") {
                     field("Authentication") {
                         add(ToggleSwitch().apply {
                             isSelected = viperSettings.login
                             viperSettingsModel.loginProperty.bind(selectedProperty())
                         })
                     }
+                    fieldset {
+                        visibleWhen(viperSettingsModel.loginProperty)
+                        field("Username") {
+                            textfield(viperSettingsModel.usernameProperty)
+                        }
+                        field("Password") {
+                            passwordfield(viperSettingsModel.passwordProperty)
+                        }
+                        field("Leave likes") {
+                            checkbox {
+                                bind(viperSettingsModel.thanksProperty)
+                            }
+                        }
+                    }
+                }
+                fieldset("Watcher") {
                     field("Watch Thread Library") {
                         checkbox {
                             bind(viperSettingsModel.watchThreadsProperty)
@@ -73,20 +91,6 @@ class ViperSettingsFragment : Fragment("Viper Settings") {
                             isEditable = true
                             atlantafx.base.util.IntegerStringConverter.createFor(this)
                         })
-                    }
-                    fieldset {
-                        visibleWhen(viperSettingsModel.loginProperty)
-                        field("Username") {
-                            textfield(viperSettingsModel.usernameProperty)
-                        }
-                        field("Password") {
-                            passwordfield(viperSettingsModel.passwordProperty)
-                        }
-                        field("Leave likes") {
-                            checkbox {
-                                bind(viperSettingsModel.thanksProperty)
-                            }
-                        }
                     }
                 }
             }

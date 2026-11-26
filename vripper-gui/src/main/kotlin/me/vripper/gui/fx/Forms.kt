@@ -1,8 +1,10 @@
 package me.vripper.gui.fx
 
+import atlantafx.base.theme.Styles
 import javafx.beans.property.ReadOnlyDoubleProperty
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.event.EventTarget
+import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.control.Label
@@ -96,7 +98,11 @@ class Field(label: String? = null) : HBox() {
 class Fieldset(title: String? = null) : FormGrid() {
     init {
         if (title != null) {
-            addSpanningRow(Label(title).apply { styleClass.add("fieldset-title") })
+            padding = Insets(12.0)
+            style = "-fx-border-color: -color-border-default; -fx-border-radius: 8; -fx-border-width: 1;"
+            addSpanningRow(Label(title).apply {
+                styleClass.addAll("fieldset-title", Styles.TITLE_4)
+            })
         }
     }
 

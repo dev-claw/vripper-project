@@ -23,7 +23,7 @@ class SystemSettingsFragment : Fragment("System Settings") {
         systemSettingsModel.pollingRate = systemSettings.clipboardPollingRate
         with(root) {
             form {
-                fieldset {
+                fieldset("Storage") {
                     field("Temporary Path") {
                         textfield(systemSettingsModel.tempPathProperty) {
                             editableWhen(widgetsController.currentSettings.localSessionProperty.not())
@@ -38,6 +38,8 @@ class SystemSettingsFragment : Fragment("System Settings") {
                             }
                         }
                     }
+                }
+                fieldset("Logging") {
                     field("Max log entries") {
                         add(Spinner<Int>(10, 10000, systemSettingsModel.logEntries).apply {
                             valueProperty().onChange {
@@ -47,31 +49,31 @@ class SystemSettingsFragment : Fragment("System Settings") {
                             IntegerStringConverter.createFor(this)
                         })
                     }
-                    fieldset {
-                        field("Clipboard monitoring") {
-                            add(ToggleSwitch().apply {
-                                isSelected = systemSettingsModel.enable
-                                selectedProperty().onChange {
-                                    systemSettingsModel.enable = it
-                                }
-                            })
-                        }
-                        fieldset {
-                            visibleWhen(systemSettingsModel.enableProperty)
-                            field("Polling rate (ms)") {
-                                add(
-                                    Spinner<Int>(
-                                        500,
-                                        Int.MAX_VALUE,
-                                        systemSettingsModel.pollingRate
-                                    ).apply {
-                                        valueProperty().onChange {
-                                            systemSettingsModel.pollingRate = it!!
-                                        }
-                                        isEditable = true
-                                        IntegerStringConverter.createFor(this)
-                                    })
+                }
+                fieldset("Clipboard") {
+                    field("Clipboard monitoring") {
+                        add(ToggleSwitch().apply {
+                            isSelected = systemSettingsModel.enable
+                            selectedProperty().onChange {
+                                systemSettingsModel.enable = it
                             }
+                        })
+                    }
+                    fieldset {
+                        visibleWhen(systemSettingsModel.enableProperty)
+                        field("Polling rate (ms)") {
+                            add(
+                                Spinner<Int>(
+                                    500,
+                                    Int.MAX_VALUE,
+                                    systemSettingsModel.pollingRate
+                                ).apply {
+                                    valueProperty().onChange {
+                                        systemSettingsModel.pollingRate = it!!
+                                    }
+                                    isEditable = true
+                                    IntegerStringConverter.createFor(this)
+                                })
                         }
                     }
                 }
