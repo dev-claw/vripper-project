@@ -37,13 +37,13 @@ class LogController : Controller() {
         )
     }
 
-    suspend fun initLogger() {
-        GuiErrorReporter.call("logs.init") { currentAppEndpointService().initLogger() }
+    suspend fun initLogger(): Boolean {
+        return GuiErrorReporter.call("logs.init") { currentAppEndpointService().initLogger() }.isSuccess
     }
 
-    suspend fun getMaxEventLog(): Int {
+    suspend fun getMaxEventLog(): Int? {
         return GuiErrorReporter.call("logs.maxEventLog") {
             currentAppEndpointService().getSettings().systemSettings.maxEventLog
-        }.getOrDefault(0)
+        }.getOrNull()
     }
 }

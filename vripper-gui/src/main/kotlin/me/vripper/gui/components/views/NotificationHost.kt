@@ -22,6 +22,8 @@ import org.kordamp.ikonli.javafx.FontIcon
 import org.kordamp.ikonli.material2.Material2OutlinedMZ
 import me.vripper.gui.fx.*
 
+private const val MAX_VISIBLE_NOTIFICATIONS = 5
+
 class NotificationHost : View() {
 
     private val threadController: ThreadController by inject()
@@ -75,6 +77,13 @@ class NotificationHost : View() {
                     setOnAction { openThread(event) }
                 }
             )
+        }
+
+        while (notifications.size >= MAX_VISIBLE_NOTIFICATIONS) {
+            val oldestId = notifications.keys.firstOrNull() ?: break
+            notifications.remove(oldestId)?.let { oldest ->
+                container.children.remove(oldest)
+            }
         }
 
         notifications[event.threadId] = notification

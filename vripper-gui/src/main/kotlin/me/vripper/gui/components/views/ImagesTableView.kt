@@ -36,6 +36,9 @@ class ImagesTableView : View("Photos") {
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val items: ObservableList<ImageModel> = FXCollections.observableArrayList()
     val jobs = mutableListOf<Job>()
+    @Volatile
+    private var selectionToken = 0L
+    private var loadJob: Job? = null
     private val preview: Preview = Preview(currentStage!!)
 
     init {
@@ -268,19 +271,21 @@ class ImagesTableView : View("Photos") {
     }
 
     fun setPostId(id: Long?) {
-        runBlocking {
-            jobs.forEach { it.cancelAndJoin() }
-            jobs.clear()
-        }
+        val token = ++selectionToken
+        jobs.forEach { it.cancel() }
+        jobs.clear()
+        loadJob?.cancel()
+        loadJob = null
         runLater {
-            items.clear()
+            if (token == selectionToken) items.clear()
         }
         if (id == null) {
             return
         }
-        coroutineScope.launch {
+        loadJob = coroutineScope.launch {
             val list = imageController.findImages(id)
             runLater {
+                if (token != selectionToken) return@runLater
                 items.addAll(list)
                 tableView.sort()
                 tableView.placeholder = Label("No content in table")
@@ -290,6 +295,7 @@ class ImagesTableView : View("Photos") {
         coroutineScope.launch {
             imageController.onUpdateImages(id).collect { image ->
                 runLater {
+                    if (token != selectionToken) return@runLater
                     val imageModel = items.find { it.id == image.id } ?: return@runLater
 
                     imageModel.size = image.size
@@ -306,6 +312,7 @@ class ImagesTableView : View("Photos") {
         coroutineScope.launch {
             imageController.onStopped().collect {
                 runLater {
+                    if (token != selectionToken) return@runLater
                     items.forEach { imageModel ->
                         if (imageModel.status != Status.FINISHED.name) {
                             imageModel.status = Status.STOPPED.name

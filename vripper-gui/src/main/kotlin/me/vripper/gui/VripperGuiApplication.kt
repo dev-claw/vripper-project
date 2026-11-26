@@ -96,6 +96,7 @@ class VripperGuiApplication : Application() {
 
     override fun stop() {
         PostWorkspaceFragment.closeAll()
+        WidgetSettings.flush()
         coroutineScope.cancel()
         super.stop()
         exitProcess(0)

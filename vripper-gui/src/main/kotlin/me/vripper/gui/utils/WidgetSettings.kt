@@ -1,5 +1,11 @@
 package me.vripper.gui.utils
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import me.vripper.gui.model.WidgetsViewModel
@@ -10,6 +16,26 @@ import kotlin.io.path.pathString
 object WidgetSettings {
 
     private val WIDGETS_CONFIG_PATH = VRIPPER_DIR.resolve("widgets-config.json")
+
+    private const val SAVE_DEBOUNCE_MS = 250L
+
+    private val saveRequests = Channel<Unit>(Channel.CONFLATED)
+    private val saveScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Volatile
+    private var latestSettings: WidgetsViewModel? = null
+
+    init {
+        saveScope.launch {
+            for (ignored in saveRequests) {
+                delay(SAVE_DEBOUNCE_MS)
+                while (saveRequests.tryReceive().isSuccess) {
+                    // Coalesce every save requested during the debounce window.
+                }
+                writeLatest()
+            }
+        }
+    }
 
     private val json = Json {
         prettyPrint = true
@@ -209,8 +235,22 @@ object WidgetSettings {
         return (json.decodeFromString(Files.readString(WIDGETS_CONFIG_PATH)) as WidgetsSettings)
     }
 
-    @Synchronized
     fun update(currentSettings: WidgetsViewModel) {
+        latestSettings = currentSettings
+        saveRequests.trySend(Unit)
+    }
+
+    /**
+     * Writes the latest queued settings synchronously. Intended for application
+     * shutdown, where the debounced background save may not get a chance to run.
+     */
+    fun flush() {
+        writeLatest()
+    }
+
+    @Synchronized
+    private fun writeLatest() {
+        val currentSettings = latestSettings ?: return
         Files.writeString(
             WIDGETS_CONFIG_PATH, json.encodeToString(
                 WidgetsSettings(

@@ -4,6 +4,7 @@ import javafx.collections.FXCollections
 import javafx.scene.control.TabPane
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -21,6 +22,12 @@ class PostInfoView : View() {
     private val postModel: PostModel = PostModel(
         -1, -1, "", 0.0, "", "", 0, 0, "", "", -1, "", "", "", emptyList(), emptyList(), "", 0
     )
+
+    @Volatile
+    private var selectionToken = 0L
+    private var detailJob: Job? = null
+    private var postUpdatesJob: Job? = null
+    private var metadataUpdatesJob: Job? = null
 
     override val root = tabpane()
 
@@ -88,6 +95,14 @@ class PostInfoView : View() {
 
     fun setPostId(id: Long?) {
         imagesTableView.setPostId(id)
+        detailJob?.cancel()
+        postUpdatesJob?.cancel()
+        metadataUpdatesJob?.cancel()
+        detailJob = null
+        postUpdatesJob = null
+        metadataUpdatesJob = null
+        val token = ++selectionToken
+
         if (id == null) {
             postModel.apply {
                 this.title = ""
@@ -111,12 +126,14 @@ class PostInfoView : View() {
             }
             return
         }
-        coroutineScope.launch {
+
+        detailJob = coroutineScope.launch {
             val model: PostModel? = postController.find(id)
-            if (model == null) {
+            if (model == null || token != selectionToken) {
                 return@launch
             }
             runLater {
+                if (token != selectionToken) return@runLater
                 postModel.apply {
                     this.id = model.id
                     this.vgPostId = model.vgPostId
@@ -143,36 +160,30 @@ class PostInfoView : View() {
             }
         }
 
-        postController.updatePostsFlow.let { flow ->
-            coroutineScope.launch {
-                flow.filter {
-                    it.id == postModel.id
-                }.collect { post ->
-                    runLater {
-                        postModel.status = post.status.stringValue.lowercase().replaceFirstChar { it.uppercase() }
-                        postModel.progressCount = postController.progressCount(
-                            post.total, post.done, post.downloaded
-                        )
-                        postModel.done = post.done
-                        postModel.progress = postController.progress(
-                            post.total, post.done
-                        )
-                        postModel.path = post.getDownloadFolder()
-                        postModel.folderName = post.folderName
-                    }
+        postUpdatesJob = coroutineScope.launch {
+            postController.updatePostsFlow.filter { it.id == id }.collect { post ->
+                runLater {
+                    if (token != selectionToken) return@runLater
+                    postModel.status = post.status.stringValue.lowercase().replaceFirstChar { it.uppercase() }
+                    postModel.progressCount = postController.progressCount(
+                        post.total, post.done, post.downloaded
+                    )
+                    postModel.done = post.done
+                    postModel.progress = postController.progress(
+                        post.total, post.done
+                    )
+                    postModel.path = post.getDownloadFolder()
+                    postModel.folderName = post.folderName
                 }
             }
         }
 
-        postController.updateMetadataFlow.let { flow ->
-            coroutineScope.launch {
-                flow.filter {
-                    it.postIdRef == postModel.id
-                }.collect {
-                    runLater {
-                        postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
-                        postModel.postedBy = it.data.postedBy
-                    }
+        metadataUpdatesJob = coroutineScope.launch {
+            postController.updateMetadataFlow.filter { it.postIdRef == id }.collect {
+                runLater {
+                    if (token != selectionToken) return@runLater
+                    postModel.altTitles = FXCollections.observableArrayList(it.data.resolvedNames)
+                    postModel.postedBy = it.data.postedBy
                 }
             }
         }

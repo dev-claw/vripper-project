@@ -118,15 +118,17 @@ class PostsView : View() {
         coroutineScope.launch {
             var lastDividerPosition = settings.infoPanelDividerPosition
             while (isActive) {
-                if (settings.visibleInfoPanel) {
-                    val dividerPosition = root.dividerPositions.firstOrNull()
-                    if (dividerPosition != null && lastDividerPosition != dividerPosition) {
-                        lastDividerPosition = dividerPosition
-                        settings.infoPanelDividerPosition = lastDividerPosition
-                        WidgetSettings.update(settings)
+                delay(1_000)
+                runLater {
+                    if (settings.visibleInfoPanel) {
+                        val dividerPosition = root.dividerPositions.firstOrNull()
+                        if (dividerPosition != null && lastDividerPosition != dividerPosition) {
+                            lastDividerPosition = dividerPosition
+                            settings.infoPanelDividerPosition = lastDividerPosition
+                            WidgetSettings.update(settings)
+                        }
                     }
                 }
-                delay(1_000)
             }
         }
     }

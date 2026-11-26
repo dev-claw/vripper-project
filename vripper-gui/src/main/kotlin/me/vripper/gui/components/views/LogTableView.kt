@@ -31,7 +31,10 @@ import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import me.vripper.gui.components.EmptyState
@@ -40,12 +43,17 @@ import me.vripper.gui.components.Shared
 import me.vripper.gui.components.fragments.LogMessageFragment
 import me.vripper.gui.components.quickFilterPills
 import me.vripper.gui.controller.LogController
+import me.vripper.gui.event.GUIEvent
 import me.vripper.gui.event.GuiEventBus
 import me.vripper.gui.model.LogModel
+import me.vripper.gui.utils.AppEndpointManager
 import org.kordamp.ikonli.feather.Feather
 import org.kordamp.ikonli.javafx.FontIcon
 import me.vripper.gui.fx.*
 import java.util.function.Predicate
+
+private const val INITIAL_LOG_RETRY_DELAY_MS = 250L
+private const val MAX_LOG_RETRY_DELAY_MS = 5_000L
 
 class LogTableView : View() {
 
@@ -62,7 +70,9 @@ class LogTableView : View() {
     private val connectionFailurePlaceholder = Label("Connection Failure")
     private val emptyMessage = SimpleStringProperty("No logs yet")
     private val emptyPlaceholder = EmptyState.create(Feather.TERMINAL, emptyMessage)
+    @Volatile
     private var maxLogEvent = 100
+    private var sessionInitJob: Job? = null
     private val followTail = SimpleBooleanProperty(true)
 
     override val root = vbox {}
@@ -193,38 +203,63 @@ class LogTableView : View() {
             GuiEventBus.events.collect {
                 when (it) {
                     GuiEventBus.LocalSession, GuiEventBus.RemoteSession -> {
-                        while (isActive) {
-                            val result = runCatching { logController.getMaxEventLog() }
-                            if (result.isSuccess) {
-                                maxLogEvent = result.getOrNull()!!
-                                break
-                            }
+                        sessionInitJob?.cancel()
+                        val session = it
+                        sessionInitJob = coroutineScope.launch {
+                            initializeLogSession(session)
                         }
-                        while (isActive) {
-                            val result = runCatching { logController.initLogger() }
-                            if (result.isSuccess) {
-                                break
-                            }
-                        }
+                    }
+
+                    GuiEventBus.ChangingSession -> {
+                        sessionInitJob?.cancel()
                         runLater {
-                            listView.placeholder = emptyPlaceholder
+                            items.clear()
+                            followTail.set(true)
+                            listView.placeholder = loadingPlaceholder
                         }
                     }
 
-                    GuiEventBus.ChangingSession -> runLater {
-                        items.clear()
-                        followTail.set(true)
-                        listView.placeholder = loadingPlaceholder
-                    }
-
-                    is GuiEventBus.RemoteError -> runLater {
-                        items.clear()
-                        followTail.set(true)
-                        listView.placeholder = connectionFailurePlaceholder
+                    is GuiEventBus.RemoteError -> {
+                        sessionInitJob?.cancel()
+                        runLater {
+                            items.clear()
+                            followTail.set(true)
+                            listView.placeholder = connectionFailurePlaceholder
+                        }
                     }
 
                     else -> {}
                 }
+            }
+        }
+    }
+
+    private suspend fun initializeLogSession(session: GUIEvent) {
+        var retryDelay = INITIAL_LOG_RETRY_DELAY_MS
+        while (currentCoroutineContext().isActive &&
+            AppEndpointManager.currentAppState() == session
+        ) {
+            val configuredMax = logController.getMaxEventLog()
+            if (configuredMax != null) {
+                maxLogEvent = configuredMax
+                break
+            }
+            delay(retryDelay)
+            retryDelay = (retryDelay * 2).coerceAtMost(MAX_LOG_RETRY_DELAY_MS)
+        }
+
+        retryDelay = INITIAL_LOG_RETRY_DELAY_MS
+        while (currentCoroutineContext().isActive &&
+            AppEndpointManager.currentAppState() == session
+        ) {
+            if (logController.initLogger()) break
+            delay(retryDelay)
+            retryDelay = (retryDelay * 2).coerceAtMost(MAX_LOG_RETRY_DELAY_MS)
+        }
+
+        if (AppEndpointManager.currentAppState() == session) {
+            runLater {
+                listView.placeholder = emptyPlaceholder
             }
         }
     }
