@@ -2,6 +2,7 @@ package me.vripper.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,10 +89,37 @@ fun ImageViewerScreen(
         }
     }
 
-    Scaffold(
-        containerColor = Color.Black,
-        topBar = {
+    var chromeVisible by remember { mutableStateOf(true) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .pointerInput(Unit) {
+                detectTapGestures { chromeVisible = !chromeVisible }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            key = { page -> images[page].id },
+            // Keep off-screen pages out of composition so their bitmaps can be released.
+            beyondViewportPageCount = 0,
+        ) { page ->
+            val isActive = abs(page - pagerState.currentPage) <= 1
+            ImagePage(
+                image = images[page],
+                loader = loader,
+                fullCache = fullCache,
+                previewCache = previewCache,
+                isActive = isActive,
+            )
+        }
+
+        if (chromeVisible) {
             TopAppBar(
+                modifier = Modifier.align(Alignment.TopCenter),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(VripperIcons.Back, contentDescription = "Back", tint = Color.White)
@@ -122,57 +150,32 @@ fun ImageViewerScreen(
                     actionIconContentColor = Color.White,
                 ),
             )
-        },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .padding(padding),
-            contentAlignment = Alignment.Center,
-        ) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                key = { page -> images[page].id },
-                // Keep off-screen pages out of composition so their bitmaps can be released.
-                beyondViewportPageCount = 0,
-            ) { page ->
-                val isActive = abs(page - pagerState.currentPage) <= 1
-                ImagePage(
-                    image = images[page],
-                    loader = loader,
-                    fullCache = fullCache,
-                    previewCache = previewCache,
-                    isActive = isActive,
+        }
+
+        if (images.size > 1 && chromeVisible) {
+            if (pagerState.currentPage > 0) {
+                PageButton(
+                    icon = VripperIcons.ChevronLeft,
+                    description = "Previous image",
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                        }
+                    },
                 )
             }
-
-            if (images.size > 1) {
-                if (pagerState.currentPage > 0) {
-                    PageButton(
-                        icon = VripperIcons.ChevronLeft,
-                        description = "Previous image",
-                        modifier = Modifier.align(Alignment.CenterStart),
-                        onClick = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage - 1)
-                            }
-                        },
-                    )
-                }
-                if (pagerState.currentPage < images.lastIndex) {
-                    PageButton(
-                        icon = VripperIcons.ChevronRight,
-                        description = "Next image",
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                        onClick = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                            }
-                        },
-                    )
-                }
+            if (pagerState.currentPage < images.lastIndex) {
+                PageButton(
+                    icon = VripperIcons.ChevronRight,
+                    description = "Next image",
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    },
+                )
             }
         }
     }

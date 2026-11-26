@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -37,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import me.vripper.data.Post
@@ -292,68 +295,102 @@ private fun QueueSummary(queue: QueueState, posts: Int) {
 
 @Composable
 private fun PostCard(post: Post, onClick: () -> Unit) {
+    val previewUrl = post.previews.firstOrNull { it.isNotBlank() }
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = post.title.ifBlank { "Untitled post" },
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+            if (previewUrl != null) {
+                Box {
+                    RemotePreview(
+                        url = previewUrl,
+                        contentDescription = post.title.ifBlank { "Post preview" },
+                        modifier = Modifier
+                            .width(88.dp)
+                            .height(112.dp),
                     )
-                    if (post.threadTitle.isNotBlank()) {
+                    if (post.previews.size > 1) {
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.65f),
+                            contentColor = Color.White,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(4.dp),
+                        ) {
+                            Text(
+                                text = "+${post.previews.size - 1}",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = post.threadTitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            text = post.title.ifBlank { "Untitled post" },
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
+                        )
+                        if (post.threadTitle.isNotBlank()) {
+                            Text(
+                                text = post.threadTitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    StatusBadge(post.status)
+                }
+
+                if (post.total > 0) {
+                    LinearProgressIndicator(
+                        progress = { post.progress },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "${post.done} / ${post.total} files",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "${formatBytes(post.downloaded)} / ${formatBytes(post.size)}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                Spacer(Modifier.width(8.dp))
-                StatusBadge(post.status)
-            }
 
-            if (post.total > 0) {
-                LinearProgressIndicator(
-                    progress = { post.progress },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
+                val details = buildList {
+                    if (post.forum.isNotBlank()) add(post.forum)
+                    if (post.hosts.isNotEmpty()) add(post.hosts.joinToString(", "))
+                    if (post.postedBy.isNotBlank()) add("by ${post.postedBy}")
+                    val addedOn = formatAddedOn(post.addedOn)
+                    if (addedOn.isNotBlank()) add(addedOn)
+                }
+                if (details.isNotEmpty()) {
                     Text(
-                        text = "${post.done} / ${post.total} files",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "${formatBytes(post.downloaded)} / ${formatBytes(post.size)}",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = details.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            }
-
-            val details = buildList {
-                if (post.forum.isNotBlank()) add(post.forum)
-                if (post.hosts.isNotEmpty()) add(post.hosts.joinToString(", "))
-                if (post.postedBy.isNotBlank()) add("by ${post.postedBy}")
-                val addedOn = formatAddedOn(post.addedOn)
-                if (addedOn.isNotBlank()) add(addedOn)
-            }
-            if (details.isNotEmpty()) {
-                Text(
-                    text = details.joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

@@ -1,5 +1,6 @@
 package me.vripper.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,11 +27,19 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import me.vripper.image.RemotePreviewCache
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,6 +182,59 @@ internal fun SectionCard(
                 Text(text = title, style = MaterialTheme.typography.titleMedium)
             }
             content()
+        }
+    }
+}
+
+@Composable
+internal fun RemotePreview(
+    url: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+) {
+    val cleanUrl = url?.trim().orEmpty()
+    var bitmap by remember(cleanUrl) {
+        mutableStateOf(if (cleanUrl.isNotEmpty()) RemotePreviewCache.get(cleanUrl) else null)
+    }
+    var failed by remember(cleanUrl) { mutableStateOf(false) }
+
+    LaunchedEffect(cleanUrl) {
+        if (cleanUrl.isEmpty() || bitmap != null) return@LaunchedEffect
+        val loaded = RemotePreviewCache.load(cleanUrl)
+        if (loaded != null) {
+            bitmap = loaded
+        } else {
+            failed = true
+        }
+    }
+
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center,
+    ) {
+        val current = bitmap
+        when {
+            current != null -> Image(
+                bitmap = current,
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+
+            cleanUrl.isEmpty() || failed -> Icon(
+                imageVector = VripperIcons.Image,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(28.dp),
+            )
+
+            else -> CircularProgressIndicator(
+                modifier = Modifier.size(22.dp),
+                strokeWidth = 2.dp,
+            )
         }
     }
 }

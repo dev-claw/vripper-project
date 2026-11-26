@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -251,7 +253,10 @@ fun PostDetailScreen(
 private fun PostOverviewCard(post: Post) {
     SectionCard(title = "Overview") {
         Row(verticalAlignment = Alignment.Top) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     text = post.title.ifBlank { "Untitled post" },
                     style = MaterialTheme.typography.titleMedium,
@@ -269,86 +274,123 @@ private fun PostOverviewCard(post: Post) {
         }
 
         if (post.total > 0) {
-            LinearProgressIndicator(
-                progress = { post.progress },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "${post.done} / ${post.total} files",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LinearProgressIndicator(
+                    progress = { post.progress },
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                Text(
-                    text = "${formatBytes(post.downloaded)} / ${formatBytes(post.size)}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "${post.done} / ${post.total} files",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "${formatBytes(post.downloaded)} / ${formatBytes(post.size)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
-        val details = buildList {
-            if (post.forum.isNotBlank()) add("Forum: ${post.forum}")
-            if (post.hosts.isNotEmpty()) add("Hosts: ${post.hosts.joinToString(", ")}")
-            if (post.postedBy.isNotBlank()) add("Posted by: ${post.postedBy}")
-            val addedOn = formatAddedOn(post.addedOn)
-            if (addedOn.isNotBlank()) add("Added: $addedOn")
-            if (post.folderName.isNotBlank()) add("Folder: ${post.folderName}")
-            if (post.downloadDirectory.isNotBlank()) add("Path: ${post.downloadDirectory}")
-            if (post.url.isNotBlank()) add(post.url)
-        }
-        details.forEach { line ->
-            Text(
-                text = line,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        HorizontalDivider()
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            InfoRow(label = "Forum", value = post.forum)
+            InfoRow(label = "Hosts", value = post.hosts.joinToString(", "))
+            InfoRow(label = "Posted by", value = post.postedBy)
+            InfoRow(label = "Added", value = formatAddedOn(post.addedOn))
+            InfoRow(label = "Folder", value = post.folderName)
+            InfoRow(label = "Path", value = post.downloadDirectory)
+            InfoRow(label = "URL", value = post.url)
         }
     }
 }
 
 @Composable
+private fun InfoRow(label: String, value: String) {
+    if (value.isBlank()) return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(76.dp),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
 private fun ImageRow(image: Image, onClick: () -> Unit) {
-    SectionCard(
-        title = image.displayName,
-        modifier = Modifier.clickable(
-            enabled = image.status.equals("FINISHED", ignoreCase = true),
-            onClick = onClick,
-        ),
+    val finished = image.status.equals("FINISHED", ignoreCase = true)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = finished, onClick = onClick),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "#${image.index + 1}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            RemotePreview(
+                url = image.thumbUrl,
+                contentDescription = image.displayName,
+                modifier = Modifier
+                    .width(64.dp)
+                    .height(64.dp),
             )
-            Spacer(Modifier.width(8.dp))
-            Spacer(Modifier.weight(1f))
-            StatusBadge(image.status)
-        }
-        if (image.size > 0) {
-            LinearProgressIndicator(
-                progress = { image.progress },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                text = "${formatBytes(image.downloaded)} / ${formatBytes(image.size)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (image.status.equals("FINISHED", ignoreCase = true)) {
-            Text(
-                text = "Tap to view",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Text(
+                        text = image.displayName,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    StatusBadge(image.status)
+                }
+                Text(
+                    text = "#${image.index + 1}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (image.size > 0) {
+                    LinearProgressIndicator(
+                        progress = { image.progress },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = "${formatBytes(image.downloaded)} / ${formatBytes(image.size)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (finished) {
+                    Text(
+                        text = "Tap to view",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         }
     }
 }
