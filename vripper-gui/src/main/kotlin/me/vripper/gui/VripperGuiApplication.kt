@@ -109,6 +109,9 @@ class VripperGuiApplication : Application() {
 
 fun main(args: Array<String>) {
     System.setProperty("prism.lcdtext", "false")
+    if (System.getProperty("os.name").contains("mac", ignoreCase = true)) {
+        System.setProperty("prism.maxTextureSize", "8192")
+    }
     val pattern = "(vr:t=)(\\d+)".toPattern()
     val threadId = if (args.isNotEmpty()) {
         val matcher = pattern.matcher(args[0])
