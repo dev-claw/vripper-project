@@ -7,6 +7,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.util.UUID
 import kotlin.io.path.Path
 import kotlin.io.path.listDirectoryEntries
 
@@ -50,7 +51,18 @@ internal object PathUtils {
     ) {
         val currentDownloadDirectory = Path(downloadDirectory, oldFolder)
         val newDownloadDirectory = Path(downloadDirectory, sanitize(newFolder))
-        if (currentDownloadDirectory == newDownloadDirectory) {
+        val currentName = currentDownloadDirectory.fileName.toString()
+        val newName = newDownloadDirectory.fileName.toString()
+        if (currentName == newName) {
+            return
+        }
+        val targetIsSameFile = Files.exists(newDownloadDirectory) &&
+            Files.exists(currentDownloadDirectory) &&
+            Files.isSameFile(currentDownloadDirectory, newDownloadDirectory)
+        if (currentName.equals(newName, ignoreCase = true) &&
+            (!Files.exists(newDownloadDirectory) || targetIsSameFile)
+        ) {
+            renameCaseOnly(currentDownloadDirectory, newDownloadDirectory)
             return
         }
         try {
@@ -74,6 +86,28 @@ internal object PathUtils {
                 String.format(
                     "Failed to move files from %s to %s", currentDownloadDirectory, newDownloadDirectory
                 ),
+                e
+            )
+        }
+    }
+
+    private fun renameCaseOnly(currentDirectory: Path, newDirectory: Path) {
+        val tempDirectory = currentDirectory.resolveSibling(".vripper-rename-${UUID.randomUUID()}")
+        try {
+            Files.move(currentDirectory, tempDirectory)
+            try {
+                Files.move(tempDirectory, newDirectory)
+            } catch (e: IOException) {
+                try {
+                    Files.move(tempDirectory, currentDirectory)
+                } catch (rollback: IOException) {
+                    e.addSuppressed(rollback)
+                }
+                throw e
+            }
+        } catch (e: IOException) {
+            throw RenameException(
+                String.format("Failed to rename %s to %s", currentDirectory, newDirectory),
                 e
             )
         }

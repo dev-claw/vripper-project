@@ -1,8 +1,14 @@
 package me.vripper.utilities
 
+import me.vripper.entities.ImageEntity
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeFalse
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Files
+import java.nio.file.Path
 
 class PathUtilsTest {
 
@@ -58,4 +64,63 @@ class PathUtilsTest {
         assertEquals(60, sanitized.codePointCount(0, sanitized.length))
         assertTrue(sanitized.toByteArray(Charsets.UTF_8).size <= 240)
     }
+
+    @Test
+    fun `rename changes directory case on disk`(@TempDir tempDir: Path) {
+        val downloadDirectory = Files.createDirectories(tempDir.resolve("downloads"))
+        val oldDirectory = Files.createDirectories(downloadDirectory.resolve("gallery"))
+        Files.writeString(oldDirectory.resolve("image.jpg"), "image")
+
+        PathUtils.rename(listOf(image("image.jpg")), downloadDirectory.toString(), "gallery", "Gallery")
+
+        assertEquals(listOf("Gallery"), downloadDirectory.toFile().list()?.toList())
+        assertEquals("image", Files.readString(downloadDirectory.resolve("Gallery").resolve("image.jpg")))
+    }
+
+    @Test
+    fun `rename moves files to a new directory`(@TempDir tempDir: Path) {
+        val downloadDirectory = Files.createDirectories(tempDir.resolve("downloads"))
+        val oldDirectory = Files.createDirectories(downloadDirectory.resolve("gallery"))
+        Files.writeString(oldDirectory.resolve("image.jpg"), "image")
+
+        PathUtils.rename(listOf(image("image.jpg")), downloadDirectory.toString(), "gallery", "new-gallery")
+
+        assertFalse(Files.exists(oldDirectory))
+        assertEquals("image", Files.readString(downloadDirectory.resolve("new-gallery").resolve("image.jpg")))
+    }
+
+    @Test
+    fun `rename merges into an existing case-different directory`(@TempDir tempDir: Path) {
+        val downloadDirectory = Files.createDirectories(tempDir.resolve("downloads"))
+        val oldDirectory = Files.createDirectories(downloadDirectory.resolve("gallery"))
+        val existingDirectory = Files.createDirectories(downloadDirectory.resolve("Gallery"))
+        assumeFalse(Files.isSameFile(oldDirectory, existingDirectory))
+        Files.writeString(oldDirectory.resolve("old.jpg"), "old")
+        Files.writeString(existingDirectory.resolve("existing.jpg"), "existing")
+
+        PathUtils.rename(listOf(image("old.jpg")), downloadDirectory.toString(), "gallery", "Gallery")
+
+        assertFalse(Files.exists(oldDirectory))
+        assertEquals("old", Files.readString(existingDirectory.resolve("old.jpg")))
+        assertEquals("existing", Files.readString(existingDirectory.resolve("existing.jpg")))
+    }
+
+    @Test
+    fun `rename does nothing when the name is unchanged`(@TempDir tempDir: Path) {
+        val downloadDirectory = Files.createDirectories(tempDir.resolve("downloads"))
+        val oldDirectory = Files.createDirectories(downloadDirectory.resolve("gallery"))
+        Files.writeString(oldDirectory.resolve("image.jpg"), "image")
+
+        PathUtils.rename(listOf(image("image.jpg")), downloadDirectory.toString(), "gallery", "gallery")
+
+        assertEquals("image", Files.readString(oldDirectory.resolve("image.jpg")))
+    }
+
+    private fun image(filename: String) = ImageEntity(
+        url = "https://example.com/$filename",
+        thumbUrl = "",
+        host = 0,
+        index = 0,
+        filename = filename,
+    )
 }
