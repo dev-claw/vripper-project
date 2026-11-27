@@ -1,5 +1,28 @@
 # Changelog
 
+## [7.1.0](https://github.com/dev-claw/vripper-project/compare/7.0.0...7.1.0) (2026-11-27)
+
+
+### Features
+
+* **core:** add Organize by site option ([5ebaa42](https://github.com/dev-claw/vripper-project/commit/5ebaa42413a0e08a63f249fc10839d5cde8bb638)), closes [#335](https://github.com/dev-claw/vripper-project/issues/335)
+* **gui:** build a lightweight gui library ([da43823](https://github.com/dev-claw/vripper-project/commit/da4382391c46da309258a20825fb19111fcbbd35))
+* **gui:** fields grid alignment ([4f58422](https://github.com/dev-claw/vripper-project/commit/4f58422852e194477ea477b80fbb936db02f8f2b))
+* **gui:** prefer native image decoder ([d91b4ef](https://github.com/dev-claw/vripper-project/commit/d91b4efd72b0fe2c9b4151b17b6a3a1f200019bf))
+* **gui:** ui/ux enhancements ([50f5765](https://github.com/dev-claw/vripper-project/commit/50f57652c8b5e8d890736f1d1e42f1e04a54ff8e))
+* **mobile:** Enhance UX ([77546e4](https://github.com/dev-claw/vripper-project/commit/77546e4811a45b461d36fe45fca0d25157700b14))
+
+
+### Bug Fixes
+
+* **core:** fix case only rename ([684f7bd](https://github.com/dev-claw/vripper-project/commit/684f7bde1ff2c475cbe0917f21acf2aef2c945a6)), closes [#273](https://github.com/dev-claw/vripper-project/issues/273)
+* **core:** fix sanitize function ([4c901b0](https://github.com/dev-claw/vripper-project/commit/4c901b0c36511aadb10bfc35d0bd4b4b2309008f))
+* **core:** prevent database lock ([cdef10a](https://github.com/dev-claw/vripper-project/commit/cdef10a59efb94d5bd9a1e9458af37effdbaa132))
+* **core:** status ordering issue ([51ccc45](https://github.com/dev-claw/vripper-project/commit/51ccc45c444766730275dd955b8c3a14b0f2d79b))
+* **gui:** fix some leaks ([ea0deb6](https://github.com/dev-claw/vripper-project/commit/ea0deb67ec3503eeb0382979d8b176cb9f6110c5))
+* **gui:** macos windows size issue ([2dab922](https://github.com/dev-claw/vripper-project/commit/2dab92200962dc591d995690663127731bd3fca8)), closes [#379](https://github.com/dev-claw/vripper-project/issues/379)
+* **gui:** provide platform specific gui jar ([76164b9](https://github.com/dev-claw/vripper-project/commit/76164b91fde3500246feb2ea604fcddfb1bb6b75))
+
 ## [7.0.0](https://github.com/dev-claw/vripper-project/compare/6.12.0...7.0.0) (2026-11-19)
 
 
