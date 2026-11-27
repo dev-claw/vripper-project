@@ -14,20 +14,29 @@ import kotlin.io.path.listDirectoryEntries
 internal object PathUtils {
     private val log by LoggerDelegate()
     private val imageExtensions = listOf("bmp", "gif", "jpg", "jpeg", "png", "webp")
+    private val illegalCharacters = Regex("""[.\\/:*?"<>|\p{Cntrl}]""")
+    private val windowsReservedNames: Set<String> = buildSet {
+        addAll(listOf("CON", "PRN", "AUX", "NUL"))
+        (1..9).forEach {
+            add("COM$it")
+            add("LPT$it")
+        }
+    }
+    private const val MAX_COMPONENT_BYTES = 240
 
 
     fun calculateDownloadPath(
         forum: String, prefixId: String, threadTitle: String, settings: Settings
     ): Path {
         var downloadDirectory = Path.of(settings.downloadSettings.downloadPath)
-        if (settings.downloadSettings.forumSubDirectory) {
+        if (settings.downloadSettings.forumSubDirectory && forum.isNotBlank()) {
             downloadDirectory = downloadDirectory.resolve(sanitize(forum))
         }
         if (settings.downloadSettings.siteSubDirectory && prefixId.isNotBlank()) {
             downloadDirectory = downloadDirectory.resolve(sanitize(prefixId))
         }
-        if (settings.downloadSettings.threadSubLocation) {
-            downloadDirectory = downloadDirectory.resolve(threadTitle)
+        if (settings.downloadSettings.threadSubLocation && threadTitle.isNotBlank()) {
+            downloadDirectory = downloadDirectory.resolve(sanitize(threadTitle))
         }
         return downloadDirectory
     }
@@ -77,10 +86,45 @@ internal object PathUtils {
      * @return Sanitized local path string
      */
     fun sanitize(path: String): String {
-        val sanitizedPath =
-            path.replace("\\.|\\\\|/|\\||:|\\?|\\*|\"|<|>|\\p{Cntrl}".toRegex(), "_")
+        var sanitizedPath = path.replace(illegalCharacters, "_")
+            .trim()
+            .trimEnd('.', ' ')
+        if (sanitizedPath.isBlank()) {
+            sanitizedPath = "_"
+        }
+        if (sanitizedPath.substringBefore('.').uppercase() in windowsReservedNames) {
+            sanitizedPath = "_$sanitizedPath"
+        }
+        sanitizedPath = truncateToBytes(sanitizedPath, MAX_COMPONENT_BYTES)
+            .trimEnd('.', ' ')
+            .ifBlank { "_" }
         log.debug(String.format("%s sanitized to %s", path, sanitizedPath))
         return sanitizedPath
+    }
+
+    private fun truncateToBytes(value: String, maxBytes: Int): String {
+        if (value.toByteArray(Charsets.UTF_8).size <= maxBytes) {
+            return value
+        }
+        val result = StringBuilder()
+        var byteCount = 0
+        var index = 0
+        while (index < value.length) {
+            val codePoint = value.codePointAt(index)
+            val codePointBytes = when {
+                codePoint <= 0x7F -> 1
+                codePoint <= 0x7FF -> 2
+                codePoint <= 0xFFFF -> 3
+                else -> 4
+            }
+            if (byteCount + codePointBytes > maxBytes) {
+                break
+            }
+            result.appendCodePoint(codePoint)
+            byteCount += codePointBytes
+            index += Character.charCount(codePoint)
+        }
+        return result.toString()
     }
 
     fun getExtension(fileName: String): String {
