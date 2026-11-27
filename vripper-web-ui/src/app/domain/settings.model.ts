@@ -18,6 +18,7 @@ export interface DownloadSettings {
   autoQueueThreshold: number;
   forceOrder: boolean;
   forumSubDirectory: boolean;
+  siteSubDirectory: boolean;
   threadSubLocation: boolean;
   clearCompleted: boolean;
   appendPostId: boolean;

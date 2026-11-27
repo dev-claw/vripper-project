@@ -389,6 +389,7 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             autoQueueThreshold = settings.downloadSettings.autoQueueThreshold,
             forceOrder = settings.downloadSettings.forceOrder,
             forumSubDirectory = settings.downloadSettings.forumSubDirectory,
+            siteSubDirectory = settings.downloadSettings.siteSubDirectory,
             threadSubLocation = settings.downloadSettings.threadSubLocation,
             clearCompleted = settings.downloadSettings.clearCompleted,
             appendPostId = settings.downloadSettings.appendPostId,
@@ -451,6 +452,7 @@ internal class GrpcEndpointService : IGrpcEndpointService {
             autoQueueThreshold = this@toProto.downloadSettings.autoQueueThreshold
             forceOrder = this@toProto.downloadSettings.forceOrder
             forumSubDirectory = this@toProto.downloadSettings.forumSubDirectory
+            siteSubDirectory = this@toProto.downloadSettings.siteSubDirectory
             threadSubLocation = this@toProto.downloadSettings.threadSubLocation
             clearCompleted = this@toProto.downloadSettings.clearCompleted
             appendPostId = this@toProto.downloadSettings.appendPostId

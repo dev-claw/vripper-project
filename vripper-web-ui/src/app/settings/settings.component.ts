@@ -66,6 +66,7 @@ export class SettingsComponent {
     autoQueueThreshold: new FormControl(0),
     forceOrder: new FormControl(false),
     forumSubDirectory: new FormControl(false),
+    siteSubDirectory: new FormControl(false),
     threadSubLocation: new FormControl(false),
     clearCompleted: new FormControl(false),
     appendPostId: new FormControl(false),

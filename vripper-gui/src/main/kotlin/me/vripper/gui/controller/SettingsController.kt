@@ -63,6 +63,7 @@ class SettingsController : Controller() {
                         downloadSettingsModel.autoQueueThreshold,
                         downloadSettingsModel.forceOrder,
                         downloadSettingsModel.forumSubfolder,
+                        downloadSettingsModel.siteSubDirectory,
                         downloadSettingsModel.threadSubLocation,
                         downloadSettingsModel.clearCompleted,
                         downloadSettingsModel.appendPostId

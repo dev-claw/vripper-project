@@ -171,7 +171,7 @@ internal class ThreadLookupAPIResponseHandler(
                         securityToken,
                         forum,
                         imageItemList.toList(),
-                        postPrefixId,
+                        postPrefixId.ifBlank { threadPrefixId },
                         postAuthor,
                         postUserId,
                         postDate,

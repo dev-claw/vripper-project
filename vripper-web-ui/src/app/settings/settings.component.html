@@ -68,6 +68,19 @@
         <div style="display: flex; align-items: center">
           <mat-checkbox
             color="primary"
+            formControlName="siteSubDirectory"
+            name="siteSubDirectory"
+            >Create a subfolder per site
+          </mat-checkbox>
+          <mat-icon
+            matTooltip="Gallery will be downloaded inside a sub folder based on the thread prefix"
+            >info</mat-icon
+          >
+        </div>
+
+        <div style="display: flex; align-items: center">
+          <mat-checkbox
+            color="primary"
             formControlName="threadSubLocation"
             name="threadSubLocation"
             >Create a subfolder per thread

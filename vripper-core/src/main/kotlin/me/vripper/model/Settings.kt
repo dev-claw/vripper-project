@@ -50,6 +50,7 @@ data class DownloadSettings(
     val autoQueueThreshold: Int = 1,
     val forceOrder: Boolean = false,
     val forumSubDirectory: Boolean = false,
+    val siteSubDirectory: Boolean = false,
     val threadSubLocation: Boolean = false,
     val clearCompleted: Boolean = false,
     val appendPostId: Boolean = false

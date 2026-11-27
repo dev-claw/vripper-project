@@ -22,6 +22,9 @@ class DownloadSettingsModel {
     val forumSubfolderProperty = SimpleBooleanProperty()
     var forumSubfolder: Boolean by forumSubfolderProperty
 
+    val siteSubDirectoryProperty = SimpleBooleanProperty()
+    var siteSubDirectory: Boolean by siteSubDirectoryProperty
+
     val threadSubLocationProperty = SimpleBooleanProperty()
     var threadSubLocation: Boolean by threadSubLocationProperty
 

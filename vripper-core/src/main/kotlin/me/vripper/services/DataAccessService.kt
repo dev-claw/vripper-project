@@ -292,6 +292,7 @@ internal class DataAccessService(
                 edited = postItem.edited,
                 downloadDirectory = PathUtils.calculateDownloadPath(
                     postItem.forum,
+                    postItem.prefixId,
                     postItem.threadTitle,
                     settings
                 ).pathString,

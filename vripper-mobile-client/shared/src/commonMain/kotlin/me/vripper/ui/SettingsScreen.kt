@@ -274,6 +274,13 @@ private fun DownloadSection(
             },
         )
         SettingsSwitch(
+            label = "Site sub-directories",
+            checked = settings.download.siteSubDirectory,
+            onCheckedChange = { value ->
+                update { it.copy(download = it.download.copy(siteSubDirectory = value)) }
+            },
+        )
+        SettingsSwitch(
             label = "Thread sub-location",
             checked = settings.download.threadSubLocation,
             onCheckedChange = { value ->

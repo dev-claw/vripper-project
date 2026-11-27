@@ -20,6 +20,7 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
         downloadSettingsModel.autoStart = downloadSettings.autoStart
         downloadSettingsModel.forceOrder = downloadSettings.forceOrder
         downloadSettingsModel.forumSubfolder = downloadSettings.forumSubDirectory
+        downloadSettingsModel.siteSubDirectory = downloadSettings.siteSubDirectory
         downloadSettingsModel.threadSubLocation = downloadSettings.threadSubLocation
         downloadSettingsModel.clearCompleted = downloadSettings.clearCompleted
         downloadSettingsModel.appendPostId = downloadSettings.appendPostId
@@ -64,6 +65,11 @@ class DownloadSettingsFragment : Fragment("Download Settings") {
                     field("Organize by category") {
                         checkbox {
                             bind(downloadSettingsModel.forumSubfolderProperty)
+                        }
+                    }
+                    field("Organize by site") {
+                        checkbox {
+                            bind(downloadSettingsModel.siteSubDirectoryProperty)
                         }
                     }
                     field("Organize by thread") {

@@ -23,6 +23,7 @@ message DownloadSettings {
   bool threadSubLocation = 6;
   bool clearCompleted = 7;
   bool appendPostId = 8;
+  bool siteSubDirectory = 9;
 }
 
 message ConnectionSettings {

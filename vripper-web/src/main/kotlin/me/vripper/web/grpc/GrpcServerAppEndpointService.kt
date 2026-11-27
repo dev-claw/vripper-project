@@ -308,6 +308,7 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
                     autoQueueThreshold = request.downloadSettings.autoQueueThreshold,
                     forceOrder = request.downloadSettings.forceOrder,
                     forumSubDirectory = request.downloadSettings.forumSubDirectory,
+                    siteSubDirectory = request.downloadSettings.siteSubDirectory,
                     threadSubLocation = request.downloadSettings.threadSubLocation,
                     clearCompleted = request.downloadSettings.clearCompleted,
                     appendPostId = request.downloadSettings.appendPostId,
@@ -441,6 +442,7 @@ class GrpcServerAppEndpointService : EndpointServiceGrpcKt.EndpointServiceCorout
             autoQueueThreshold = settings.downloadSettings.autoQueueThreshold
             forceOrder = settings.downloadSettings.forceOrder
             forumSubDirectory = settings.downloadSettings.forumSubDirectory
+            siteSubDirectory = settings.downloadSettings.siteSubDirectory
             threadSubLocation = settings.downloadSettings.threadSubLocation
             clearCompleted = settings.downloadSettings.clearCompleted
             appendPostId = settings.downloadSettings.appendPostId

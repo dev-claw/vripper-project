@@ -17,15 +17,18 @@ internal object PathUtils {
 
 
     fun calculateDownloadPath(
-        forum: String, threadTitle: String, settings: Settings
+        forum: String, prefixId: String, threadTitle: String, settings: Settings
     ): Path {
-        var downloadDirectory = if (settings.downloadSettings.forumSubDirectory) Path.of(
-            settings.downloadSettings.downloadPath, sanitize(forum)
-        ) else Path.of(
-            settings.downloadSettings.downloadPath
-        )
-        downloadDirectory =
-            if (settings.downloadSettings.threadSubLocation) downloadDirectory.resolve(threadTitle) else downloadDirectory
+        var downloadDirectory = Path.of(settings.downloadSettings.downloadPath)
+        if (settings.downloadSettings.forumSubDirectory) {
+            downloadDirectory = downloadDirectory.resolve(sanitize(forum))
+        }
+        if (settings.downloadSettings.siteSubDirectory && prefixId.isNotBlank()) {
+            downloadDirectory = downloadDirectory.resolve(sanitize(prefixId))
+        }
+        if (settings.downloadSettings.threadSubLocation) {
+            downloadDirectory = downloadDirectory.resolve(threadTitle)
+        }
         return downloadDirectory
     }
 
